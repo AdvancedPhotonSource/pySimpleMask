@@ -463,8 +463,8 @@ class SimpleMask(object):
         qmax = np.max(qmap_valid)
 
         if mode == 'linear':
-            dqlist = np.linspace(qmin, qmax, dq_num + 1)
-            sqlist = np.linspace(qmin, qmax, sq_num + 1)
+            dqspan = np.linspace(qmin, qmax, dq_num + 1)
+            sqspan = np.linspace(qmin, qmax, sq_num + 1)
             dphi = np.linspace(0, np.pi * 2.0, dp_num + 1)
             sphi = np.linspace(0, np.pi * 2.0, sp_num + 1)
 
@@ -473,28 +473,32 @@ class SimpleMask(object):
 
         # dqval
         for n in range(dq_num):
-            qval = dqlist[n]
+            qval = dqspan[n]
             dqmap_partition[qmap >= qval] = n + 1
-        dqval_list = (dqlist[1:] + dqlist[:-1]) / 2.0
+        dqval_list = (dqspan[1:] + dqspan[:-1]) / 2.0
 
         # sqval
         for n in range(sq_num):
-            qval = sqlist[n]
+            qval = sqspan[n]
             sqmap_partition[qmap >= qval] = n + 1
-        sqval_list = (sqlist[1:] + sqlist[:-1]) / 2.0
+        sqval_list = (sqspan[1:] + sqspan[:-1]) / 2.0
 
         dphi_partition = np.zeros_like(qmap, dtype=np.uint32)
         sphi_partition = np.zeros_like(qmap, dtype=np.uint32)
 
+        # phi partition starts from 0; not 1
         for n in range(dp_num):
             dphi_partition[self.qmap['phi'] >= dphi[n]] = n
         dphival = np.unique(dphi_partition)
         dphival.sort()
+        dphispan = np.linspace(0, 2 * np.pi, dp_num + 1)
 
+        # phi partition starts from 0; not 1
         for n in range(sp_num):
             sphi_partition[self.qmap['phi'] >= sphi[n]] = n
         sphival = np.unique(sphi_partition)
         sphival.sort()
+        sphispan = np.linspace(0, 2 * np.pi, sp_num + 1)
 
         dyn_combined = np.zeros_like(dqmap_partition, dtype=np.uint32)
         sta_combined = np.zeros_like(dqmap_partition, dtype=np.uint32)
@@ -503,30 +507,40 @@ class SimpleMask(object):
         for n in range(dp_num):
             idx = dphi_partition == n
             dyn_combined[idx] = dqmap_partition[idx] + n * dq_num
-        dqlist = np.unique(dqmap_partition, axis=1)
-        dqlist.sort()
 
         # sqmap, sqlist
         for n in range(sp_num):
             idx = sphi_partition == n
             sta_combined[idx] = sqmap_partition[idx] + n * sq_num
-        sqlist = np.unique(sqmap_partition, axis=1)
-        sqlist.sort()
 
         self.data[3] = dyn_combined * self.mask
         self.data[4] = sta_combined * self.mask
         self.hdl.setCurrentIndex(3)
 
+        # sqlist = np.zeros((sp_num, sqval_list.size))
+        # sqlist[:] = sqval_list
+        # dqlist = np.zeros((dp_num, dqval_list.size))
+        # dqlist[:] = dqval_list
+        # convert to 
+
         partition = {
             'dqval': dqval_list,
             'sqval': sqval_list,
             'dynamicMap': dqmap_partition,
-            'dynamicQList': dqlist,
+            # 'dynamicQList': dqlist,
+            # 'staticQList': sqlist,
             'staticMap': sqmap_partition,
-            'staticQList': sqlist,
             'dphival': dphival,
-            'sphival': sphival
-        }
+            'sphival': sphival,
+            'dqspan': dqspan,
+            'sqspan': sqspan,
+            'dphispan': dphispan,
+            'sphispan': sphispan,
+            'dnophi': dp_num,
+            'snophi': sp_num,
+            'dnoq': dq_num,
+            'snoq': sq_num
+            }
         self.new_partition = partition 
 
         return partition 
