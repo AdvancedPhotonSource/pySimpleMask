@@ -44,6 +44,8 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.btn_plot.clicked.connect(self.plot)
         self.btn_editlock.clicked.connect(self.editlock)
         self.btn_compute_qpartition.clicked.connect(self.compute_partition)
+        self.btn_select_raw.clicked.connect(self.select_raw)
+        self.btn_select_blemish.clicked.connect(self.select_blemish)
 
         # need a function for save button -- simple_mask_ui
         self.pushButton.clicked.connect(self.save_mask)
@@ -85,13 +87,27 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
 
         self.groupBox.repaint()
         self.plot()
+    
+    def select_raw(self):
+        fname = QFileDialog.getOpenFileName(self, 'Select raw file hdf')[0]
+        if fname not in [None, '']:
+            self.fname.setText(fname)
+        return
+
+    def select_blemish(self):
+        fname = QFileDialog.getOpenFileName(self, 'Select blemish file')[0]
+        if fname not in [None, '']:
+            self.blemish_fname.setText(fname)
+        return
 
     def load(self):
-        # fname = QFileDialog.getOpenFileName(self, 'Open directory')[0]
-        # fname = './data/H432_OH_100_025C_att05_001/H432_OH_100_025C_att05_001_0001-1000.hdf'
-        # self.fname.setText(os.path.basename(fname))
         fname = self.fname.text()
         blemish_fname = self.blemish_fname.text()
+
+        if not os.path.isfile(blemish_fname):
+            blemish_fname = None
+        if not os.path.isfile(fname):
+            return
 
         self.sm.read_data(fname, blemish_fname)
 
@@ -140,6 +156,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
             'dq_num': self.sb_dqnum.value(),
             'sp_num': self.sb_spnum.value(),
             'dp_num': self.sb_dpnum.value(),
+            'style': self.partition_style.currentText(),
         }
         self.sm.compute_partition(**kwargs)
         self.plot_index.setCurrentIndex(3)
