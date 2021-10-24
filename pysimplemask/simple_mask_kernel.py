@@ -446,7 +446,7 @@ class SimpleMask(object):
     def remove_roi(self, roi):
         self.hdl.remove_item(roi)
 
-    def compute_partition(self, dq_num=10, sq_num=100, mode='linear',
+    def compute_partition(self, dq_num=10, sq_num=100, style='linear',
                           dp_num=36, sp_num=360):
 
         # print(mask)
@@ -462,11 +462,29 @@ class SimpleMask(object):
         qmin = np.min(qmap_valid)
         qmax = np.max(qmap_valid)
 
-        if mode == 'linear':
+        print(style)
+        if style == 'linear':
             dqspan = np.linspace(qmin, qmax, dq_num + 1)
             sqspan = np.linspace(qmin, qmax, sq_num + 1)
             dphi = np.linspace(0, np.pi * 2.0, dp_num + 1)
             sphi = np.linspace(0, np.pi * 2.0, sp_num + 1)
+
+            dqval_list = (dqspan[1:] + dqspan[:-1]) / 2.0
+            sqval_list = (sqspan[1:] + sqspan[:-1]) / 2.0
+
+        elif style == 'logarithmic':
+            qmin = np.log10(qmin)
+            qmax = np.log10(qmax)
+            dqspan = np.logspace(qmin, qmax, dq_num + 1)
+            sqspan = np.logspace(qmin, qmax, sq_num + 1)
+
+            dphi = np.linspace(0, np.pi * 2.0, dp_num + 1)
+            sphi = np.linspace(0, np.pi * 2.0, sp_num + 1)
+
+            dqval_list = np.sqrt(dqspan[1:] * dqspan[:-1])
+            sqval_list = np.sqrt(sqspan[1:] * sqspan[:-1])
+        else:
+            raise ValueError("style not supported")
 
         dqmap_partition = np.zeros_like(qmap, dtype=np.uint32)
         sqmap_partition = np.zeros_like(qmap, dtype=np.uint32)
@@ -475,13 +493,11 @@ class SimpleMask(object):
         for n in range(dq_num):
             qval = dqspan[n]
             dqmap_partition[qmap >= qval] = n + 1
-        dqval_list = (dqspan[1:] + dqspan[:-1]) / 2.0
 
         # sqval
         for n in range(sq_num):
             qval = sqspan[n]
             sqmap_partition[qmap >= qval] = n + 1
-        sqval_list = (sqspan[1:] + sqspan[:-1]) / 2.0
 
         dphi_partition = np.zeros_like(qmap, dtype=np.uint32)
         sphi_partition = np.zeros_like(qmap, dtype=np.uint32)
