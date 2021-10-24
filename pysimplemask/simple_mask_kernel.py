@@ -2,7 +2,8 @@ import os
 import h5py
 import numpy as np
 import pyqtgraph as pg
-import matplotlib.pyplot as plt
+from pyqtgraph.Qt import QtCore
+# import matplotlib.pyplot as plt
 
 
 # import other programs
@@ -23,6 +24,13 @@ def normalize(arr):
         return (arr - vmin) / (vmax - vmin)
     else:
         return np.copy(arr)
+
+
+def add_dimension(x, num):
+    assert x.ndim == 1
+    new_x = np.zeros((num, x.size), dtype=x.dtype)
+    new_x[:] = x
+    return new_x
 
 
 class SimpleMask(object):
@@ -292,6 +300,8 @@ class SimpleMask(object):
 
     def show_saxs(self, cmap='jet', log=True, invert=False, rotate=False,
                   plot_center=True, plot_index=0, **kwargs):
+        if self.meta is None or self.data_raw is None:
+            return
         # self.hdl.reset_limits()
         self.hdl.clear()
         self.data = np.copy(self.data_raw)
@@ -324,8 +334,7 @@ class SimpleMask(object):
 
         return
     
-    # def simulate_mask(self):
-    def add_roi(self, **kwargs):
+    def add_roi_test(self, **kwargs):
         file = '../tests/data/triangle_mask/mask_lambda_test.h5'
         with h5py.File(file, 'r') as hf:
             mask = np.squeeze(hf.get('/mask_triangular')[()])
@@ -340,116 +349,119 @@ class SimpleMask(object):
         self.mask = self.mask * mask
         self.data[1:] *= self.mask
 
-    # def apply_roi(self):
-    #     if len(self.hdl.roi) <= 0:
-    #         return
+    def apply_roi(self):
+        if self.meta is None or self.data_raw is None:
+            return
+        if len(self.hdl.roi) <= 0:
+            return
 
-    #     ones = np.ones(self.data[0].shape, dtype=np.bool)
-    #     mask_n = np.zeros_like(ones, dtype=np.bool)
-    #     mask_e = np.zeros_like(mask_n)
-    #     mask_i = np.zeros_like(mask_n)
+        ones = np.ones(self.data[0].shape, dtype=np.bool)
+        mask_n = np.zeros_like(ones, dtype=np.bool)
+        mask_e = np.zeros_like(mask_n)
+        mask_i = np.zeros_like(mask_n)
 
-    #     for x in self.hdl.roi:
-    #         # get ride of the center plot if it's there
-    #         if isinstance(x, pg.ScatterPlotItem):
-    #             continue
-    #         # else
-    #         mask_temp = np.zeros_like(ones, dtype=np.bool)
-    #         # return slice and transfrom
-    #         sl, _ = x.getArraySlice(self.data[1], self.hdl.imageItem)
-    #         y = x.getArrayRegion(ones, self.hdl.imageItem)
+        for x in self.hdl.roi:
+            # get ride of the center plot if it's there
+            if isinstance(x, pg.ScatterPlotItem):
+                continue
+            # else
+            mask_temp = np.zeros_like(ones, dtype=np.bool)
+            # return slice and transfrom
+            sl, _ = x.getArraySlice(self.data[1], self.hdl.imageItem)
+            y = x.getArrayRegion(ones, self.hdl.imageItem)
 
-    #         # sometimes the roi size returned from getArraySlice and
-    #         # getArrayRegion are different;
-    #         nz_idx = np.nonzero(y)
+            # sometimes the roi size returned from getArraySlice and
+            # getArrayRegion are different;
+            nz_idx = np.nonzero(y)
 
-    #         h_beg = np.min(nz_idx[1])
-    #         h_end = np.max(nz_idx[1])
+            h_beg = np.min(nz_idx[1])
+            h_end = np.max(nz_idx[1])
 
-    #         v_beg = np.min(nz_idx[0])
-    #         v_end = np.max(nz_idx[0])
+            v_beg = np.min(nz_idx[0])
+            v_end = np.max(nz_idx[0])
 
-    #         sl_v = slice(sl[0].start, sl[0].start + v_end - v_beg + 1)
-    #         sl_h = slice(sl[1].start, sl[1].start + h_end - h_beg + 1)
-    #         mask_temp[sl_v, sl_h] = y[v_beg:v_end + 1, h_beg: h_end + 1]
+            sl_v = slice(sl[0].start, sl[0].start + v_end - v_beg + 1)
+            sl_h = slice(sl[1].start, sl[1].start + h_end - h_beg + 1)
+            mask_temp[sl_v, sl_h] = y[v_beg:v_end + 1, h_beg: h_end + 1]
 
-    #         if x.sl_mode == 'exclusive':
-    #             mask_e[mask_temp] = 1
-    #         elif x.sl_mode == 'inclusive':
-    #             mask_i[mask_temp] = 1
+            if x.sl_mode == 'exclusive':
+                mask_e[mask_temp] = 1
+            elif x.sl_mode == 'inclusive':
+                mask_i[mask_temp] = 1
 
-    #     if np.sum(mask_i) == 0:
-    #         mask_i = 1
+        if np.sum(mask_i) == 0:
+            mask_i = 1
 
-    #     mask_p = np.logical_not(mask_e) * mask_i
+        mask_p = np.logical_not(mask_e) * mask_i
 
-    #     self.mask = mask_p
-    #     # self.data[1] = self.data[0] * (1 - mask_p)
-    #     self.data[1] = self.data[0] * mask_p
-    #     self.data[2] = self.mask
-    #     self.hdl.setImage(self.data)
-    #     self.hdl.setCurrentIndex(2)
+        self.mask = mask_p
+        # self.data[1] = self.data[0] * (1 - mask_p)
+        self.data[1] = self.data[0] * mask_p
+        self.data[2] = self.mask
+        self.hdl.setImage(self.data)
+        self.hdl.setCurrentIndex(2)
 
-    #     # print(len(self.mask))
-    #     return self.mask
+        return self.mask
 
-    # def add_roi(self, num_edges=None, radius=60, color='r', sl_type='Polygon',
-    #             width=3, sl_mode='exclusive'):
+    def add_roi(self, num_edges=None, radius=60, color='r', sl_type='Polygon',
+                width=3, sl_mode='exclusive'):
+        self.add_roi_test()
+        return
+        shape = self.data.shape
+        cen = (shape[1] // 2, shape[2] // 2)
+        if sl_mode == 'inclusive':
+            pen = pg.mkPen(color=color, width=width, style=QtCore.Qt.DotLine)
+        else:
+            pen = pg.mkPen(color=color, width=width)
 
-    #     shape = self.data.shape
-    #     cen = (shape[1] // 2, shape[2] // 2)
-    #     if sl_mode == 'inclusive':
-    #         pen = pg.mkPen(color=color, width=width, style=QtCore.Qt.DotLine)
-    #     else:
-    #         pen = pg.mkPen(color=color, width=width)
+        if sl_type == 'Ellipse':
+            new_roi = pg.EllipseROI([cen[1], cen[0]], [60, 80], pen=pen,
+                                    removable=True, hoverPen=pen)
+            # add scale handle
+            new_roi.addScaleHandle([0.5, 0], [0.5, 1])
+            new_roi.addScaleHandle([0.5, 1], [0.5, 0])
+            new_roi.addScaleHandle([0, 0.5], [1, 0.5])
+            new_roi.addScaleHandle([1, 0.5], [0, 0.5])
 
-    #     if sl_type == 'Ellipse':
-    #         new_roi = pg.EllipseROI([cen[1], cen[0]], [60, 80], pen=pen,
-    #                                 removable=True, hoverPen=pen)
-    #         # add scale handle
-    #         new_roi.addScaleHandle([0.5, 0], [0.5, 1])
-    #         new_roi.addScaleHandle([0.5, 1], [0.5, 0])
-    #         new_roi.addScaleHandle([0, 0.5], [1, 0.5])
-    #         new_roi.addScaleHandle([1, 0.5], [0, 0.5])
+        elif sl_type == 'Circle':
+            new_roi = pg.CircleROI([cen[1], cen[0]], [60, 80], pen=pen,
+                                   removable=True, hoverPen=pen)
 
-    #     elif sl_type == 'Circle':
-    #         new_roi = pg.CircleROI([cen[1], cen[0]], [60, 80], pen=pen,
-    #                                removable=True, hoverPen=pen)
+        elif sl_type == 'Polygon':
+            if num_edges is None:
+                num_edges = np.random.random_integers(6, 10)
 
-    #     elif sl_type == 'Polygon':
-    #         if num_edges is None:
-    #             num_edges = np.random.random_integers(6, 10)
+            # add angle offset so that the new rois don't overlap with each other
+            offset = np.random.random_integers(0, 359)
+            theta = np.linspace(0, np.pi * 2, num_edges + 1) + offset
+            x = radius * np.cos(theta) + cen[1]
+            y = radius * np.sin(theta) + cen[0]
+            pts = np.vstack([x, y]).T
+            new_roi = pg.PolyLineROI(pts, closed=True, pen=pen,
+                                     removable=True, hoverPen=pen)
 
-    #         # add angle offset so that the new rois don't overlap with each other
-    #         offset = np.random.random_integers(0, 359)
-    #         theta = np.linspace(0, np.pi * 2, num_edges + 1) + offset
-    #         x = radius * np.cos(theta) + cen[1]
-    #         y = radius * np.sin(theta) + cen[0]
-    #         pts = np.vstack([x, y]).T
-    #         new_roi = pg.PolyLineROI(pts, closed=True, pen=pen,
-    #                                  removable=True, hoverPen=pen)
+        elif sl_type == 'Rectangle':
+            new_roi = pg.RectROI([cen[1], cen[0]], [30, 150], pen=pen,
+                                 removable=True, hoverPen=pen)
+            new_roi.addScaleHandle([0, 0], [1, 1])
+            new_roi.addRotateHandle([0,1], [0.5, 0.5])
 
-    #     elif sl_type == 'Rectangle':
-    #         new_roi = pg.RectROI([cen[1], cen[0]], [30, 150], pen=pen,
-    #                              removable=True, hoverPen=pen)
-    #         new_roi.addScaleHandle([0, 0], [1, 1])
-    #         new_roi.addRotateHandle([0,1], [0.5, 0.5])
+        else:
+            raise TypeError('type not implemented. %s' % sl_type)
 
-    #     else:
-    #         raise TypeError('type not implemented. %s' % sl_type)
-
-    #     new_roi.sl_mode = sl_mode
-    #     self.hdl.add_item(new_roi)
-    #     new_roi.sigRemoveRequested.connect(lambda: self.remove_roi(new_roi))
-    #     return
+        new_roi.sl_mode = sl_mode
+        self.hdl.add_item(new_roi)
+        new_roi.sigRemoveRequested.connect(lambda: self.remove_roi(new_roi))
+        return
 
     def remove_roi(self, roi):
         self.hdl.remove_item(roi)
 
     def compute_partition(self, dq_num=10, sq_num=100, style='linear',
                           dp_num=36, sp_num=360):
+        if self.meta is None or self.data_raw is None:
+            return
 
-        # print(mask)
         if sq_num % dq_num != 0:
             raise ValueError('sq_num must be multiple of dq_num')
 
@@ -462,7 +474,6 @@ class SimpleMask(object):
         qmin = np.min(qmap_valid)
         qmax = np.max(qmap_valid)
 
-        print(style)
         if style == 'linear':
             dqspan = np.linspace(qmin, qmax, dq_num + 1)
             sqspan = np.linspace(qmin, qmax, sq_num + 1)
@@ -533,12 +544,6 @@ class SimpleMask(object):
         self.data[4] = sta_combined * self.mask
         self.hdl.setCurrentIndex(3)
 
-        # sqlist = np.zeros((sp_num, sqval_list.size))
-        # sqlist[:] = sqval_list
-        # dqlist = np.zeros((dp_num, dqval_list.size))
-        # dqlist[:] = dqval_list
-        # convert to 
-
         partition = {
             'dqval': dqval_list,
             'sqval': sqval_list,
@@ -557,6 +562,12 @@ class SimpleMask(object):
             'dnoq': dq_num,
             'snoq': sq_num
             }
+
+        for key in ['dphival', 'dqspan', 'dqval']:
+            partition[key] = add_dimension(partition[key], dp_num)
+        for key in ['sphival', 'sqspan', 'sqval']:
+            partition[key] = add_dimension(partition[key], sp_num)
+
         self.new_partition = partition 
 
         return partition 
