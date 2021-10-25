@@ -150,7 +150,6 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
 
     def compute_partition(self):
         # mask = self.apply_roi()
-        # self.test_output("test", mask)
         kwargs = {
             'sq_num': self.sb_sqnum.value(),
             'dq_num': self.sb_dqnum.value(),
@@ -158,6 +157,20 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
             'dp_num': self.sb_dpnum.value(),
             'style': self.partition_style.currentText(),
         }
+
+        # make sure the static value is a multiple of the dynamic value
+        if kwargs['sq_num'] % kwargs['dq_num'] != 0:
+            t = (kwargs['sq_num'] + kwargs['dq_num'] - 1) // kwargs['dq_num']
+            t = t * kwargs['dq_num']
+            kwargs['sq_num'] = t
+            self.sb_sqnum.setValue(t)
+
+        if kwargs['sp_num'] % kwargs['dp_num'] != 0:
+            t = (kwargs['sp_num'] + kwargs['dp_num'] - 1) // kwargs['dp_num']
+            t = t * kwargs['dp_num']
+            kwargs['sp_num'] = t
+            self.sb_spnum.setValue(t)
+
         self.sm.compute_partition(**kwargs)
         self.plot_index.setCurrentIndex(3)
 
