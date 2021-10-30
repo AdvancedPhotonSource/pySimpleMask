@@ -28,7 +28,7 @@ def plot_1d(v1, v2):
 
 
 
-def plot_2d(v1, v2):
+def plot_2d(v1, v2, title=None):
     print('v1', np.min(v1), np.max(v1), np.mean(v1), v1.shape)
     print('v2', np.min(v2), np.max(v2), np.mean(v2), v2.shape)
     print('diff', np.sum(np.abs(v1 * 1.0 - v2 * 1.0)))
@@ -46,6 +46,8 @@ def plot_2d(v1, v2):
 
     im2 = axes[2].imshow(v1 * 1.0 - v2 * 1.0)
     fig.colorbar(im2, ax=axes[2])
+    if title is not None:
+        fig.suptitle(title)
     plt.show()
 
 
@@ -55,10 +57,10 @@ def compare(key='/data/Maps/q'):
     if v1.ndim == 1:
         plot_1d(v1, v2)
     elif v1.ndim == 2:
-        plot_2d(v1, v2)
+        plot_2d(v1, v2, key)
 
 
-# compare(key='/data/Maps/q')
-# compare(key='/data/dynamicMap')
-# compare(key='/data/staticMap')
+compare(key='/data/Maps/q')
+compare(key='/data/dynamicMap')
+compare(key='/data/staticMap')
 compare(key='/data/dqval')
