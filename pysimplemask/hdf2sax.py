@@ -1,4 +1,6 @@
 import h5py
+import hdf5plugin
+
 
 
 def hdf2saxs(fname, beg_idx=0, num_frames=-1):
