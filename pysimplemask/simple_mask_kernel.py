@@ -126,66 +126,47 @@ class SimpleMask(object):
                 data.create_dataset(key, data=val)
         print('partition map is saved')
 
-    def ver_hdf(self, file):
-        with h5py.File(file, 'r') as hf:
-            if file.endswith('.hdf'):
+    def verify_metadata_hdf(self, file):
+        try:
+            with h5py.File(file, 'r') as hf:
                 if '/measurement/instrument/acquisition' in hf:
                     return True
                 else:
                     return False
-            else:
-                return False
+        except Exception:
+            return False
 
-    def file_search(self, fname):
+    def get_scattering(self, fname, num_frames=-1, beg_idx=0, **kwargs):
         # seeks directory of existing hdf program
-        root = os.path.dirname(os.path.abspath(fname))
-        dir_path = os.path.dirname(os.path.realpath(fname))
-        files = [f for f in os.listdir(
-            dir_path) if os.path.isfile(os.path.join(dir_path, f))]
-        for root, dirs, files in os.walk(dir_path):
-            for fname in files:
+        dirname = os.path.dirname(os.path.realpath(fname))
+        files = os.listdir(os.path.dirname(os.path.realpath(fname)))
 
-                if fname.endswith('.bin'):
-                    print("-----------.bin found.-----------")
-                    bin_file = root+'/'+str(fname)
-                    # print(bin_file)
-                    reader = RigakuReader(bin_file)
-                    img_2D = reader.load()
-                    # check if 2d array
-                    # print( len(img_2D. shape))
-                    return img_2D
+        for fname in files:
+            if fname.endswith('.bin'):
+                print("-----------.bin found.-----------")
+                bin_file = os.path.join(dirname, fname)
+                reader = RigakuReader(bin_file)
+                saxs = reader.load()
+                return saxs 
 
-                # seeks .imm file
-                elif fname.endswith('.imm'):
-                    print("-----------.imm found.-----------")
-                    imm_file = root+'/'+str(fname)
-                    # print(imm_file)
-                    reader = IMMReader8ID(imm_file)
-                    img_2D = reader.calc_avg_pixel()
-                    # check if 2d array
-                    # print( len(img_2D. shape))
-                    return img_2D
+            # seeks .imm file
+            elif fname.endswith('.imm'):
+                print("-----------.imm found.-----------")
+                imm_file = os.path.join(dirname, fname)
+                reader = IMMReader8ID(imm_file)
+                saxs = reader.calc_avg_pixel()
+                return saxs
 
-                # seeks .h5 file
-                elif fname.endswith('.h5'):
-                    print("-----------.h5 found.-----------")
-                    h5_file = root+'/'+str(fname)
-                    # print(h5_file)
-                    with h5py.File(h5_file, 'r') as hf:
-                        e = '/entry/data/data' in hf
-                        if e == True:
-                            # correct h5 file, contains raw data
-                            print("h5 raw data fname found.")
-                            y = hdf2saxs(h5_file, num_frames=100)
-                            assert y.ndim == 2
-                            # check if 2d array
-                            # print( len(y. shape))
-                            return y
-                        else:
-                            print(
-                                "You appeared to have inputted an incorrect or incorrectly formatted h5 file.")
-                            return None
-
+            # seeks .h5 file
+            elif fname.endswith('.h5') or fname.endswith('.hdf'):
+                hdf_file = os.path.join(dirname, fname)
+                with h5py.File(hdf_file, 'r') as hf:
+                    if '/entry/data/data' in hf:
+                        # correct h5 file, contains raw data
+                        print("-----------.hdf/.h5 found.-----------")
+                        saxs = hdf2saxs(hdf_file, beg_idx=beg_idx,
+                                     num_frames=num_frames)
+                        return saxs 
         return None
     
     
@@ -196,10 +177,10 @@ class SimpleMask(object):
     
 #-------------------------------------------------------------------------------------------------
     # generate 2d saxs
-    def read_data(self, fname=None, blemish_fname=None, text_fname=None):
+    def read_data(self, fname=None, blemish_fname=None, text_fname=None,
+                  **kwargs):
         # blemish file if the fname is specified;
         if blemish_fname is not None:
-            
             x_list, y_list = self.read_txt(text_fname)        
             with h5py.File(blemish_fname, 'r') as hf:
                 blemish = np.squeeze(hf.get('/lambda_pre_mask')[()])
@@ -211,12 +192,12 @@ class SimpleMask(object):
         else:
             blemish = None
 
-        if not self.ver_hdf(fname):
-            raise ValueError('check raw file')
+        if not self.verify_metadata_hdf(fname):
+            # raise ValueError('check raw file')
+            print('the selected file is not a valid metadata hdf file')
+            return
 
-        with h5py.File(fname, 'r') as f:
-            saxs = self.file_search(fname)
-
+        saxs = self.get_scattering(fname, **kwargs)
         self.meta = self.load_meta(fname)
 
         # keep same
@@ -228,6 +209,9 @@ class SimpleMask(object):
                 blemish = blemish.swapaxis(0, 1)
             self.mask = blemish
 
+        # idx = saxs < 10
+        # self.mask = self.mask * idx
+        saxs = saxs * self.mask
         self.shape = self.data_raw[0].shape
         self.qmap = self.compute_qmap()
         self.extent = self.compute_extent()
@@ -333,7 +317,6 @@ class SimpleMask(object):
             temp = np.max(self.data[0]) - self.data[0]
             self.data[0] = temp
 
-        # <----------------------------------------------
         self.hdl.setImage(self.data)
         self.hdl.adjust_viewbox()
         self.hdl.set_colormap(cmap)
@@ -417,7 +400,7 @@ class SimpleMask(object):
 
         mask_p = np.logical_not(mask_e) * mask_i
 
-        self.mask = mask_p
+        self.mask = self.mask * mask_p
         # self.data[1] = self.data[0] * (1 - mask_p)
         self.data[1] = self.data[0] * mask_p
         self.data[2] = self.mask
