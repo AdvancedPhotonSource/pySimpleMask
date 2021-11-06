@@ -3,6 +3,7 @@ import h5py
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
+import skimage.io as skio
 
 # import matplotlib.pyplot as plt
 
@@ -168,22 +169,46 @@ class SimpleMask(object):
                         return saxs
         return None
 
-    # generate 2d saxs
-    def read_data(self, fname=None, blemish_fname=None, text_fname=None,
-                  **kwargs):
-        # blemish file if the fname is specified;
-        if blemish_fname is not None:
-            x_list, y_list = self.read_txt(text_fname)
-            with h5py.File(blemish_fname, 'r') as hf:
-                blemish = np.squeeze(hf.get('/lambda_pre_mask')[()])
-                blemish = np.rot90(blemish, 3)
-                blemish = np.flip(blemish, 1)
+    def apply_mask_file(self, fname=None, key=None):
+        if not os.path.isfile(fname):
+            return
 
-            for i in range(len(x_list)):
-                blemish[x_list[i]][y_list[i]] = 0
+        _, ext = os.path.splitext(fname)
+
+        if ext in ['.hdf', '.h5', '.hdf5']:
+            try:
+                with h5py.File(fname, 'r') as f:
+                    mask = f[key][()]
+            except Exception:
+                print('cannot read the hdf file, check path')
+                return
+        elif ext in ['.tiff', '.tif']:
+            mask = skio.imread(fname).astype(np.int)
         else:
-            blemish = None
+            print('only support tif and hdf file.')
+            return
+        mask = (mask > 0)
+        self.update_mask(mask)
+    
+    def update_mask(self, new_mask, mode='and'):
+        if new_mask.shape != self.mask.shape:
+            new_mask = np.swapaxes(new_mask, 0, 1)
+        if new_mask.shape != self.mask.shape:
+            print('the mask file does a different shape. abort')
+            print(new_mask.shape, self.mask.shape)
+            return
 
+        if mode == 'and':
+            self.mask *= new_mask
+            self.data
+        elif mode == 'replace':
+            self.mask[:, :] = new_mask
+
+        self.data[1:] *= self.mask
+        return
+
+    # generate 2d saxs
+    def read_data(self, fname=None, blemish_fname=None, **kwargs):
         if not self.verify_metadata_hdf(fname):
             # raise ValueError('check raw file')
             print('the selected file is not a valid metadata hdf file.')
@@ -198,12 +223,10 @@ class SimpleMask(object):
 
         # keep same
         self.data_raw = np.zeros(shape=(5, *saxs.shape))
-        if blemish is None:
-            self.mask = np.ones(saxs.shape, dtype=np.bool)
-        else:
-            if saxs.shape != blemish.shape:
-                blemish = blemish.swapaxis(0, 1)
-            self.mask = blemish
+        self.mask = np.ones(saxs.shape, dtype=np.bool)
+
+        if blemish_fname is not None:
+            self.apply_mask_file(blemish_fname, **kwargs)
 
         # idx = saxs < 10
         # self.mask = self.mask * idx
@@ -336,13 +359,6 @@ class SimpleMask(object):
 
         print("mask selected")
         return mask
-
-    def preview_mask(self, file):
-        print("test")
-
-    def apply_mask(self, mask):
-        self.mask = self.mask * mask
-        self.data[1:] *= self.mask
 
     def apply_roi(self):
 
