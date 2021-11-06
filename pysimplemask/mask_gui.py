@@ -44,10 +44,9 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.btn_plot.clicked.connect(self.plot)
         self.btn_editlock.clicked.connect(self.editlock)
         self.btn_compute_qpartition.clicked.connect(self.compute_partition)
-        self.btn_select_raw.clicked.connect(self.select_raw) # ... 
-        self.btn_select_blemish.clicked.connect(self.select_blemish) # ... 
-        self.btn_select_txt.clicked.connect(self.select_txt) # ... 
-        
+        self.btn_select_raw.clicked.connect(self.select_raw)  # ...
+        self.btn_select_blemish.clicked.connect(self.select_blemish)  # ...
+        self.btn_select_txt.clicked.connect(self.select_txt)  # ...
 
         # need a function for save button -- simple_mask_ui
         self.pushButton.clicked.connect(self.save_mask)
@@ -55,10 +54,9 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.plot_index.currentIndexChanged.connect(self.mp1.setCurrentIndex)
 
         # debug;
-        # C:/Users/jeffr/Desktop/data/H432_OH_100_025C_att05_001/H432_OH_100_025C_att05_001_0001-1000.hdf
         self.blemish_fname.setText('')
-        self.save_fname.setText('')     
-        
+        self.save_fname.setText('')
+
         # self.save_fname.setText('../tests/data/qmap_output_simplemask.hdf')
         self.fname.setText('')
 
@@ -66,17 +64,19 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.sm = SimpleMask(self.mp1, self.infobar)
         self.mp1.sigTimeChanged.connect(self.update_index)
         self.state = 'lock'
-        
-        
+
         # ---------------------------------------------------------------------------------
         # preloaded mask - in progress
-        
-        self.mask_fname.clicked.connect(self.select_mask_file) # ...   
+
+        self.mask_fname.clicked.connect(self.select_mask_file)  # ...
         # buttons for select, preview, apply mask
-        self.pushButton_2.clicked.connect(self.select_mask) #select --> select_mask
-        self.pushButton_4.clicked.connect(self.preview_mask) #preview --> preview_mask
-        self.pushButton_3.clicked.connect(self.apply_mask) # apply--> apply_mask
-        
+        self.pushButton_2.clicked.connect(
+            self.select_mask)  # select --> select_mask
+        self.pushButton_4.clicked.connect(
+            self.preview_mask)  # preview --> preview_mask
+        self.pushButton_3.clicked.connect(
+            self.apply_mask)  # apply--> apply_mask
+
         # ---------------------------------------------------------------------------------
         self.show()
 
@@ -103,7 +103,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
 
         self.groupBox.repaint()
         self.plot()
-    
+
     def select_raw(self):
         fname = QFileDialog.getOpenFileName(self, 'Select raw file hdf')[0]
         if fname not in [None, '']:
@@ -115,13 +115,11 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         if fname not in [None, '']:
             self.blemish_fname.setText(fname)
         return
-    
 
     def load(self):
         fname = self.fname.text()
         blemish_fname = self.blemish_fname.text()
-        text_fname = self.text_fname.text() 
-
+        text_fname = self.text_fname.text()
 
         if not os.path.isfile(blemish_fname):
             blemish_fname = None
@@ -144,7 +142,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
             'cmap': self.plot_cmap.currentText(),
             'log': self.plot_log.isChecked(),
             'invert': self.plot_invert.isChecked(),
-            'rotate': self.plot_rotate.isChecked(),
+            # 'rotate': self.plot_rotate.isChecked(),
             'plot_center': self.plot_center.isChecked(),
         }
         self.sm.show_saxs(**kwargs)
@@ -152,7 +150,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
 
     def add_roi(self):
         color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
-                self.cb_selector_color.currentIndex()]
+            self.cb_selector_color.currentIndex()]
         kwargs = {
             'color': color,
             'sl_type': self.cb_selector_type.currentText(),
@@ -186,43 +184,40 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         save_fname = self.save_fname.text()
         self.sm.save_partition(save_fname)
 
-
     # ---------------------------------------------------------------------------------
     # preloaded mask - in progress
-    
+
     def select_mask_file(self):
         fname = QFileDialog.getOpenFileName(self, 'Select mask')[0]
         if fname not in [None, '']:
             self.mask_preload.setText(fname)
-            
-        return 
-    
+
+        return
+
     def select_mask(self):
-        mask_preload = self.mask_preload.text() # file for mask
-        mask_directory = self.mask_directory.text() # directory in hdf
+        mask_preload = self.mask_preload.text()  # file for mask
+        mask_directory = self.mask_directory.text()  # directory in hdf
 
         self.mask = self.sm.select_mask(mask_preload, mask_directory)
-        
-    # ask miaoqi for help        
+
+    # ask miaoqi for help
     def preview_mask(self):
         self.sm.preview_mask(self.mask)
         # self.plot_index.setCurrentIndex(5)
-        
-    def apply_mask(self):     
+
+    def apply_mask(self):
         self.sm.apply_mask(self.mask)
-        
-    # ---------------------------------------------------------------------------------        
-    # modify blemish    
-        
+
+    # ---------------------------------------------------------------------------------
+    # modify blemish
+
     def select_txt(self):
         fname = QFileDialog.getOpenFileName(self, 'Select text file')[0]
         if fname not in [None, '']:
             self.text_fname.setText(fname)
-        return        
-        
+        return
 
-        
-    def test(self):     
+    def test(self):
         print("test")
     # ---------------------------------------------------------------------------------
 

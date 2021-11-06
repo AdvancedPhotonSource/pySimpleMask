@@ -15,7 +15,6 @@ from hdf2sax import hdf2saxs
 pg.setConfigOptions(imageAxisOrder='row-major')
 
 
-
 def normalize(arr):
     # normalize arr so it's range is between 0 and 1
     vmin = np.min(arr)
@@ -147,7 +146,7 @@ class SimpleMask(object):
                 bin_file = os.path.join(dirname, fname)
                 reader = RigakuReader(bin_file)
                 saxs = reader.load()
-                return saxs 
+                return saxs
 
             # seeks .imm file
             elif fname.endswith('.imm'):
@@ -165,39 +164,36 @@ class SimpleMask(object):
                         # correct h5 file, contains raw data
                         print("-----------.hdf/.h5 found.-----------")
                         saxs = hdf2saxs(hdf_file, beg_idx=beg_idx,
-                                     num_frames=num_frames)
-                        return saxs 
+                                        num_frames=num_frames)
+                        return saxs
         return None
-    
-    
-    
-    
-    
-    
-    
-#-------------------------------------------------------------------------------------------------
+
     # generate 2d saxs
     def read_data(self, fname=None, blemish_fname=None, text_fname=None,
                   **kwargs):
         # blemish file if the fname is specified;
         if blemish_fname is not None:
-            x_list, y_list = self.read_txt(text_fname)        
+            x_list, y_list = self.read_txt(text_fname)
             with h5py.File(blemish_fname, 'r') as hf:
                 blemish = np.squeeze(hf.get('/lambda_pre_mask')[()])
                 blemish = np.rot90(blemish, 3)
                 blemish = np.flip(blemish, 1)
-                
+
             for i in range(len(x_list)):
-                blemish[x_list[i]][y_list[i]] = 0              
+                blemish[x_list[i]][y_list[i]] = 0
         else:
             blemish = None
 
         if not self.verify_metadata_hdf(fname):
             # raise ValueError('check raw file')
-            print('the selected file is not a valid metadata hdf file')
+            print('the selected file is not a valid metadata hdf file.')
             return
 
         saxs = self.get_scattering(fname, **kwargs)
+        if saxs is None:
+            print('cannot read the scattering data from raw data file.')
+            return
+
         self.meta = self.load_meta(fname)
 
         # keep same
@@ -224,12 +220,12 @@ class SimpleMask(object):
         saxs_mask = saxs * self.mask
         min_val = np.min(saxs_mask[self.mask > 0.5])
         saxs_mask[self.mask < 0.5] = min_val
-        self.data_raw[1] =saxs_mask 
+        self.data_raw[1] = saxs_mask
         self.data_raw[2] = self.mask
 
     def compute_qmap(self):
         k0 = 2 * np.pi / (12.398 / self.meta['energy'])
-        v = np.arange(self.shape[0], dtype=np.uint32) - self.meta['bcy'] 
+        v = np.arange(self.shape[0], dtype=np.uint32) - self.meta['bcy']
         h = np.arange(self.shape[1], dtype=np.uint32) - self.meta['bcx']
         vg, hg = np.meshgrid(v, h, indexing='ij')
 
@@ -330,13 +326,8 @@ class SimpleMask(object):
         self.hdl.setCurrentIndex(plot_index)
 
         return
-    
+
     def select_mask(self, mask_preload, mask_directory):
-        
-        # with h5py.File(mask_preload, 'r') as hf:
-        #     mask = np.squeeze(hf.get(mask_directory)[()])
-        #     mask = np.rot90(mask, 3)
-        #     mask = np.flip(mask, 1)
 
         with h5py.File(mask_preload, 'r') as hf:
             mask = np.squeeze(hf.get('/mask_triangular')[()])
@@ -346,7 +337,6 @@ class SimpleMask(object):
         print("mask selected")
         return mask
 
-
     def preview_mask(self, file):
         print("test")
 
@@ -355,7 +345,7 @@ class SimpleMask(object):
         self.data[1:] *= self.mask
 
     def apply_roi(self):
-        
+
         if self.meta is None or self.data_raw is None:
             return
         if len(self.hdl.roi) <= 0:
@@ -411,8 +401,8 @@ class SimpleMask(object):
 
     def add_roi(self, num_edges=None, radius=60, color='r', sl_type='Polygon',
                 width=3, sl_mode='exclusive'):
-        
-        # self.add_roi_test() 
+
+        # self.add_roi_test()
         # return
 
         shape = self.data.shape
@@ -452,7 +442,7 @@ class SimpleMask(object):
             new_roi = pg.RectROI([cen[1], cen[0]], [30, 150], pen=pen,
                                  removable=True, hoverPen=pen)
             new_roi.addScaleHandle([0, 0], [1, 1])
-            new_roi.addRotateHandle([0,1], [0.5, 0.5])
+            new_roi.addRotateHandle([0, 1], [0.5, 0.5])
 
         else:
             raise TypeError('type not implemented. %s' % sl_type)
@@ -569,21 +559,21 @@ class SimpleMask(object):
             'snophi': sp_num,
             'dnoq': dq_num,
             'snoq': sq_num
-            }
+        }
 
         for key in ['dphival', 'dqspan', 'dqval']:
             partition[key] = add_dimension(partition[key], dp_num)
         for key in ['sphival', 'sqspan', 'sqval']:
             partition[key] = add_dimension(partition[key], sp_num)
 
-        self.new_partition = partition 
+        self.new_partition = partition
 
-        return partition 
+        return partition
 
     def update_parameters(self, val):
         assert(len(val) == 5)
         for idx, key in enumerate(
-            ['bcx', 'bcy', 'energy', 'pix_dim', 'det_dist']):
+                ['bcx', 'bcy', 'energy', 'pix_dim', 'det_dist']):
             self.meta[key] = val[idx]
         self.qmap = self.compute_qmap()
 
@@ -592,7 +582,6 @@ class SimpleMask(object):
         for key in ['bcx', 'bcy', 'energy', 'pix_dim', 'det_dist']:
             val.append(self.meta[key])
         return val
-
 
     def read_txt(self, file):
         x_list = []
@@ -603,7 +592,6 @@ class SimpleMask(object):
                 x_list.append(int(x) - 1)
                 y_list.append(int(y) - 1)
         return x_list, y_list
-
 
 
 def test01():
