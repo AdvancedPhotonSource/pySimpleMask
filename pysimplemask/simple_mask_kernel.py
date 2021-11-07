@@ -204,8 +204,19 @@ class SimpleMask(object):
         elif mode == 'replace':
             self.mask[:, :] = new_mask
 
-        self.data[1:] *= self.mask
+        self.data[1:-1] *= self.mask
         return
+ 
+    def apply_threshold(self, low=0, high=1e8, scale='linear'):
+        if scale == 'linear':
+            low = np.log10(max(1e-12, low))
+            high = np.log10(max(1e-12, high))
+        mask = (self.data[0] > low) * (self.data[0] < high)
+        self.data[-1] = mask
+        print(np.max(self.data[0]), np.min(self.data[0]))
+        print(low, high)
+        print(self.data.shape, np.sum(mask == 0))
+        return mask
 
     # generate 2d saxs
     def read_data(self, fname=None, blemish_fname=None, **kwargs):
@@ -222,7 +233,7 @@ class SimpleMask(object):
         self.meta = self.load_meta(fname)
 
         # keep same
-        self.data_raw = np.zeros(shape=(5, *saxs.shape))
+        self.data_raw = np.zeros(shape=(6, *saxs.shape))
         self.mask = np.ones(saxs.shape, dtype=np.bool)
 
         if blemish_fname is not None:

@@ -57,16 +57,14 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.mp1.sigTimeChanged.connect(self.update_index)
         self.state = 'lock'
 
-        # ---------------------------------------------------------------------------------
-        # preloaded mask - in progress
 
         self.btn_select_maskfile.clicked.connect(self.select_maskfile)
         self.btn_select_blemish.clicked.connect(self.select_blemish)
-
+        # link mask functions;
         self.btn_apply_blemish.clicked.connect(self.apply_blemish)
         self.btn_apply_maskfile.clicked.connect(self.apply_maskfile)
+        self.btn_binary_threshold_apply.clicked.connect(self.apply_threshold)
 
-        # ---------------------------------------------------------------------------------
         self.show()
 
     def update_index(self):
@@ -192,6 +190,16 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         }
         self.sm.compute_partition(**kwargs)
         self.plot_index.setCurrentIndex(3)
+
+    def apply_threshold(self):
+        kwargs = {
+            'low': self.binary_threshold_low.value(),
+            'high': self.binary_threshold_high.value(),
+            'scale': ['linear', 'log'][self.binary_scale.currentIndex()]
+        }
+        self.sm.apply_threshold(**kwargs)
+        self.plot_index.setCurrentIndex(0)
+        self.plot_index.setCurrentIndex(5)
 
     def save_mask(self):
         if self.sm.new_partition is None:
