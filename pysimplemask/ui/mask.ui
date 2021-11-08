@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1404</width>
-    <height>952</height>
+    <height>930</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -32,7 +32,7 @@
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
-      <widget class="QWidget" name="">
+      <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
          <widget class="QGroupBox" name="groupBox">
@@ -883,6 +883,26 @@
                   <string>Threshold: (acts on the scattering image)</string>
                  </property>
                  <layout class="QGridLayout" name="gridLayout_15">
+                  <item row="0" column="3">
+                   <widget class="QDoubleSpinBox" name="binary_threshold_high">
+                    <property name="maximum">
+                     <double>100000.000000000000000</double>
+                    </property>
+                    <property name="singleStep">
+                     <double>100.000000000000000</double>
+                    </property>
+                    <property name="value">
+                     <double>100000.000000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_26">
+                    <property name="text">
+                     <string>low:</string>
+                    </property>
+                   </widget>
+                  </item>
                   <item row="0" column="1">
                    <widget class="QDoubleSpinBox" name="binary_threshold_low">
                     <property name="maximum">
@@ -907,7 +927,7 @@
                   <item row="0" column="5">
                    <widget class="QPushButton" name="btn_binary_threshold_apply">
                     <property name="text">
-                     <string>apply</string>
+                     <string>preview</string>
                     </property>
                    </widget>
                   </item>
@@ -924,23 +944,10 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="0" column="0">
-                   <widget class="QLabel" name="label_26">
+                  <item row="0" column="6">
+                   <widget class="QPushButton" name="pushButton_3">
                     <property name="text">
-                     <string>low:</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="3">
-                   <widget class="QDoubleSpinBox" name="binary_threshold_high">
-                    <property name="maximum">
-                     <double>100000.000000000000000</double>
-                    </property>
-                    <property name="singleStep">
-                     <double>100.000000000000000</double>
-                    </property>
-                    <property name="value">
-                     <double>100000.000000000000000</double>
+                     <string>apply</string>
                     </property>
                    </widget>
                   </item>
@@ -1007,7 +1014,7 @@
                <item row="0" column="0">
                 <layout class="QGridLayout" name="gridLayout_18">
                  <item row="0" column="0" rowspan="4">
-                  <widget class="QTableWidget" name="tableWidget">
+                  <widget class="QTableWidget" name="mask_manual_xylist">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
                      <horstretch>0</horstretch>
@@ -1030,42 +1037,35 @@
                   </widget>
                  </item>
                  <item row="0" column="1">
-                  <widget class="QCheckBox" name="checkBox">
+                  <widget class="QCheckBox" name="mask_manual_1based">
                    <property name="text">
                     <string>1-based</string>
                    </property>
                   </widget>
                  </item>
                  <item row="0" column="2">
-                  <widget class="QCheckBox" name="checkBox_2">
+                  <widget class="QCheckBox" name="mask_manual_colrow">
                    <property name="text">
                     <string>col-row</string>
                    </property>
                   </widget>
                  </item>
                  <item row="0" column="3">
-                  <widget class="QPushButton" name="pushButton_8">
+                  <widget class="QPushButton" name="btn_mask_manual_load">
                    <property name="text">
                     <string>load</string>
                    </property>
                   </widget>
                  </item>
                  <item row="1" column="3" rowspan="2">
-                  <widget class="QPushButton" name="pushButton_10">
+                  <widget class="QPushButton" name="mask_manual_add">
                    <property name="text">
                     <string>add points</string>
                    </property>
                   </widget>
                  </item>
-                 <item row="3" column="3">
-                  <widget class="QPushButton" name="pushButton_7">
-                   <property name="text">
-                    <string>Preview</string>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="1" column="1" rowspan="2" colspan="2">
-                  <widget class="QLineEdit" name="lineEdit_3">
+                  <widget class="QLineEdit" name="mask_manual_input">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                      <horstretch>0</horstretch>
@@ -1077,6 +1077,20 @@
                    </property>
                    <property name="placeholderText">
                     <string>(x1, y1), (x2, y2), ...</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="2">
+                  <widget class="QPushButton" name="pushButton_7">
+                   <property name="text">
+                    <string>Preview</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="3">
+                  <widget class="QPushButton" name="pushButton_2">
+                   <property name="text">
+                    <string>apply</string>
                    </property>
                   </widget>
                  </item>
@@ -1388,16 +1402,6 @@
      </widget>
     </item>
    </layout>
-  </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>1404</width>
-     <height>22</height>
-    </rect>
-   </property>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
