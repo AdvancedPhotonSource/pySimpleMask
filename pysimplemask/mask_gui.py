@@ -103,6 +103,12 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.btn_mask_threshold_apply.clicked.connect(
             lambda: self.mask_apply('mask_threshold'))
 
+        # btn_mask_outlier_evaluate
+        self.btn_mask_outlier_evaluate.clicked.connect(
+            lambda: self.mask_evaluate('mask_outlier'))
+        self.btn_mask_outlier_apply.clicked.connect(
+            lambda: self.mask_apply('mask_outlier'))
+
         self.show()
 
     def mask_evaluate(self, target=None):
@@ -139,6 +145,14 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
                 'high': self.binary_threshold_high.value(),
                 'scale': ['linear', 'log'][self.binary_scale.currentIndex()]
             }
+        elif target == 'mask_outlier':
+            num_roi = self.outlier_num_roi.value()
+            cutoff = self.outlier_cutoff.value()
+            iterations = self.outlier_iterations.value()
+
+            self.sm.compute_saxs_outlier(num_roi)
+
+
         self.sm.mask_evaluate(target, **kwargs)
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(5)
