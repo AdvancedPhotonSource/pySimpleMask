@@ -93,34 +93,40 @@ class MaskThreshold(MaskBase):
         mask = (saxs_log > low) * (saxs_log < high)
         mask = np.logical_not(mask)
         self.zero_loc = np.array(np.nonzero(mask))
- 
+
 
 class MaskArray(MaskBase):
     def __init__(self, shape=(512, 1024)) -> None:
         super().__init__(shape=shape)
-    
-    def evaluate(self, arr):
-        self.zero_loc = np.array(np.nonzero(arr))
+
+    def evaluate(self, arr=None):
+        if arr is not None:
+            self.zero_loc = np.array(np.nonzero(arr))
 
 
 class MaskAssemble():
     def __init__(self, shape) -> None:
         self.workers = {
-            'blemish_file': MaskFile(shape),
+            'mask_blemish': MaskFile(shape),
             'mask_file': MaskFile(shape),
-            'threshold': MaskThreshold(shape),
-            'mask_list': MaskList(shape)
+            'mask_threshold': MaskThreshold(shape),
+            'mask_list': MaskList(shape),
+            'mask_draw': MaskArray(shape),
+            'mask_outlier': MaskArray(shape),
         }
 
     def evaluate(self, target, **kwargs):
         self.workers[target].evaluate(**kwargs)
+
+    def get_one_mask(self, target):
+        return self.workers[target].get_mask()
 
     def get_mask(self):
         mask = None
         for key in self.workers.keys():
             mask = self.workers[key].combine_mask(mask)
         return mask
-    
+
     def show_mask(self):
         plt.imshow(self.get_mask())
         plt.show()
@@ -149,8 +155,9 @@ def test_03(shape=(512, 1024)):
 def test_04(shape=(512, 1024)):
     ma = MaskAssemble(shape)
     ma.evaluate('blemish_file', fname='test_qmap.h5', key='/data/mask')
-    ma.evaluate('mask_list', zero_loc=np.array([[1, 2, 3], [1, 2, 3]], dtype=np.int64))
+    ma.evaluate('mask_list', zero_loc=np.array(
+        [[1, 2, 3], [1, 2, 3]], dtype=np.int64))
     ma.show_mask()
 
 
-test_03()
+# test_03()
