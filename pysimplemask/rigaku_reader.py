@@ -21,6 +21,8 @@ class RigakuReader():
             img = csr_matrix((pix_count, (pix_frame, pix_ind)), shape=(
                 max(pix_frame)+1, 1024*512), dtype='float')
             img_2D = np.transpose(img.mean(axis=0).reshape(512, 1024))
+            # convert matrix to array
+            img_2D = np.array(img_2D)
         return img_2D
 
     def plot(self, img_2D):
