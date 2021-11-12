@@ -70,27 +70,38 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.btn_mask_list_load.clicked.connect(self.mask_list_load)
         self.btn_mask_list_clear.clicked.connect(self.mask_list_clear)
         self.btn_mask_list_add.clicked.connect(self.mask_list_add)
+
         self.btn_mask_list_evaluate.clicked.connect(
             lambda: self.mask_evaluate('mask_list'))
+        self.btn_mask_list_apply.clicked.connect(
+            lambda: self.mask_apply('mask_list'))
     
         # blemish
         self.btn_select_blemish.clicked.connect(self.select_blemish)
         self.btn_apply_blemish.clicked.connect(
             lambda: self.mask_evaluate('mask_blemish'))
+        self.btn_mask_blemish_apply.clicked.connect(
+            lambda: self.mask_apply('mask_blemish'))
 
         # mask_file
         self.btn_select_maskfile.clicked.connect(self.select_maskfile)
         self.btn_apply_maskfile.clicked.connect(
             lambda: self.mask_evaluate('mask_file'))
+        self.btn_mask_file_apply.clicked.connect(
+            lambda: self.mask_apply('mask_file'))
 
         # draw method / array
-        self.btn_mask_array_add.clicked.connect(self.add_drawing)
-        self.btn_mask_array_evaluate.clicked.connect(
+        self.btn_mask_draw_add.clicked.connect(self.add_drawing)
+        self.btn_mask_draw_evaluate.clicked.connect(
             lambda: self.mask_evaluate('mask_draw'))
+        self.btn_mask_draw_apply.clicked.connect(
+            lambda: self.mask_apply('mask_draw'))
 
         # binary threshold
         self.btn_mask_threshold_evaluate.clicked.connect(
             lambda: self.mask_evaluate('mask_threshold'))
+        self.btn_mask_threshold_apply.clicked.connect(
+            lambda: self.mask_apply('mask_threshold'))
 
         self.show()
 
@@ -120,7 +131,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
             }
         elif target == 'mask_draw':
             kwargs = {
-                'arr': self.sm.apply_drawing()
+                'arr': np.logical_not(self.sm.apply_drawing())
             }
         elif target == 'mask_threshold':
             kwargs = {
@@ -132,6 +143,11 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(5)
         return
+ 
+    def mask_apply(self, target):
+        self.sm.mask_apply(target)
+        self.plot_index.setCurrentIndex(0)
+        self.plot_index.setCurrentIndex(2)
 
     def update_index(self):
         idx = self.mp1.currentIndex
