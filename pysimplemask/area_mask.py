@@ -39,17 +39,15 @@ class MaskList(MaskBase):
     def __init__(self, shape=(512, 1024)) -> None:
         super().__init__(shape=shape)
         self.mtype = 'list'
+        self.xylist = None
 
     def append_zero_pt(self, row, col):
         print(self.zero_loc.shape)
         self.zero_loc = np.append(self.zero_loc,
                                   np.array([row, col]).reshape(2, 1), axis=1)
 
-    def evaluate(self, zero_loc=None, fname=None):
-        if fname is not None:
-            self.zero_loc = np.loadtxt(fname)
-        elif zero_loc is not None:
-            self.zero_loc = zero_loc
+    def evaluate(self, zero_loc=None):
+        self.zero_loc = zero_loc
 
 
 class MaskFile(MaskBase):
@@ -105,7 +103,7 @@ class MaskArray(MaskBase):
 
 
 class MaskAssemble():
-    def __init__(self, shape) -> None:
+    def __init__(self, shape=(128, 128)) -> None:
         self.workers = {
             'mask_blemish': MaskFile(shape),
             'mask_file': MaskFile(shape),
