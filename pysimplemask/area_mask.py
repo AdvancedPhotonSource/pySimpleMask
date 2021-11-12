@@ -74,6 +74,10 @@ class MaskFile(MaskBase):
 
         if mask is None:
             self.zero_loc = None
+            return
+
+        if mask.shape != self.shape:
+            mask = np.swapaxes(mask, 0, 1)
 
         assert mask.shape == self.shape
         mask = (mask <= 0)
@@ -84,7 +88,7 @@ class MaskThreshold(MaskBase):
     def __init__(self, shape=(512, 1024)) -> None:
         super().__init__(shape=shape)
 
-    def evaluate(self,  saxs_log, low=0, high=1e8, scale='linear'):
+    def evaluate(self,  saxs_log=None, low=0, high=1e8, scale='linear'):
         if scale == 'linear':
             low = np.log10(max(1e-12, low))
             high = np.log10(max(1e-12, high))
@@ -103,7 +107,7 @@ class MaskArray(MaskBase):
 
 
 class MaskAssemble():
-    def __init__(self, shape=(128, 128)) -> None:
+    def __init__(self, shape=(128, 128), saxs_log=None) -> None:
         self.workers = {
             'mask_blemish': MaskFile(shape),
             'mask_file': MaskFile(shape),
@@ -112,9 +116,16 @@ class MaskAssemble():
             'mask_draw': MaskArray(shape),
             'mask_outlier': MaskArray(shape),
         }
+        self.saxs_log = saxs_log
+    
+    def enable(self, target, flag=True):
+        self.workers[target].set_enable(flag)
 
     def evaluate(self, target, **kwargs):
-        self.workers[target].evaluate(**kwargs)
+        if target != 'mask_threshold':
+            self.workers[target].evaluate(**kwargs)
+        else:
+            self.workers[target].evaluate(self.saxs_log, **kwargs)
 
     def get_one_mask(self, target):
         return self.workers[target].get_mask()
