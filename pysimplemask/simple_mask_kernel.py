@@ -43,7 +43,8 @@ class SimpleMask(object):
         self.mask = None
         self.mask_kernel = None
         self.is_rotate = False
-        self.saxs_min = 1
+        self.saxs_lin = None
+        self.saxs_log = None
 
         self.new_partition = None
         self.meta = None
@@ -195,7 +196,7 @@ class SimpleMask(object):
         return mask
 
     # generate 2d saxs
-    def read_data(self, fname=None, blemish_fname=None, **kwargs):
+    def read_data(self, fname=None, **kwargs):
         if not self.verify_metadata_hdf(fname):
             # raise ValueError('check raw file')
             print('the selected file is not a valid metadata hdf file.')
@@ -212,22 +213,19 @@ class SimpleMask(object):
         self.data_raw = np.zeros(shape=(6, *saxs.shape))
         self.mask = np.ones(saxs.shape, dtype=np.bool)
 
-        if blemish_fname is not None:
-            self.apply_mask_file(blemish_fname, **kwargs)
-
+        self.saxs_lin = saxs.astype(np.float32)
         self.min_val = np.min(saxs[saxs > 0])
-        saxs = np.log10(saxs + self.min_val)
+        self.saxs_log = np.log10(saxs + self.min_val)
 
         self.shape = self.data_raw[0].shape
-        self.mask_kernel = MaskAssemble(self.shape, saxs)
+        self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
 
         self.qmap = self.compute_qmap()
         self.extent = self.compute_extent()
 
-        self.meta['saxs'] = saxs
-        self.data_raw[0] = saxs
-
-        self.data_raw[1] = saxs
+        # self.meta['saxs'] = saxs
+        self.data_raw[0] = self.saxs_log
+        self.data_raw[1] = self.saxs_log * self.mask
         self.data_raw[2] = self.mask
 
     def compute_qmap(self):
@@ -384,9 +382,6 @@ class SimpleMask(object):
     def add_drawing(self, num_edges=None, radius=60, color='r',
                     sl_type='Polygon', width=3, sl_mode='exclusive'):
 
-        # self.add_roi_test()
-        # return
-
         shape = self.data.shape
         cen = (shape[1] // 2, shape[2] // 2)
         if sl_mode == 'inclusive':
@@ -411,7 +406,8 @@ class SimpleMask(object):
             if num_edges is None:
                 num_edges = np.random.random_integers(6, 10)
 
-            # add angle offset so that the new rois don't overlap with each other
+            # add angle offset so that the new rois don't overlap with each
+            # other
             offset = np.random.random_integers(0, 359)
             theta = np.linspace(0, np.pi * 2, num_edges + 1) + offset
             x = radius * np.cos(theta) + cen[1]
@@ -436,6 +432,31 @@ class SimpleMask(object):
 
     def remove_roi(self, roi):
         self.hdl.remove_item(roi)
+    
+    def compute_azimulthal_partition(self, num=400, style='linear'):
+        qmap = self.qmap['q'] * self.mask
+        qmap_valid = qmap[self.mask == True]
+        qmin = np.min(qmap_valid)
+        qmax = np.max(qmap_valid)
+
+        if style == 'linear':
+            qspan = np.linspace(qmin, qmax, num + 1)
+            qlist = (qspan[1:] + qspan[:-1]) / 2.0
+        elif style == 'logarithmic':
+            qmin = np.log10(qmin)
+            qmax = np.log10(qmax)
+            qspan = np.logspace(qmin, qmax, num + 1)
+            qlist = np.sqrt(qspan[1:] * qspan[:-1])
+
+        partition = np.zeros_like(qmap, dtype=np.uint32)
+        for n in range(num):
+            val = qspan[n]
+            partition[qmap >= val] = n + 1
+        return qlist, partition
+    
+    def compute_saxs1d(self, **kwargs):
+        qlist, partition = self.compute_azimulthal_partition(**kwargs)
+        
 
     def compute_partition(self, dq_num=10, sq_num=100, style='linear',
                           dp_num=36, sp_num=360):
