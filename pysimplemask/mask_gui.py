@@ -50,8 +50,6 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
 
         self.setupUi(self)
         self.btn_load.clicked.connect(self.load)
-        self.btn_add_roi.clicked.connect(self.add_roi)
-        self.btn_apply_roi.clicked.connect(self.apply_roi)
         self.btn_plot.clicked.connect(self.plot)
         self.btn_compute_qpartition.clicked.connect(self.compute_partition)
         self.btn_select_raw.clicked.connect(self.select_raw)
@@ -63,27 +61,43 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
 
         self.plot_index.currentIndexChanged.connect(self.mp1.setCurrentIndex)
 
-        # simple mask kernel
+        # simple mask kernep
         self.sm = SimpleMask(self.mp1, self.infobar)
         self.mp1.sigTimeChanged.connect(self.update_index)
         self.state = 'lock'
 
-        self.btn_select_maskfile.clicked.connect(self.select_maskfile)
-        self.btn_select_blemish.clicked.connect(self.select_blemish)
-        # link mask functions;
-        self.btn_apply_blemish.clicked.connect(self.apply_blemish)
-        self.btn_apply_maskfile.clicked.connect(self.apply_maskfile)
-        self.btn_binary_threshold_preview.clicked.connect(self.apply_threshold)
-
-        # list
+        # mask_list 
         self.btn_mask_list_load.clicked.connect(self.mask_list_load)
         self.btn_mask_list_clear.clicked.connect(self.mask_list_clear)
         self.btn_mask_list_add.clicked.connect(self.mask_list_add)
-        self.btn_mask_list_evaluate.clicked.connect(self.mask_list_evaluate)
+        self.btn_mask_list_evaluate.clicked.connect(
+            lambda: self.mask_evaluate('mask_list'))
+    
+        # blemish
+        self.btn_select_blemish.clicked.connect(self.select_blemish)
+        self.btn_apply_blemish.clicked.connect(
+            lambda: self.mask_evaluate('mask_blemish'))
+
+        # mask_file
+        self.btn_select_maskfile.clicked.connect(self.select_maskfile)
+        self.btn_apply_maskfile.clicked.connect(
+            lambda: self.mask_evaluate('mask_file'))
+
+        # draw method / array
+        self.btn_mask_array_add.clicked.connect(self.add_drawing)
+        self.btn_mask_array_evaluate.clicked.connect(
+            lambda: self.mask_evaluate('mask_draw'))
+
+        # binary threshold
+        self.btn_mask_threshold_evaluate.clicked.connect(
+            lambda: self.mask_evaluate('mask_threshold'))
 
         self.show()
 
-    def evaluate_mask(self, target):
+    def mask_evaluate(self, target=None):
+        if target is None:
+            return
+
         if target == 'mask_blemish':
             kwargs = {
                 'fname': self.blemish_fname.text(),
@@ -95,9 +109,28 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
                 'key': self.maskfile_path.text()
             }
         elif target == 'mask_list':
+            num_row = self.mask_list_xylist.count()
+            val = [str(self.mask_list_xylist.item(i).text())
+                   for i in range(num_row)]
+            val = ' '.join(val)
+            xy = text_to_array(val)
+            xy = xy[0: xy.size // 2 * 2].reshape(-1, 2).T
             kwargs = {
-                'a': 1
+                'zero_loc': xy
             }
+        elif target == 'mask_draw':
+            kwargs = {
+                'arr': self.sm.apply_roi()
+            }
+        elif target == 'mask_threshold':
+            kwargs = {
+                'low': self.binary_threshold_low.value(),
+                'high': self.binary_threshold_high.value(),
+                'scale': ['linear', 'log'][self.binary_scale.currentIndex()]
+            }
+        self.sm.mask_evaluate(target, **kwargs)
+        self.plot_index.setCurrentIndex(0)
+        self.plot_index.setCurrentIndex(5)
         return
 
     def update_index(self):
@@ -134,7 +167,8 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         return
 
     def select_maskfile(self):
-        fname = QFileDialog.getOpenFileName(self, 'Select mask file')[0]
+        # fname = QFileDialog.getOpenFileName(self, 'Select mask file')[0]
+        fname = "../tests/data/triangle_mask/mask_lambda_test.h5"
         if fname not in [None, '']:
             self.maskfile_fname.setText(fname)
         if fname.endswith('.tif') or fname.endswith('.tiff'):
@@ -169,7 +203,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.sm.show_saxs(**kwargs)
         self.plot_index.setCurrentIndex(0)
 
-    def add_roi(self):
+    def add_drawing(self):
         color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
             self.cb_selector_color.currentIndex()]
         kwargs = {
@@ -178,28 +212,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
             'sl_mode': self.cb_selector_mode.currentText(),
             'width': self.plot_width.value()
         }
-        self.sm.add_roi(**kwargs)
-        return
-
-    def apply_blemish(self):
-        kwargs = {
-            'fname': self.blemish_fname.text(),
-            'key': self.blemish_path.text()
-        }
-        self.sm.apply_mask_file(**kwargs)
-        self.plot_index.setCurrentIndex(2)
-
-    def apply_maskfile(self):
-        kwargs = {
-            'fname': self.maskfile_fname.text(),
-            'key': self.maskfile_path.text()
-        }
-        self.sm.apply_mask_file(**kwargs)
-        self.plot_index.setCurrentIndex(2)
-
-    def apply_roi(self):
-        self.sm.apply_roi()
-        self.plot_index.setCurrentIndex(2)
+        self.sm.add_drawing(**kwargs)
         return
 
     def compute_partition(self):
@@ -214,16 +227,6 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         }
         self.sm.compute_partition(**kwargs)
         self.plot_index.setCurrentIndex(3)
-
-    def apply_threshold(self):
-        kwargs = {
-            'low': self.binary_threshold_low.value(),
-            'high': self.binary_threshold_high.value(),
-            'scale': ['linear', 'log'][self.binary_scale.currentIndex()]
-        }
-        self.sm.apply_threshold(**kwargs)
-        self.plot_index.setCurrentIndex(0)
-        self.plot_index.setCurrentIndex(5)
 
     def save_mask(self):
         if self.sm.new_partition is None:
@@ -268,16 +271,6 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
 
     def mask_list_clear(self):
         self.mask_list_xylist.clear()
-
-    def mask_list_evaluate(self):
-        num_row = self.mask_list_xylist.count()
-        val = [str(self.mask_list_xylist.item(i).text())
-               for i in range(num_row)]
-        val = ' '.join(val)
-        xy = text_to_array(val)
-        xy = xy[0: xy.size // 2 * 2].reshape(-1, 2).T
-        self.sm.mask_evaluate('mask_list', zero_loc=xy)
-        self.plot_index.setCurrentIndex(5)
 
 
 def run():
