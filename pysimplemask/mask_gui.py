@@ -3,7 +3,8 @@ from simple_mask_ui import Ui_SimpleMask as Ui
 from simple_mask_kernel import SimpleMask
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QFileDialog
-# import pyqtgraph as pg
+import numpy as np
+import pyqtgraph as pg
 
 import os
 import sys
@@ -32,6 +33,16 @@ def exception_hook(exc_type, exc_value, exc_traceback):
 sys.excepthook = exception_hook
 
 
+def text_to_array(pts):
+    for symbol in '[](),':
+        pts = pts.replace(symbol, ' ')
+    pts = pts.split(' ')
+    pts = [int(x) for x in pts if x != '']
+    pts = np.array(pts).astype(np.int64)
+
+    return pts
+
+
 class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
     def __init__(self, path=None):
 
@@ -42,10 +53,10 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.btn_add_roi.clicked.connect(self.add_roi)
         self.btn_apply_roi.clicked.connect(self.apply_roi)
         self.btn_plot.clicked.connect(self.plot)
-        self.btn_editlock.clicked.connect(self.editlock)
         self.btn_compute_qpartition.clicked.connect(self.compute_partition)
         self.btn_select_raw.clicked.connect(self.select_raw)
         # self.btn_select_txt.clicked.connect(self.select_txt)
+        self.btn_update_parameters.clicked.connect(self.update_parameters)
 
         # need a function for save button -- simple_mask_ui
         self.pushButton.clicked.connect(self.save_mask)
@@ -57,42 +68,55 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.mp1.sigTimeChanged.connect(self.update_index)
         self.state = 'lock'
 
-
         self.btn_select_maskfile.clicked.connect(self.select_maskfile)
         self.btn_select_blemish.clicked.connect(self.select_blemish)
         # link mask functions;
         self.btn_apply_blemish.clicked.connect(self.apply_blemish)
         self.btn_apply_maskfile.clicked.connect(self.apply_maskfile)
-        self.btn_binary_threshold_apply.clicked.connect(self.apply_threshold)
+        self.btn_binary_threshold_preview.clicked.connect(self.apply_threshold)
+
+        # list
+        self.btn_mask_list_load.clicked.connect(self.mask_list_load)
+        self.btn_mask_list_clear.clicked.connect(self.mask_list_clear)
+        self.btn_mask_list_add.clicked.connect(self.mask_list_add)
+        self.btn_mask_list_evaluate.clicked.connect(self.mask_list_evaluate)
 
         self.show()
+
+    def evaluate_mask(self, target):
+        if target == 'mask_blemish':
+            kwargs = {
+                'fname': self.blemish_fname.text(),
+                'key': self.blemish_path.text()
+            }
+        elif target == 'mask_file':
+            kwargs = {
+                'fname': self.maskfile_fname.text(),
+                'key': self.maskfile_path.text()
+            }
+        elif target == 'mask_list':
+            kwargs = {
+                'a': 1
+            }
+        return
 
     def update_index(self):
         idx = self.mp1.currentIndex
         self.plot_index.setCurrentIndex(idx)
 
-    def editlock(self):
+    def update_parameters(self):
         pvs = (self.db_cenx, self.db_ceny, self.db_energy, self.db_pix_dim,
                self.db_det_dist)
-
-        if self.state == 'lock':
-            self.state = 'edit'
-            for pv in pvs:
-                pv.setEnabled(True)
-        elif self.state == 'edit':
-            self.state = 'lock'
-            values = []
-            for pv in pvs:
-                pv.setDisabled(True)
-                values.append(pv.value())
-
-            self.sm.update_parameters(values)
-
+        values = []
+        for pv in pvs:
+            values.append(pv.value())
+        self.sm.update_parameters(values)
         self.groupBox.repaint()
         self.plot()
 
     def select_raw(self):
-        fname = QFileDialog.getOpenFileName(self, 'Select raw file hdf')[0]
+        # fname = QFileDialog.getOpenFileName(self, 'Select raw file hdf')[0]
+        fname = "../tests/data/H432_OH_100_025C_att05_001/H432_OH_100_025C_att05_001_0001-1000.hdf"
         if fname not in [None, '']:
             self.fname.setText(fname)
         return
@@ -207,6 +231,53 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         save_fname = QFileDialog.getSaveFileName(
             self, caption='Save mask/qmap as')[0]
         self.sm.save_partition(save_fname)
+
+    def mask_list_load(self):
+        # fname = QFileDialog.getOpenFileName(self, 'Select mask file')[0]
+        fname = 'mask_list.txt'
+        if fname in ['', None]:
+            return
+
+        try:
+            xy = np.loadtxt(fname, delimiter=',')
+        except ValueError:
+            xy = np.loadtxt(fname)
+        except Exception:
+            print('only support csv and space separated file')
+            return
+
+        if self.mask_list_rowcol.isChecked():
+            xy = np.roll(xy, shift=1, axis=1)
+        if self.mask_list_1based.isChecked():
+            xy = xy - 1
+
+        xy = xy.astype(np.int64)
+        xy_str = [str(t) for t in xy]
+        self.mask_list_xylist.addItems(xy_str)
+
+    def mask_list_add(self):
+        pts = self.mask_list_input.text()
+        self.mask_list_input.clear()
+        if len(pts) < 3:
+            return
+
+        xy = text_to_array(pts)
+        xy = xy[0: xy.size // 2 * 2].reshape(-1, 2)
+        xy_str = [str(t) for t in xy]
+        self.mask_list_xylist.addItems(xy_str)
+
+    def mask_list_clear(self):
+        self.mask_list_xylist.clear()
+
+    def mask_list_evaluate(self):
+        num_row = self.mask_list_xylist.count()
+        val = [str(self.mask_list_xylist.item(i).text())
+               for i in range(num_row)]
+        val = ' '.join(val)
+        xy = text_to_array(val)
+        xy = xy[0: xy.size // 2 * 2].reshape(-1, 2).T
+        self.sm.mask_evaluate('mask_list', zero_loc=xy)
+        self.plot_index.setCurrentIndex(5)
 
 
 def run():
