@@ -4,6 +4,7 @@ import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
 import skimage.io as skio
+from area_mask import MaskAssemble
 
 # import matplotlib.pyplot as plt
 
@@ -40,6 +41,7 @@ class SimpleMask(object):
         self.shape = None
         self.qmap = None
         self.mask = None
+        self.mask_kernel = None
         self.is_rotate = False
         self.saxs_min = 1
 
@@ -82,6 +84,12 @@ class SimpleMask(object):
             for key, val in keys.items():
                 meta[key] = np.squeeze(f[val][()])
         return meta
+    
+    def mask_evaluate(self, target, **kwargs):
+        self.mask_kernel.evaluate(target, **kwargs)
+        mask = self.mask_kernel.get_one_mask(target)
+        self.data[5][:, :] = mask
+        return
 
     def save_partition(self, save_fname):
         # if no partition is computed yet
@@ -170,25 +178,7 @@ class SimpleMask(object):
         return None
 
     def apply_mask_file(self, fname=None, key=None):
-        if not os.path.isfile(fname):
-            return
-
-        _, ext = os.path.splitext(fname)
-
-        if ext in ['.hdf', '.h5', '.hdf5']:
-            try:
-                with h5py.File(fname, 'r') as f:
-                    mask = f[key][()]
-            except Exception:
-                print('cannot read the hdf file, check path')
-                return
-        elif ext in ['.tiff', '.tif']:
-            mask = skio.imread(fname).astype(np.int)
-        else:
-            print('only support tif and hdf file.')
-            return
-        mask = (mask > 0)
-        self.update_mask(mask)
+        self.mask_kernel.evaluate(fname, key)
     
     def update_mask(self, new_mask, mode='and'):
         if new_mask.shape != self.mask.shape:
@@ -213,9 +203,6 @@ class SimpleMask(object):
             high = np.log10(max(1e-12, high))
         mask = (self.data[0] > low) * (self.data[0] < high)
         self.data[-1] = mask
-        print(np.max(self.data[0]), np.min(self.data[0]))
-        print(low, high)
-        print(self.data.shape, np.sum(mask == 0))
         return mask
 
     # generate 2d saxs
@@ -243,6 +230,8 @@ class SimpleMask(object):
         # self.mask = self.mask * idx
         saxs = saxs * self.mask
         self.shape = self.data_raw[0].shape
+        self.mask_kernel = MaskAssemble(self.shape)
+
         self.qmap = self.compute_qmap()
         self.extent = self.compute_extent()
 
@@ -418,9 +407,12 @@ class SimpleMask(object):
         mask_p = np.logical_not(mask_e) * mask_i
 
         self.mask = self.mask * mask_p
+        self.mask_kernel.evaluate('mask_array', arr=mask_p)
+
+        mask = self.mask_kernel.get_one_mask('mask_array')
         # self.data[1] = self.data[0] * (1 - mask_p)
-        self.data[1] = self.data[0] * mask_p
-        self.data[2] = self.mask
+        self.data[1] = self.data[0] * mask
+        self.data[2] = mask
         self.hdl.setImage(self.data)
         self.hdl.setCurrentIndex(2)
 
