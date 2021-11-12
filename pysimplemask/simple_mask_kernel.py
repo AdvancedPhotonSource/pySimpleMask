@@ -84,12 +84,21 @@ class SimpleMask(object):
             for key, val in keys.items():
                 meta[key] = np.squeeze(f[val][()])
         return meta
-    
+
     def mask_evaluate(self, target, **kwargs):
         self.mask_kernel.evaluate(target, **kwargs)
+        # preview the mask
         mask = self.mask_kernel.get_one_mask(target)
         self.data[5][:, :] = mask
+        self.hdl.setCurrentIndex(5)
         return
+
+    def mask_apply(self, target):
+        mask = self.mask_kernel.get_one_mask(target)
+        self.mask_kernel.enable(target)
+        self.mask = np.logical_and(self.mask, mask)
+        self.data[1:] *= self.mask
+        self.hdl.setCurrentIndex(2)
 
     def save_partition(self, save_fname):
         # if no partition is computed yet
@@ -177,26 +186,6 @@ class SimpleMask(object):
                         return saxs
         return None
 
-    def apply_mask_file(self, fname=None, key=None):
-        self.mask_kernel.evaluate(fname, key)
-    
-    def update_mask(self, new_mask, mode='and'):
-        if new_mask.shape != self.mask.shape:
-            new_mask = np.swapaxes(new_mask, 0, 1)
-        if new_mask.shape != self.mask.shape:
-            print('the mask file does a different shape. abort')
-            print(new_mask.shape, self.mask.shape)
-            return
-
-        if mode == 'and':
-            self.mask *= new_mask
-            self.data
-        elif mode == 'replace':
-            self.mask[:, :] = new_mask
-
-        self.data[1:-1] *= self.mask
-        return
- 
     def apply_threshold(self, low=0, high=1e8, scale='linear'):
         if scale == 'linear':
             low = np.log10(max(1e-12, low))
@@ -226,24 +215,19 @@ class SimpleMask(object):
         if blemish_fname is not None:
             self.apply_mask_file(blemish_fname, **kwargs)
 
-        # idx = saxs < 10
-        # self.mask = self.mask * idx
-        saxs = saxs * self.mask
+        self.min_val = np.min(saxs[saxs > 0])
+        saxs = np.log10(saxs + self.min_val)
+
         self.shape = self.data_raw[0].shape
-        self.mask_kernel = MaskAssemble(self.shape)
+        self.mask_kernel = MaskAssemble(self.shape, saxs)
 
         self.qmap = self.compute_qmap()
         self.extent = self.compute_extent()
 
-        self.min_val = np.min(saxs[saxs > 0])
-        saxs = np.log10(saxs + self.min_val)
         self.meta['saxs'] = saxs
         self.data_raw[0] = saxs
 
-        saxs_mask = saxs * self.mask
-        min_val = np.min(saxs_mask[self.mask > 0.5])
-        saxs_mask[self.mask < 0.5] = min_val
-        self.data_raw[1] = saxs_mask
+        self.data_raw[1] = saxs
         self.data_raw[2] = self.mask
 
     def compute_qmap(self):
@@ -350,16 +334,6 @@ class SimpleMask(object):
 
         return
 
-    def select_mask(self, mask_preload, mask_directory):
-
-        with h5py.File(mask_preload, 'r') as hf:
-            mask = np.squeeze(hf.get('/mask_triangular')[()])
-            mask = np.rot90(mask, 3)
-            mask = np.flip(mask, 1)
-
-        print("mask selected")
-        return mask
-
     def apply_roi(self):
 
         if self.meta is None or self.data_raw is None:
@@ -406,20 +380,11 @@ class SimpleMask(object):
 
         mask_p = np.logical_not(mask_e) * mask_i
 
-        self.mask = self.mask * mask_p
-        self.mask_kernel.evaluate('mask_array', arr=mask_p)
+        return mask_p
 
-        mask = self.mask_kernel.get_one_mask('mask_array')
-        # self.data[1] = self.data[0] * (1 - mask_p)
-        self.data[1] = self.data[0] * mask
-        self.data[2] = mask
-        self.hdl.setImage(self.data)
-        self.hdl.setCurrentIndex(2)
 
-        return self.mask
-
-    def add_roi(self, num_edges=None, radius=60, color='r', sl_type='Polygon',
-                width=3, sl_mode='exclusive'):
+    def add_drawing(self, num_edges=None, radius=60, color='r',
+                    sl_type='Polygon', width=3, sl_mode='exclusive'):
 
         # self.add_roi_test()
         # return
