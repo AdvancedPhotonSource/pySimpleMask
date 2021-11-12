@@ -119,7 +119,7 @@ class MaskAssemble():
         self.saxs_log = saxs_log
     
     def enable(self, target, flag=True):
-        self.workers[target].set_enable(flag)
+        self.workers[target].set_enabled(flag)
 
     def evaluate(self, target, **kwargs):
         if target != 'mask_threshold':
