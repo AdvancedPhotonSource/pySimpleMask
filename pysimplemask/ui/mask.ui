@@ -498,7 +498,7 @@
               </sizepolicy>
              </property>
              <property name="currentIndex">
-              <number>3</number>
+              <number>0</number>
              </property>
              <widget class="QWidget" name="tab_6">
               <attribute name="title">
@@ -558,7 +558,7 @@
                      </size>
                     </property>
                     <property name="text">
-                     <string>apply</string>
+                     <string>Evaluate</string>
                     </property>
                    </widget>
                   </item>
@@ -572,13 +572,13 @@
                   <item row="1" column="2">
                    <widget class="QPushButton" name="btn_select_maskfile">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
                     </property>
                     <property name="text">
-                     <string>select</string>
+                     <string>Select</string>
                     </property>
                    </widget>
                   </item>
@@ -597,7 +597,7 @@
                      </size>
                     </property>
                     <property name="text">
-                     <string>/data/mask</string>
+                     <string>/mask_triangular</string>
                     </property>
                    </widget>
                   </item>
@@ -636,41 +636,6 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="2" column="2">
-                   <widget class="QLineEdit" name="blemish_path">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>300</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>/data/mask</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="2">
-                   <widget class="QLineEdit" name="blemish_fname">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>300</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                   </widget>
-                  </item>
                   <item row="2" column="0">
                    <widget class="QLabel" name="label_31">
                     <property name="sizePolicy">
@@ -699,20 +664,55 @@
                      </size>
                     </property>
                     <property name="text">
-                     <string>apply</string>
+                     <string>Evaluate</string>
                     </property>
                    </widget>
                   </item>
                   <item row="0" column="3">
                    <widget class="QPushButton" name="btn_select_blemish">
                     <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                       <horstretch>0</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
                     </property>
                     <property name="text">
-                     <string>select</string>
+                     <string>Select</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1" colspan="2">
+                   <widget class="QLineEdit" name="blemish_fname">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>300</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1" colspan="2">
+                   <widget class="QLineEdit" name="blemish_path">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>300</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>/lambda_pre_mask</string>
                     </property>
                    </widget>
                   </item>
@@ -888,14 +888,14 @@
                 </widget>
                </item>
                <item row="3" column="3" colspan="2">
-                <widget class="QPushButton" name="btn_apply_roi">
+                <widget class="QPushButton" name="btn_mask_array_evaluate">
                  <property name="text">
-                  <string>Apply</string>
+                  <string>Evaluate</string>
                  </property>
                 </widget>
                </item>
                <item row="3" column="0" colspan="2">
-                <widget class="QPushButton" name="btn_add_roi">
+                <widget class="QPushButton" name="btn_mask_array_add">
                  <property name="text">
                   <string>Add</string>
                  </property>
@@ -956,7 +956,7 @@
                    </widget>
                   </item>
                   <item row="0" column="5">
-                   <widget class="QPushButton" name="btn_binary_threshold_preview">
+                   <widget class="QPushButton" name="btn_mask_threshold_evaluate">
                     <property name="text">
                      <string>Evaluate</string>
                     </property>
@@ -976,7 +976,7 @@
                    </widget>
                   </item>
                   <item row="0" column="6">
-                   <widget class="QPushButton" name="pushButton_3">
+                   <widget class="QPushButton" name="btn_mask_threshold_apply">
                     <property name="text">
                      <string>Apply</string>
                     </property>
