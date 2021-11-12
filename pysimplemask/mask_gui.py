@@ -120,7 +120,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
             }
         elif target == 'mask_draw':
             kwargs = {
-                'arr': self.sm.apply_roi()
+                'arr': self.sm.apply_drawing()
             }
         elif target == 'mask_threshold':
             kwargs = {

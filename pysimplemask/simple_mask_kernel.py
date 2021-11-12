@@ -334,8 +334,7 @@ class SimpleMask(object):
 
         return
 
-    def apply_roi(self):
-
+    def apply_drawing(self):
         if self.meta is None or self.data_raw is None:
             return
         if len(self.hdl.roi) <= 0:
@@ -381,7 +380,6 @@ class SimpleMask(object):
         mask_p = np.logical_not(mask_e) * mask_i
 
         return mask_p
-
 
     def add_drawing(self, num_edges=None, radius=60, color='r',
                     sl_type='Polygon', width=3, sl_mode='exclusive'):
