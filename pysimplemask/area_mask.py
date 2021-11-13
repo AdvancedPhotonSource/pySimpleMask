@@ -15,7 +15,7 @@ class MaskBase():
 
     def set_enabled(self, flag=True):
         self.enabled = flag
- 
+
     def describe(self):
         if self.zero_loc is None:
             return 'Mask is not initialized'
@@ -126,7 +126,7 @@ class MaskAssemble():
             'mask_outlier': MaskList(shape),
         }
         self.saxs_log = saxs_log
-    
+
     def enable(self, target, flag=True):
         self.workers[target].set_enabled(flag)
 
@@ -135,7 +135,7 @@ class MaskAssemble():
             self.workers[target].evaluate(**kwargs)
         else:
             self.workers[target].evaluate(self.saxs_log, **kwargs)
-        
+
         return self.workers[target].describe()
 
     def get_one_mask(self, target):
@@ -181,3 +181,5 @@ def test_04(shape=(512, 1024)):
 
 
 # test_03()
+if __name__ == '__main__':
+    test_01()

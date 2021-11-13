@@ -3,7 +3,6 @@ import h5py
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
-import skimage.io as skio
 from area_mask import MaskAssemble
 
 
@@ -186,14 +185,6 @@ class SimpleMask(object):
                                         num_frames=num_frames)
                         return saxs
         return None
-
-    def apply_threshold(self, low=0, high=1e8, scale='linear'):
-        if scale == 'linear':
-            low = np.log10(max(1e-12, low))
-            high = np.log10(max(1e-12, high))
-        mask = (self.data[0] > low) * (self.data[0] < high)
-        self.data[-1] = mask
-        return mask
 
     # generate 2d saxs
     def read_data(self, fname=None, **kwargs):
@@ -502,8 +493,6 @@ class SimpleMask(object):
             rows.append(idx[0][bad_pixel])
             cols.append(idx[1][bad_pixel])
 
-        # zero_idx = saxs1d[2] <= 0
-        # saxs1d[2][zero_idx] = np.saxs1d[1][zero_idx]
         saxs1d = saxs1d[:, saxs1d[1] > 0]
 
         rows = np.hstack(rows)
@@ -640,26 +629,11 @@ class SimpleMask(object):
             val.append(self.meta[key])
         return val
 
-    def read_txt(self, file):
-        x_list = []
-        y_list = []
-        with open(file) as f:
-            for line in f:
-                x, y = line.strip().split(",")
-                x_list.append(int(x) - 1)
-                y_list.append(int(y) - 1)
-        return x_list, y_list
-
 
 def test01():
     fname = '../data/H187_D100_att0_Rq0_00001_0001-100000.hdf'
-
-    # fname = '\Desktop\sheyfer202106\sheyfer202106\A004_D100_att0_25C_Rq0_00001\A004_D100_att0_25C_Rq0_00001_0001-100000.hdf'
-
     sm = SimpleMask()
     sm.read_data(fname)
-    # sm.show_saxs()
-    # sm.compute_qmap()
 
 
 if __name__ == '__main__':
