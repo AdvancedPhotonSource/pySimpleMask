@@ -1,14 +1,12 @@
-# from PyQt5 import QtCore
-from simple_mask_ui import Ui_SimpleMask as Ui
-from simple_mask_kernel import SimpleMask
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QFileDialog
-import numpy as np
-import pyqtgraph as pg
-
 import os
 import sys
 import logging
+
+from simple_mask_ui import Ui_SimpleMask as Ui
+from simple_mask_kernel import SimpleMask
+from PyQt5.QtWidgets import QFileDialog, QApplication, QMainWindow
+import numpy as np
+import pyqtgraph as pg
 
 
 home_dir = os.path.join(os.path.expanduser('~'), '.simple-mask')
@@ -43,7 +41,7 @@ def text_to_array(pts):
     return pts
 
 
-class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
+class SimpleMaskGUI(QMainWindow, Ui):
     def __init__(self, path=None):
 
         super(SimpleMaskGUI, self).__init__()
@@ -114,11 +112,13 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
 
         if path is not None:
             self.fname.setText(str(path))
+
+        self.MaskWidget.setCurrentIndex(0)
         self.show()
 
     def mouse_clicked(self, event):
         if not event.double() or \
-            not self.btn_mask_list_doubleclick.isChecked():
+                not self.btn_mask_list_doubleclick.isChecked():
             return
 
         # make sure the maskwidget is at manual mode;
@@ -127,7 +127,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
 
         if not self.mp1.scene.itemsBoundingRect().contains(event.pos()):
             return
-        
+
         mouse_point = self.mp1.getView().mapSceneToView(event.pos())
         col = int(mouse_point.x())
         row = int(mouse_point.y())
@@ -382,8 +382,8 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
 def run():
     # if os.name == 'nt':
     #     setup_windows_icon()
-    # QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
-    app = QtWidgets.QApplication(sys.argv)
+    # QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+    app = QApplication(sys.argv)
     if len(sys.argv) > 1:
         window = SimpleMaskGUI(sys.argv[1])
     else:
