@@ -157,7 +157,6 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
 
             self.mask_outlier_hdl.clear()
             p = self.mask_outlier_hdl
-            p.setBackground((255, 255, 255))
             p.addLegend()
             p.plot(saxs1d[0], saxs1d[1], name='average_ref',
                    pen=pg.mkPen(color='g', width=2))
