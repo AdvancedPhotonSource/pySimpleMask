@@ -116,9 +116,22 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
             self.fname.setText(str(path))
         self.show()
 
-    def mouse_clicked(self, mouseClickEvent):
-        # mouseClickEvent is a pyqtgraph.GraphicsScene.mouseEvents.MouseClickEvent
-        print('clicked plot 0x{:x}, event: {}'.format(id(self), mouseClickEvent))
+    def mouse_clicked(self, event):
+        if not event.double() or \
+            not self.btn_mask_list_doubleclick.isChecked():
+            return
+
+        # make sure the maskwidget is at manual mode;
+        if self.MaskWidget.currentIndex() != 3:
+            return
+
+        if not self.mp1.scene.itemsBoundingRect().contains(event.pos()):
+            return
+        
+        mouse_point = self.mp1.getView().mapSceneToView(event.pos())
+        col = int(mouse_point.x())
+        row = int(mouse_point.y())
+        self.mask_list_xylist.addItem(str([col, row]))
 
     def mask_evaluate(self, target=None):
         if target is None or not self.sm.is_ready():
@@ -143,6 +156,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
             val = ' '.join(val)
             xy = text_to_array(val)
             xy = xy[0: xy.size // 2 * 2].reshape(-1, 2).T
+            xy = np.roll(xy, shift=1, axis=0)
             kwargs = {
                 'zero_loc': xy
             }
