@@ -265,6 +265,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         if not self.sm.is_ready():
             self.statusbar.showMessage('No scattering image is not loaded.',
                                        500)
+            return
         color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
             self.cb_selector_color.currentIndex()]
         kwargs = {
@@ -277,8 +278,11 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         return
 
     def compute_partition(self):
-        # mask = self.apply_roi()
-        # self.test_output("test", mask)
+        if not self.sm.is_ready():
+            self.statusbar.showMessage('No scattering image is not loaded.',
+                                       500)
+            return
+
         kwargs = {
             'sq_num': self.sb_sqnum.value(),
             'dq_num': self.sb_dqnum.value(),
@@ -293,6 +297,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         if not self.sm.is_ready():
             self.statusbar.showMessage('No scattering image is not loaded.',
                                        500)
+            return
         if self.sm.new_partition is None:
             self.compute_partition()
         save_fname = QFileDialog.getSaveFileName(
@@ -300,6 +305,11 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.sm.save_partition(save_fname)
 
     def mask_list_load(self):
+        if not self.sm.is_ready():
+            self.statusbar.showMessage('No scattering image is not loaded.',
+                                       500)
+            return
+
         fname = QFileDialog.getOpenFileName(self, 'Select mask file')[0]
         if fname in ['', None]:
             return
