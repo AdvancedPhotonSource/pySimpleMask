@@ -112,7 +112,9 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.show()
 
     def mask_evaluate(self, target=None):
-        if target is None:
+        if target is None or not self.sm.is_ready():
+            self.statusbar.showMessage('No scattering image is not loaded.',
+                                       500)
             return
 
         if target == 'mask_blemish':
@@ -146,20 +148,41 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
                 'scale': ['linear', 'log'][self.binary_scale.currentIndex()]
             }
         elif target == 'mask_outlier':
-            num_roi = self.outlier_num_roi.value()
+            num = self.outlier_num_roi.value()
             cutoff = self.outlier_cutoff.value()
-            iterations = self.outlier_iterations.value()
+            # iterations = self.outlier_iterations.value()
+            saxs1d, zero_loc = self.sm.compute_saxs1d(num=num, cutoff=cutoff)
 
-            self.sm.compute_saxs_outlier(num_roi)
+            self.mask_outlier_hdl.clear()
+            p = self.mask_outlier_hdl
+            p.setBackground((255, 255, 255))
+            p.addLegend()
+            p.plot(saxs1d[0], saxs1d[1], name='average_ref',
+                   pen=pg.mkPen(color='g', width=2))
+            p.plot(saxs1d[0], saxs1d[4], name='average_raw',
+                   pen=pg.mkPen(color='m', width=2))
+            p.plot(saxs1d[0], saxs1d[2], name='cutoff',
+                   pen=pg.mkPen(color='b', width=2))
+            p.plot(saxs1d[0], saxs1d[3], name='maximum value',
+                   pen=pg.mkPen(color='r', width=2))
+            p.setLogMode(y=True)
+            kwargs = {'zero_loc': zero_loc}
 
-
-        self.sm.mask_evaluate(target, **kwargs)
+        msg = self.sm.mask_evaluate(target, **kwargs)
+        self.statusbar.showMessage(msg, 10000)
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(5)
         return
  
     def mask_apply(self, target):
+        if not self.sm.is_ready():
+            self.statusbar.showMessage('No scattering image is not loaded.',
+                                       500)
+            return
+
         self.sm.mask_apply(target)
+        if target == 'mask_outlier':
+            self.mask_evaluate(target=target)
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(2)
 
@@ -168,6 +191,10 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.plot_index.setCurrentIndex(idx)
 
     def update_parameters(self):
+        if not self.sm.is_ready():
+            self.statusbar.showMessage('No scattering image is not loaded.',
+                                       500)
+            return
         pvs = (self.db_cenx, self.db_ceny, self.db_energy, self.db_pix_dim,
                self.db_det_dist)
         values = []
@@ -179,7 +206,8 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
 
     def select_raw(self):
         # fname = QFileDialog.getOpenFileName(self, 'Select raw file hdf')[0]
-        fname = "../tests/data/H432_OH_100_025C_att05_001/H432_OH_100_025C_att05_001_0001-1000.hdf"
+        # fname = "../tests/data/H432_OH_100_025C_att05_001/H432_OH_100_025C_att05_001_0001-1000.hdf"
+        fname = "/Users/mqichu/Documents/local_dev/pysimplemask/tests/data/E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_att04_Rq0_00001_0001-100000.hdf"
         if fname not in [None, '']:
             self.fname.setText(fname)
         return
@@ -234,6 +262,9 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.plot_index.setCurrentIndex(0)
 
     def add_drawing(self):
+        if not self.sm.is_ready():
+            self.statusbar.showMessage('No scattering image is not loaded.',
+                                       500)
         color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
             self.cb_selector_color.currentIndex()]
         kwargs = {
@@ -259,6 +290,9 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.plot_index.setCurrentIndex(3)
 
     def save_mask(self):
+        if not self.sm.is_ready():
+            self.statusbar.showMessage('No scattering image is not loaded.',
+                                       500)
         if self.sm.new_partition is None:
             self.compute_partition()
         save_fname = QFileDialog.getSaveFileName(
@@ -266,8 +300,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.sm.save_partition(save_fname)
 
     def mask_list_load(self):
-        # fname = QFileDialog.getOpenFileName(self, 'Select mask file')[0]
-        fname = 'mask_list.txt'
+        fname = QFileDialog.getOpenFileName(self, 'Select mask file')[0]
         if fname in ['', None]:
             return
 
@@ -276,7 +309,8 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         except ValueError:
             xy = np.loadtxt(fname)
         except Exception:
-            print('only support csv and space separated file')
+            self.statusbar.showMessage(
+                'only support csv and space separated file', 500)
             return
 
         if self.mask_list_rowcol.isChecked():
@@ -291,7 +325,8 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
     def mask_list_add(self):
         pts = self.mask_list_input.text()
         self.mask_list_input.clear()
-        if len(pts) < 3:
+        if len(pts) < 1:
+            self.statusbar.showMessage('Input list is almost empty.', 500)
             return
 
         xy = text_to_array(pts)
