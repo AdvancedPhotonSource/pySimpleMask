@@ -165,6 +165,8 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
                    pen=pg.mkPen(color='b', width=2))
             p.plot(saxs1d[0], saxs1d[3], name='maximum value',
                    pen=pg.mkPen(color='r', width=2))
+            p.setLabel('bottom', 'q (Å⁻¹)')
+            p.setLabel('left', 'Intensity (a.u.)')
             p.setLogMode(y=True)
             kwargs = {'zero_loc': zero_loc}
 
@@ -239,8 +241,12 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         return
 
     def load(self):
-        while not os.path.isfile(self.fname.text()):
+        if not os.path.isfile(self.fname.text()):
             self.select_raw()
+        if not os.path.isfile(self.fname.text()):
+            self.statusbar.showMessage('select a valid file')
+            return
+
         fname = self.fname.text()
         self.sm.read_data(fname)
 
