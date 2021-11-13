@@ -6,8 +6,6 @@ from pyqtgraph.Qt import QtCore
 import skimage.io as skio
 from area_mask import MaskAssemble
 
-# import matplotlib.pyplot as plt
-
 
 # import other programs
 from imm_reader_with_plot import IMMReader8ID
@@ -56,12 +54,8 @@ class SimpleMask(object):
 
         self.idx_map = {
             0: "scattering",
-            # 1: "scattering * (1 - mask)",
             1: "scattering * mask",
             2: "mask",
-            # 4: "qr",
-            # 5: "qx",
-            # 6: "qy",
             3: "dqmap_partition",
             4: "sqmap_partition",
             5: "preview"
@@ -85,14 +79,20 @@ class SimpleMask(object):
             for key, val in keys.items():
                 meta[key] = np.squeeze(f[val][()])
         return meta
+ 
+    def is_ready(self):
+        if self.meta is None or self.data_raw is None:
+            return False
+        else:
+            return True
 
     def mask_evaluate(self, target, **kwargs):
-        self.mask_kernel.evaluate(target, **kwargs)
+        msg = self.mask_kernel.evaluate(target, **kwargs)
         # preview the mask
         mask = self.mask_kernel.get_one_mask(target)
         self.data[5][:, :] = mask
         self.hdl.setCurrentIndex(5)
-        return
+        return msg
 
     def mask_apply(self, target):
         mask = self.mask_kernel.get_one_mask(target)
@@ -433,8 +433,11 @@ class SimpleMask(object):
     def remove_roi(self, roi):
         self.hdl.remove_item(roi)
     
-    def compute_azimulthal_partition(self, num=400, style='linear'):
-        qmap = self.qmap['q'] * self.mask
+    def compute_azimulthal_partition(self, mask=None, num=400, style='linear'):
+        if mask is None:
+            mask = self.mask
+
+        qmap = self.qmap['q'] * mask
         qmap_valid = qmap[self.mask == True]
         qmin = np.min(qmap_valid)
         qmax = np.max(qmap_valid)
@@ -454,10 +457,59 @@ class SimpleMask(object):
             partition[qmap >= val] = n + 1
         return qlist, partition
     
-    def compute_saxs1d(self, **kwargs):
-        qlist, partition = self.compute_azimulthal_partition(**kwargs)
-        
+    def compute_saxs1d(self, cutoff=3.0, mask=None, **kwargs):
 
+        qlist, partition = self.compute_azimulthal_partition(**kwargs)
+        self.data[5] = partition
+        num_q = qlist.size
+        saxs1d = np.zeros((5, num_q), dtype=np.float64)
+
+        rows = []
+        cols = []
+
+        # TODO: replace this part with FAI algorithm
+        for n in range(1, num_q):
+            roi = (partition == n)
+            if np.sum(roi) == 0:
+                continue
+            idx = np.nonzero(roi)
+            values = self.saxs_lin[idx]
+
+            x0 = np.percentile(values, 5)
+            x1 = np.percentile(values, 95)
+
+            val_min, val_max = np.min(values), np.max(values)
+            if x0 == x1:
+                x0 = val_min - 1E-24
+                x1 = val_max + 1E-24
+
+            val_roi = values[(values >= x0) * (values <= x1)]
+            avg = np.mean(val_roi)
+            std = np.std(val_roi)
+            avg_raw = np.mean(values)
+            # the median value cannot be used for xpcs at high angles; because
+            # the number is likely to be zero
+
+            saxs1d[:, n - 1] = np.array([qlist[n - 1],
+                                         avg,
+                                         avg + cutoff * std,
+                                         val_max,
+                                         avg_raw])
+
+            bad_pixel = np.abs(values - avg) >= cutoff * std
+            rows.append(idx[0][bad_pixel])
+            cols.append(idx[1][bad_pixel])
+
+        # zero_idx = saxs1d[2] <= 0
+        # saxs1d[2][zero_idx] = np.saxs1d[1][zero_idx]
+        saxs1d = saxs1d[:, saxs1d[1] > 0]
+
+        rows = np.hstack(rows)
+        cols = np.hstack(cols)
+        zero_loc = np.vstack([rows, cols])
+
+        return saxs1d, zero_loc
+    
     def compute_partition(self, dq_num=10, sq_num=100, style='linear',
                           dp_num=36, sp_num=360):
         if self.meta is None or self.data_raw is None:
