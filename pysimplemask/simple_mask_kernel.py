@@ -460,19 +460,18 @@ class SimpleMask(object):
             partition[vmap >= val] = n + 1
         return qspan, qlist, partition
 
-    def compute_saxs1d(self, cutoff=3.0, mask=None, **kwargs):
-
+    def compute_saxs1d(self, cutoff=3.0, episilon=1e-16, **kwargs):
         _, qlist, partition = self.get_partition(**kwargs)
         self.data[5] = partition
+
         num_q = qlist.size
         saxs1d = np.zeros((5, num_q), dtype=np.float64)
 
         rows = []
         cols = []
 
-        # TODO: replace this part with FAI algorithm
-        for n in range(1, num_q):
-            roi = (partition == n)
+        for n in range(num_q):
+            roi = (partition == n + 1)
             if np.sum(roi) == 0:
                 continue
             idx = np.nonzero(roi)
@@ -482,9 +481,10 @@ class SimpleMask(object):
             x1 = np.percentile(values, 95)
 
             val_min, val_max = np.min(values), np.max(values)
+            # make sure the edge case works when x0 == x1;
             if x0 == x1:
-                x0 = val_min - 1E-24
-                x1 = val_max + 1E-24
+                x0 = val_min - episilon
+                x1 = val_max + episilon
 
             val_roi = values[(values >= x0) * (values <= x1)]
             avg = np.mean(val_roi)
@@ -493,11 +493,11 @@ class SimpleMask(object):
             # the median value cannot be used for xpcs at high angles; because
             # the number is likely to be zero
 
-            saxs1d[:, n - 1] = np.array([qlist[n - 1],
-                                         avg,
-                                         avg + cutoff * std,
-                                         val_max,
-                                         avg_raw])
+            saxs1d[:, n] = np.array([qlist[n],
+                                     avg,                   # avg reference
+                                     avg + cutoff * std,    # threshold
+                                     val_max,               # max value in roi
+                                     avg_raw])              # avg raw
 
             bad_pixel = np.abs(values - avg) >= cutoff * std
             rows.append(idx[0][bad_pixel])
@@ -524,7 +524,7 @@ class SimpleMask(object):
             self.get_partition(num=dq_num, style=style, mode='q')
         sqspan, sqval, sqmap_partition = \
             self.get_partition(num=sq_num, style=style, mode='q')
-        
+
         dphispan, dphi, dphi_partition = \
             self.get_partition(num=dp_num, style=style, mode='phi')
         sphispan, sphi, sphi_partition = \
