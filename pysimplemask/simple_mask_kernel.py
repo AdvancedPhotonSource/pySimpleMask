@@ -426,33 +426,43 @@ class SimpleMask(object):
     def remove_roi(self, roi):
         self.hdl.remove_item(roi)
 
-    def compute_azimulthal_partition(self, mask=None, num=400, style='linear'):
+    def get_partition(self, mask=None, num=400, style='linear', mode='q'):
+        """
+        get_partion computes the partition for either qmap or phi-map
+        Args:
+            mask: 2d array to use as the mask. if none is given, then use the
+                default mask
+            num: integer, number of points
+            style = ['linear', 'logarithmic']. logarithmic only works for q map
+            mode = ['q', 'phi']
+        """
+        assert mode in ['q', 'phi']
         if mask is None:
             mask = self.mask
 
-        qmap = self.qmap['q'] * mask
-        qmap_valid = qmap[self.mask == True]
-        qmin = np.min(qmap_valid)
-        qmax = np.max(qmap_valid)
+        vmap = self.qmap[mode] * mask
+        vmap_valid = vmap[self.mask == True]
+        vmin = np.min(vmap_valid)
+        vmax = np.max(vmap_valid)
 
-        if style == 'linear':
-            qspan = np.linspace(qmin, qmax, num + 1)
+        if mode == 'phi' or style == 'linear':
+            qspan = np.linspace(vmin, vmax, num + 1)
             qlist = (qspan[1:] + qspan[:-1]) / 2.0
         elif style == 'logarithmic':
-            qmin = np.log10(qmin)
-            qmax = np.log10(qmax)
+            qmin = np.log10(vmin)
+            qmax = np.log10(vmax)
             qspan = np.logspace(qmin, qmax, num + 1)
             qlist = np.sqrt(qspan[1:] * qspan[:-1])
 
-        partition = np.zeros_like(qmap, dtype=np.uint32)
+        partition = np.zeros_like(vmap, dtype=np.uint32)
         for n in range(num):
             val = qspan[n]
-            partition[qmap >= val] = n + 1
-        return qlist, partition
+            partition[vmap >= val] = n + 1
+        return qspan, qlist, partition
 
     def compute_saxs1d(self, cutoff=3.0, mask=None, **kwargs):
 
-        qlist, partition = self.compute_azimulthal_partition(**kwargs)
+        _, qlist, partition = self.get_partition(**kwargs)
         self.data[5] = partition
         num_q = qlist.size
         saxs1d = np.zeros((5, num_q), dtype=np.float64)
@@ -506,82 +516,31 @@ class SimpleMask(object):
         if self.meta is None or self.data_raw is None:
             return
 
-        if sq_num % dq_num != 0:
-            raise ValueError('sq_num must be multiple of dq_num')
+        # make the static values multiples of the dynamic value
+        sq_num = (sq_num + dq_num - 1) // dq_num * dq_num
+        sp_num = (sp_num + dp_num - 1) // dp_num * dp_num
 
-        if sp_num % dp_num != 0:
-            raise ValueError('sq_num must be multiple of dq_num')
-
-        qmap = self.qmap['q'] * self.mask
-
-        qmap_valid = qmap[self.mask == True]
-        qmin = np.min(qmap_valid)
-        qmax = np.max(qmap_valid)
-
-        if style == 'linear':
-            dqspan = np.linspace(qmin, qmax, dq_num + 1)
-            sqspan = np.linspace(qmin, qmax, sq_num + 1)
-            dphi = np.linspace(0, np.pi * 2.0, dp_num + 1)
-            sphi = np.linspace(0, np.pi * 2.0, sp_num + 1)
-
-            dqval_list = (dqspan[1:] + dqspan[:-1]) / 2.0
-            sqval_list = (sqspan[1:] + sqspan[:-1]) / 2.0
-
-        elif style == 'logarithmic':
-            qmin = np.log10(qmin)
-            qmax = np.log10(qmax)
-            dqspan = np.logspace(qmin, qmax, dq_num + 1)
-            sqspan = np.logspace(qmin, qmax, sq_num + 1)
-
-            dphi = np.linspace(0, np.pi * 2.0, dp_num + 1)
-            sphi = np.linspace(0, np.pi * 2.0, sp_num + 1)
-
-            dqval_list = np.sqrt(dqspan[1:] * dqspan[:-1])
-            sqval_list = np.sqrt(sqspan[1:] * sqspan[:-1])
-        else:
-            raise ValueError("style not supported")
-
-        dqmap_partition = np.zeros_like(qmap, dtype=np.uint32)
-        sqmap_partition = np.zeros_like(qmap, dtype=np.uint32)
-
-        # dqval
-        for n in range(dq_num):
-            qval = dqspan[n]
-            dqmap_partition[qmap >= qval] = n + 1
-
-        # sqval
-        for n in range(sq_num):
-            qval = sqspan[n]
-            sqmap_partition[qmap >= qval] = n + 1
-
-        dphi_partition = np.zeros_like(qmap, dtype=np.uint32)
-        sphi_partition = np.zeros_like(qmap, dtype=np.uint32)
-
-        # phi partition starts from 0; not 1
-        for n in range(dp_num):
-            dphi_partition[self.qmap['phi'] >= dphi[n]] = n
-        dphival = np.unique(dphi_partition)
-        dphival.sort()
-        dphispan = np.linspace(0, 2 * np.pi, dp_num + 1)
-
-        # phi partition starts from 0; not 1
-        for n in range(sp_num):
-            sphi_partition[self.qmap['phi'] >= sphi[n]] = n
-        sphival = np.unique(sphi_partition)
-        sphival.sort()
-        sphispan = np.linspace(0, 2 * np.pi, sp_num + 1)
+        dqspan, dqval, dqmap_partition = \
+            self.get_partition(num=dq_num, style=style, mode='q')
+        sqspan, sqval, sqmap_partition = \
+            self.get_partition(num=sq_num, style=style, mode='q')
+        
+        dphispan, dphi, dphi_partition = \
+            self.get_partition(num=dp_num, style=style, mode='phi')
+        sphispan, sphi, sphi_partition = \
+            self.get_partition(num=sp_num, style=style, mode='phi')
 
         dyn_combined = np.zeros_like(dqmap_partition, dtype=np.uint32)
         sta_combined = np.zeros_like(dqmap_partition, dtype=np.uint32)
 
-        # dqmap, dqlist
+        # combine dqmap and dqlist
         for n in range(dp_num):
-            idx = dphi_partition == n
+            idx = dphi_partition == (n + 1)
             dyn_combined[idx] = dqmap_partition[idx] + n * dq_num
 
-        # sqmap, sqlist
+        # combine sqmap and sqlist
         for n in range(sp_num):
-            idx = sphi_partition == n
+            idx = sphi_partition == (n + 1)
             sta_combined[idx] = sqmap_partition[idx] + n * sq_num
 
         self.data[3] = dyn_combined * self.mask
@@ -589,14 +548,12 @@ class SimpleMask(object):
         self.hdl.setCurrentIndex(3)
 
         partition = {
-            'dqval': dqval_list,
-            'sqval': sqval_list,
+            'dqval': dqval,
+            'sqval': sqval,
             'dynamicMap': dqmap_partition,
-            # 'dynamicQList': dqlist,
-            # 'staticQList': sqlist,
             'staticMap': sqmap_partition,
-            'dphival': dphival,
-            'sphival': sphival,
+            'dphival': dphi,
+            'sphival': sphi,
             'dqspan': dqspan,
             'sqspan': sqspan,
             'dphispan': dphispan,
@@ -613,7 +570,6 @@ class SimpleMask(object):
             partition[key] = add_dimension(partition[key], sp_num)
 
         self.new_partition = partition
-
         return partition
 
     def update_parameters(self, val):
