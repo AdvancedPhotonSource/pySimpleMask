@@ -19,7 +19,7 @@ class RigakuReader():
             pix_frame = (a >> 64-24).astype(int)
 
             img = csr_matrix((pix_count, (pix_frame, pix_ind)), shape=(
-                max(pix_frame)+1, 1024*512), dtype='float')
+                max(pix_frame)+1, 1024*512), dtype=np.float64)
             img_2D = np.transpose(img.mean(axis=0).reshape(512, 1024))
             # convert matrix to array
             img_2D = np.array(img_2D)
