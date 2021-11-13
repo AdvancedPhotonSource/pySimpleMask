@@ -109,6 +109,8 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.btn_mask_outlier_apply.clicked.connect(
             lambda: self.mask_apply('mask_outlier'))
 
+        self.mask_outlier_hdl.setBackground((255, 255, 255))
+
         self.show()
 
     def mask_evaluate(self, target=None):
