@@ -110,8 +110,15 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
             lambda: self.mask_apply('mask_outlier'))
 
         self.mask_outlier_hdl.setBackground((255, 255, 255))
+        self.mp1.scene.sigMouseClicked.connect(self.mouse_clicked)
 
+        if path is not None:
+            self.fname.setText(str(path))
         self.show()
+
+    def mouse_clicked(self, mouseClickEvent):
+        # mouseClickEvent is a pyqtgraph.GraphicsScene.mouseEvents.MouseClickEvent
+        print('clicked plot 0x{:x}, event: {}'.format(id(self), mouseClickEvent))
 
     def mask_evaluate(self, target=None):
         if target is None or not self.sm.is_ready():
@@ -363,7 +370,8 @@ def run():
     #     setup_windows_icon()
     # QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
     app = QtWidgets.QApplication(sys.argv)
-    window = SimpleMaskGUI()
+    if len(sys.argv) > 0:
+        window = SimpleMaskGUI(sys.argv[1])
     app.exec_()
 
 
