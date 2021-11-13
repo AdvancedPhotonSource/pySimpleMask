@@ -115,22 +115,24 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.fname.setText(str(path))
 
         self.MaskWidget.setCurrentIndex(0)
+        self.setting_fname = os.path.join(home_dir, 'default_setting.json')
+        self.lastconfig_fname = os.path.join(home_dir, 'last_config.json')
         self.load_default_settings()
+        self.load_last_config()
         self.show()
-    
+
     def load_default_settings(self):
-        key_fname = os.path.join(home_dir, 'default_setting.json')
         # copy the default values
-        if not os.path.isfile(key_fname):
+        if not os.path.isfile(self.setting_fname):
             config = {
                 "window_size_w": 1400,
                 "window_size_h": 740
             }
-            with open(key_fname, 'w') as f:
+            with open(self.setting_fname, 'w') as f:
                 json.dump(config, f, indent=4)
 
         # the display size might too big for some laptops
-        with open(key_fname, 'r') as f:
+        with open(self.setting_fname, 'r') as f:
             config = json.load(f)
             if "window_size_h" in config:
                 new_size = (config["window_size_w"], config["window_size_h"])
@@ -400,6 +402,32 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     def mask_list_clear(self):
         self.mask_list_xylist.clear()
+
+    def load_last_config(self, ):
+        if not os.path.isfile(self.lastconfig_fname):
+            logger.info('no configure file found. skip')
+            return
+
+        try:
+            with open(self.lastconfig_fname, 'r') as fhdl:
+                logger.info('load the last configure.')
+                config = json.load(fhdl)
+                for key, val in config.items():
+                    self.__dict__[key].setText(val)
+        except Exception:
+            os.remove(self.lastconfig_fname)
+            logger.info('configuration file damaged. delete it now')
+        return
+
+    def closeEvent(self, e) -> None:
+        keys = ['blemish_fname', 'blemish_path', 'maskfile_fname',
+                'maskfile_path']
+        config = {}
+        for key in keys:
+            config[key] = self.__dict__[key].text()
+
+        with open(self.lastconfig_fname, 'w') as fhdl:
+            json.dump(config, fhdl)
 
 
 def run():
