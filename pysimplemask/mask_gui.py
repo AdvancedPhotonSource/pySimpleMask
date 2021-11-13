@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import logging
 
 from simple_mask_ui import Ui_SimpleMask as Ui
@@ -12,7 +13,7 @@ import pyqtgraph as pg
 home_dir = os.path.join(os.path.expanduser('~'), '.simple-mask')
 if not os.path.isdir(home_dir):
     os.mkdir(home_dir)
-log_filename = os.path.join(home_dir, 'viewer.log')
+log_filename = os.path.join(home_dir, 'simple-mask.log')
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-24s: %(message)s',
                     handlers=[
@@ -114,7 +115,29 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.fname.setText(str(path))
 
         self.MaskWidget.setCurrentIndex(0)
+        self.load_default_settings()
         self.show()
+    
+    def load_default_settings(self):
+        key_fname = os.path.join(home_dir, 'default_setting.json')
+        # copy the default values
+        if not os.path.isfile(key_fname):
+            config = {
+                "window_size_w": 1400,
+                "window_size_h": 740
+            }
+            with open(key_fname, 'w') as f:
+                json.dump(config, f, indent=4)
+
+        # the display size might too big for some laptops
+        with open(key_fname, 'r') as f:
+            config = json.load(f)
+            if "window_size_h" in config:
+                new_size = (config["window_size_w"], config["window_size_h"])
+                logger.info('set mainwindow to size %s', new_size)
+                self.resize(*new_size)
+
+        return
 
     def mouse_clicked(self, event):
         if not event.double() or \
