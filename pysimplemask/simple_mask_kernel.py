@@ -79,7 +79,7 @@ class SimpleMask(object):
             for key, val in keys.items():
                 meta[key] = np.squeeze(f[val][()])
         return meta
- 
+
     def is_ready(self):
         if self.meta is None or self.data_raw is None:
             return False
@@ -389,18 +389,22 @@ class SimpleMask(object):
         else:
             pen = pg.mkPen(color=color, width=width)
 
+        kwargs = {
+            'pen': pen,
+            'removable': True,
+            'hoverPen': pen,
+            'handlePen': pen
+        }
         if sl_type == 'Ellipse':
-            new_roi = pg.EllipseROI([cen[1], cen[0]], [60, 80], pen=pen,
-                                    removable=True, hoverPen=pen)
+            new_roi = pg.EllipseROI([cen[1], cen[0]], [60, 80], **kwargs)
             # add scale handle
-            new_roi.addScaleHandle([0.5, 0], [0.5, 1])
+            new_roi.addScaleHandle([0.5, 0], [0.5, 1], )
             new_roi.addScaleHandle([0.5, 1], [0.5, 0])
             new_roi.addScaleHandle([0, 0.5], [1, 0.5])
             new_roi.addScaleHandle([1, 0.5], [0, 0.5])
 
         elif sl_type == 'Circle':
-            new_roi = pg.CircleROI([cen[1], cen[0]], [60, 80], pen=pen,
-                                   removable=True, hoverPen=pen)
+            new_roi = pg.CircleROI([cen[1], cen[0]], [60, 80], **kwargs)
 
         elif sl_type == 'Polygon':
             if num_edges is None:
@@ -413,12 +417,10 @@ class SimpleMask(object):
             x = radius * np.cos(theta) + cen[1]
             y = radius * np.sin(theta) + cen[0]
             pts = np.vstack([x, y]).T
-            new_roi = pg.PolyLineROI(pts, closed=True, pen=pen,
-                                     removable=True, hoverPen=pen)
+            new_roi = pg.PolyLineROI(pts, closed=True, **kwargs)
 
         elif sl_type == 'Rectangle':
-            new_roi = pg.RectROI([cen[1], cen[0]], [30, 150], pen=pen,
-                                 removable=True, hoverPen=pen)
+            new_roi = pg.RectROI([cen[1], cen[0]], [30, 150], **kwargs)
             new_roi.addScaleHandle([0, 0], [1, 1])
             new_roi.addRotateHandle([0, 1], [0.5, 0.5])
 
@@ -432,7 +434,7 @@ class SimpleMask(object):
 
     def remove_roi(self, roi):
         self.hdl.remove_item(roi)
-    
+
     def compute_azimulthal_partition(self, mask=None, num=400, style='linear'):
         if mask is None:
             mask = self.mask
@@ -456,7 +458,7 @@ class SimpleMask(object):
             val = qspan[n]
             partition[qmap >= val] = n + 1
         return qlist, partition
-    
+
     def compute_saxs1d(self, cutoff=3.0, mask=None, **kwargs):
 
         qlist, partition = self.compute_azimulthal_partition(**kwargs)
@@ -509,7 +511,7 @@ class SimpleMask(object):
         zero_loc = np.vstack([rows, cols])
 
         return saxs1d, zero_loc
-    
+
     def compute_partition(self, dq_num=10, sq_num=100, style='linear',
                           dp_num=36, sp_num=360):
         if self.meta is None or self.data_raw is None:
