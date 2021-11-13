@@ -289,8 +289,8 @@ class SimpleMask(object):
 
         # msg = f'{self.idx_map[self.hdl.currentIndex]}: ' + \
         msg = f'[x={col:4d}, y={row:4d}, ' + \
-              f'qx={qx:.04f}Å⁻¹, qy={qy:.06f}Å⁻¹, phi={phi:.1f}deg], ' + \
-              f'val={val}'
+              f'qx={qx:.3e}Å⁻¹, qy={qy:.3e}Å⁻¹, phi={phi:.1f}deg], ' + \
+              f'val={val:.03e}'
 
         self.infobar.clear()
         self.infobar.setText(msg)
