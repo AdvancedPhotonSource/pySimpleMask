@@ -334,11 +334,13 @@ class SimpleMask(object):
         mask_e = np.zeros_like(mask_n)
         mask_i = np.zeros_like(mask_n)
 
+        remove_roi = []
         for x in self.hdl.roi:
             # get ride of the center plot if it's there
             if isinstance(x, pg.ScatterPlotItem):
                 continue
-            # else
+            remove_roi.append(x)
+
             mask_temp = np.zeros_like(ones, dtype=np.bool)
             # return slice and transfrom
             sl, _ = x.getArraySlice(self.data[1], self.hdl.imageItem)
@@ -362,6 +364,12 @@ class SimpleMask(object):
                 mask_e[mask_temp] = 1
             elif x.sl_mode == 'inclusive':
                 mask_i[mask_temp] = 1
+
+        # remove roi; using for loop directly in self.hdl.roi only works if
+        # there is only one ROI.
+        for x in remove_roi:
+            self.remove_roi(x)
+        del remove_roi
 
         if np.sum(mask_i) == 0:
             mask_i = 1
