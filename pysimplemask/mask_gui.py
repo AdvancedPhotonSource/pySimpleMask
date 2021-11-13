@@ -66,7 +66,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.mp1.sigTimeChanged.connect(self.update_index)
         self.state = 'lock'
 
-        # mask_list 
+        # mask_list
         self.btn_mask_list_load.clicked.connect(self.mask_list_load)
         self.btn_mask_list_clear.clicked.connect(self.mask_list_clear)
         self.btn_mask_list_add.clicked.connect(self.mask_list_add)
@@ -75,7 +75,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
             lambda: self.mask_evaluate('mask_list'))
         self.btn_mask_list_apply.clicked.connect(
             lambda: self.mask_apply('mask_list'))
-    
+
         # blemish
         self.btn_select_blemish.clicked.connect(self.select_blemish)
         self.btn_apply_blemish.clicked.connect(
@@ -173,7 +173,7 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(5)
         return
- 
+
     def mask_apply(self, target):
         if not self.sm.is_ready():
             self.statusbar.showMessage('No scattering image is not loaded.',
@@ -205,9 +205,12 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         self.plot()
 
     def select_raw(self):
-        # fname = QFileDialog.getOpenFileName(self, 'Select raw file hdf')[0]
-        # fname = "../tests/data/H432_OH_100_025C_att05_001/H432_OH_100_025C_att05_001_0001-1000.hdf"
-        fname = "/Users/mqichu/Documents/local_dev/pysimplemask/tests/data/E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_att04_Rq0_00001_0001-100000.hdf"
+        fname = QFileDialog.getOpenFileName(self, 'Select raw file hdf')[0]
+        # fname = """
+        # /Users/mqichu/Documents/local_dev/pysimplemask/tests/data/
+        # E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_
+        # att04_Rq0_00001_0001-100000.hdf"
+
         if fname not in [None, '']:
             self.fname.setText(fname)
         return
@@ -225,8 +228,8 @@ class SimpleMaskGUI(QtWidgets.QMainWindow, Ui):
         return
 
     def select_maskfile(self):
-        # fname = QFileDialog.getOpenFileName(self, 'Select mask file')[0]
-        fname = "../tests/data/triangle_mask/mask_lambda_test.h5"
+        fname = QFileDialog.getOpenFileName(self, 'Select mask file')[0]
+        # fname = "../tests/data/triangle_mask/mask_lambda_test.h5"
         if fname not in [None, '']:
             self.maskfile_fname.setText(fname)
         if fname.endswith('.tif') or fname.endswith('.tiff'):
