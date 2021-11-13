@@ -384,8 +384,10 @@ def run():
     #     setup_windows_icon()
     # QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
     app = QtWidgets.QApplication(sys.argv)
-    if len(sys.argv) > 0:
+    if len(sys.argv) > 1:
         window = SimpleMaskGUI(sys.argv[1])
+    else:
+        window = SimpleMaskGUI()
     app.exec_()
 
 
