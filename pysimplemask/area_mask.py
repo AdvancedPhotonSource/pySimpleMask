@@ -15,6 +15,15 @@ class MaskBase():
 
     def set_enabled(self, flag=True):
         self.enabled = flag
+ 
+    def describe(self):
+        if self.zero_loc is None:
+            return 'Mask is not initialized'
+        bad_num = len(self.zero_loc[0])
+        total_num = self.shape[0] * self.shape[1]
+        ratio = bad_num / total_num * 100.0
+        msg = f'{self.mtype}: bad_pixel: {bad_num}/{ratio:0.3f}%'
+        return msg
 
     def get_mask(self):
         mask = np.ones(self.shape, dtype=np.bool)
@@ -114,7 +123,7 @@ class MaskAssemble():
             'mask_threshold': MaskThreshold(shape),
             'mask_list': MaskList(shape),
             'mask_draw': MaskArray(shape),
-            'mask_outlier': MaskArray(shape),
+            'mask_outlier': MaskList(shape),
         }
         self.saxs_log = saxs_log
     
@@ -126,6 +135,8 @@ class MaskAssemble():
             self.workers[target].evaluate(**kwargs)
         else:
             self.workers[target].evaluate(self.saxs_log, **kwargs)
+        
+        return self.workers[target].describe()
 
     def get_one_mask(self, target):
         return self.workers[target].get_mask()
