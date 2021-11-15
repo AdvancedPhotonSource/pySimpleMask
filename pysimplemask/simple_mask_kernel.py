@@ -50,6 +50,7 @@ class SimpleMask(object):
         self.infobar = infobar
         self.extent = None
         self.hdl.scene.sigMouseMoved.connect(self.show_location)
+        self.bad_pixel_set = set()
 
         self.idx_map = {
             0: "scattering",
@@ -99,6 +100,22 @@ class SimpleMask(object):
         self.mask = np.logical_and(self.mask, mask)
         self.data[1:] *= self.mask
         self.hdl.setCurrentIndex(2)
+
+    def get_pts_with_similar_intensity(self, cen=None, radius=50,
+                                       variation=50):
+        vmin = max(0, int(cen[0] - radius))
+        vmax = min(self.shape[0], int(cen[0] + radius))
+
+        hmin = max(0, int(cen[1] - radius))
+        hmax = min(self.shape[1], int(cen[1] + radius))
+        crop = self.saxs_lin[vmin:vmax, hmin:hmax]
+        val = self.saxs_lin[cen]
+        idx = np.abs(crop - val) <= variation / 100.0 * val
+        pos = np.array(np.nonzero(idx))
+        pos[0] += vmin
+        pos[1] += hmin
+        pos = np.roll(pos, shift=1, axis=0)
+        return pos.T
 
     def save_partition(self, save_fname):
         # if no partition is computed yet
