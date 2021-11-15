@@ -410,17 +410,19 @@ class SimpleMaskGUI(QMainWindow, Ui):
         xy = text_to_array(pts)
         xy = xy[0: xy.size // 2 * 2].reshape(-1, 2)
         self.mask_list_add_pts(xy)
- 
+
     def mask_list_add_pts(self, pts):
         for xy in pts:
             xy_str = str(xy)
             if xy_str not in self.sm.bad_pixel_set:
                 self.mask_list_xylist.addItem(xy_str)
                 self.sm.bad_pixel_set.add(xy_str)
+        self.groupBox_11.setTitle('xy list: %d' % len(self.sm.bad_pixel_set))
 
     def mask_list_clear(self):
         self.sm.bad_pixel_set.clear()
         self.mask_list_xylist.clear()
+        self.groupBox_11.setTitle('xy list')
 
     def load_last_config(self, ):
         if not os.path.isfile(self.lastconfig_fname):
