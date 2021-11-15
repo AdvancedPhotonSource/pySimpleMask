@@ -630,6 +630,7 @@ class Ui_SimpleMask(object):
         self.mask_list_radius = QtWidgets.QDoubleSpinBox(self.groupBox_14)
         self.mask_list_radius.setMinimum(10.0)
         self.mask_list_radius.setMaximum(1000.0)
+        self.mask_list_radius.setProperty("value", 50.0)
         self.mask_list_radius.setObjectName("mask_list_radius")
         self.gridLayout_27.addWidget(self.mask_list_radius, 1, 1, 1, 1)
         self.label_24 = QtWidgets.QLabel(self.groupBox_14)
