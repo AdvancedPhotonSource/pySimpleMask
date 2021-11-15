@@ -14,17 +14,6 @@ from hdf2sax import hdf2saxs
 pg.setConfigOptions(imageAxisOrder='row-major')
 
 
-def normalize(arr):
-    # normalize arr so it's range is between 0 and 1
-    vmin = np.min(arr)
-    vmax = np.max(arr)
-
-    if vmax - vmin > 1E-10:
-        return (arr - vmin) / (vmax - vmin)
-    else:
-        return np.copy(arr)
-
-
 def add_dimension(x, num):
     assert x.ndim == 1
     new_x = np.zeros((num, x.size), dtype=x.dtype)
@@ -39,7 +28,6 @@ class SimpleMask(object):
         self.qmap = None
         self.mask = None
         self.mask_kernel = None
-        self.is_rotate = False
         self.saxs_lin = None
         self.saxs_log = None
 
@@ -305,7 +293,7 @@ class SimpleMask(object):
 
         return None
 
-    def show_saxs(self, cmap='jet', log=True, invert=False, rotate=False,
+    def show_saxs(self, cmap='jet', log=True, invert=False,
                   plot_center=True, plot_index=0, **kwargs):
         if self.meta is None or self.data_raw is None:
             return
@@ -314,10 +302,6 @@ class SimpleMask(object):
         self.data = np.copy(self.data_raw)
 
         center = (self.meta['bcx'], self.meta['bcy'])
-        if rotate:
-            self.data = np.swapaxes(self.data, 1, 2)
-            center = [center[1], center[0]]
-        self.is_rotate = rotate
 
         if not log:
             self.data[0] = 10 ** self.data[0]
