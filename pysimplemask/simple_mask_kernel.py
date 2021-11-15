@@ -466,7 +466,7 @@ class SimpleMask(object):
             mask = self.mask
 
         vmap = self.qmap[mode] * mask
-        vmap_valid = vmap[self.mask == True]
+        vmap_valid = vmap[self.mask == 1]
         vmin = np.min(vmap_valid)
         vmax = np.max(vmap_valid)
 

@@ -2,7 +2,6 @@ import h5py
 import hdf5plugin
 
 
-
 def hdf2saxs(fname, beg_idx=0, num_frames=-1):
     '''
     read a xpcs hdf file, collapse the time series to get a two dimensional
@@ -37,12 +36,10 @@ def test01():
 # C:\Users\jeffr\Desktop\suli_fall_2021\D093_Lut_20C_att02_Lq0_003
 
     y = hdf2saxs(fname, num_frames=100)
-    
+
     print(y)
     assert y.ndim == 2
     # print(y)
-    
-    
 
 
 if __name__ == "__main__":
