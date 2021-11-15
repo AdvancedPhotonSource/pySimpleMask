@@ -139,68 +139,6 @@
               <layout class="QGridLayout" name="gridLayout_16">
                <item row="0" column="0">
                 <layout class="QGridLayout" name="gridLayout_10">
-                 <item row="0" column="1">
-                  <widget class="QDoubleSpinBox" name="db_cenx">
-                   <property name="enabled">
-                    <bool>true</bool>
-                   </property>
-                   <property name="minimum">
-                    <double>-9999.000000000000000</double>
-                   </property>
-                   <property name="maximum">
-                    <double>9999.000000000000000</double>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="2">
-                  <widget class="QLabel" name="label_3">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="text">
-                    <string>center y:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="3">
-                  <widget class="QDoubleSpinBox" name="db_ceny">
-                   <property name="enabled">
-                    <bool>true</bool>
-                   </property>
-                   <property name="minimum">
-                    <double>-9999.000000000000000</double>
-                   </property>
-                   <property name="maximum">
-                    <double>9999.000000000000000</double>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="0">
-                  <widget class="QLabel" name="label_2">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="text">
-                    <string>center x:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="1">
-                  <widget class="QDoubleSpinBox" name="db_pix_dim">
-                   <property name="enabled">
-                    <bool>true</bool>
-                   </property>
-                   <property name="decimals">
-                    <number>4</number>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="2" column="0">
                   <widget class="QLabel" name="label_6">
                    <property name="sizePolicy">
@@ -301,6 +239,68 @@
                   <widget class="QPushButton" name="btn_update_parameters">
                    <property name="text">
                     <string>Update Parameters</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QDoubleSpinBox" name="db_cenx">
+                   <property name="enabled">
+                    <bool>true</bool>
+                   </property>
+                   <property name="minimum">
+                    <double>-9999.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>9999.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="label_2">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string>center x:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="2">
+                  <widget class="QLabel" name="label_3">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="text">
+                    <string>center y:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="3">
+                  <widget class="QDoubleSpinBox" name="db_ceny">
+                   <property name="enabled">
+                    <bool>true</bool>
+                   </property>
+                   <property name="minimum">
+                    <double>-9999.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>9999.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="1">
+                  <widget class="QDoubleSpinBox" name="db_pix_dim">
+                   <property name="enabled">
+                    <bool>true</bool>
+                   </property>
+                   <property name="decimals">
+                    <number>4</number>
                    </property>
                   </widget>
                  </item>
@@ -1106,149 +1106,197 @@
               <attribute name="title">
                <string>Manual</string>
               </attribute>
-              <layout class="QGridLayout" name="gridLayout_19">
+              <layout class="QGridLayout" name="gridLayout_26">
                <item row="0" column="0">
-                <spacer name="horizontalSpacer_8">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
+                <widget class="QGroupBox" name="groupBox_12">
+                 <property name="title">
+                  <string>Import from file</string>
                  </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                </spacer>
+                 <layout class="QGridLayout" name="gridLayout_18">
+                  <item row="0" column="0">
+                   <widget class="QCheckBox" name="mask_list_1based">
+                    <property name="text">
+                     <string>1-based</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QCheckBox" name="mask_list_rowcol">
+                    <property name="text">
+                     <string>row-col</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QPushButton" name="btn_mask_list_load">
+                    <property name="text">
+                     <string>Load File</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
                </item>
-               <item row="0" column="1">
-                <layout class="QGridLayout" name="gridLayout_18">
-                 <item row="0" column="0">
-                  <widget class="QCheckBox" name="mask_list_1based">
-                   <property name="text">
-                    <string>1-based</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="1">
-                  <widget class="QCheckBox" name="mask_list_rowcol">
-                   <property name="text">
-                    <string>row-col</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="2">
-                  <widget class="QPushButton" name="btn_mask_list_load">
-                   <property name="text">
-                    <string>Load File</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="0" colspan="3">
-                  <widget class="QGroupBox" name="groupBox_11">
-                   <property name="title">
-                    <string>xy list</string>
-                   </property>
-                   <layout class="QGridLayout" name="gridLayout_22">
-                    <item row="1" column="1">
-                     <widget class="QPushButton" name="btn_mask_list_add">
-                      <property name="text">
-                       <string>Add points</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="0" column="1">
-                     <widget class="QLineEdit" name="mask_list_input">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="text">
-                       <string/>
-                      </property>
-                      <property name="placeholderText">
-                       <string>(x1, y1), (x2, y2), ...</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="0" column="0" rowspan="6">
-                     <widget class="QListWidget" name="mask_list_xylist">
-                      <property name="sizePolicy">
-                       <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
-                        <horstretch>0</horstretch>
-                        <verstretch>0</verstretch>
-                       </sizepolicy>
-                      </property>
-                      <property name="maximumSize">
-                       <size>
-                        <width>120</width>
-                        <height>16777215</height>
-                       </size>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="5" column="1">
-                     <widget class="QPushButton" name="btn_mask_list_clear">
-                      <property name="text">
-                       <string>Clear List</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="3" column="1">
-                     <widget class="QCheckBox" name="btn_mask_list_doubleclick">
-                      <property name="text">
-                       <string>DoubleClickToAdd</string>
-                      </property>
-                      <property name="checked">
-                       <bool>true</bool>
-                      </property>
-                     </widget>
-                    </item>
-                    <item row="4" column="1">
-                     <spacer name="verticalSpacer_3">
-                      <property name="orientation">
-                       <enum>Qt::Vertical</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>20</width>
-                        <height>40</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                   </layout>
-                  </widget>
-                 </item>
-                 <item row="2" column="0" colspan="2">
-                  <widget class="QPushButton" name="btn_mask_list_evaluate">
-                   <property name="text">
-                    <string>Evaluate</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="2">
-                  <widget class="QPushButton" name="btn_mask_list_apply">
-                   <property name="text">
-                    <string>Apply</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
+               <item row="0" column="1" rowspan="3">
+                <widget class="QGroupBox" name="groupBox_11">
+                 <property name="title">
+                  <string>xy list</string>
+                 </property>
+                 <layout class="QGridLayout" name="gridLayout_22">
+                  <item row="0" column="0" colspan="3">
+                   <widget class="QListWidget" name="mask_list_xylist">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>500</width>
+                      <height>16777215</height>
+                     </size>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QPushButton" name="btn_mask_list_clear">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>Clear List</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QPushButton" name="btn_mask_list_evaluate">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>Evaluate</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <widget class="QPushButton" name="btn_mask_list_apply">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>Apply</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
                </item>
-               <item row="0" column="2">
-                <spacer name="horizontalSpacer_3">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
+               <item row="1" column="0">
+                <widget class="QGroupBox" name="groupBox_13">
+                 <property name="title">
+                  <string>Input coordinates</string>
                  </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>20</height>
-                  </size>
+                 <layout class="QGridLayout" name="gridLayout_19">
+                  <item row="0" column="1">
+                   <widget class="QPushButton" name="btn_mask_list_add">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>Add points</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="0">
+                   <widget class="QLineEdit" name="mask_list_input">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>200</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                    <property name="placeholderText">
+                     <string>(x1, y1), (x2, y2), ...</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QGroupBox" name="groupBox_14">
+                 <property name="title">
+                  <string>Select with double-click</string>
                  </property>
-                </spacer>
+                 <layout class="QGridLayout" name="gridLayout_27">
+                  <item row="0" column="1" colspan="2">
+                   <widget class="QCheckBox" name="mask_list_include">
+                    <property name="text">
+                     <string>Include points with simiar intensity</string>
+                    </property>
+                    <property name="checked">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="label_19">
+                    <property name="text">
+                     <string>Radius:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QDoubleSpinBox" name="mask_list_radius">
+                    <property name="minimum">
+                     <double>10.000000000000000</double>
+                    </property>
+                    <property name="maximum">
+                     <double>1000.000000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <widget class="QLabel" name="label_24">
+                    <property name="text">
+                     <string>Intensity Variation (%):</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="3">
+                   <widget class="QDoubleSpinBox" name="mask_list_variation">
+                    <property name="minimum">
+                     <double>1.000000000000000</double>
+                    </property>
+                    <property name="value">
+                     <double>80.000000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
                </item>
               </layout>
              </widget>
@@ -1656,5 +1704,38 @@
   <tabstop>infobar</tabstop>
  </tabstops>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>mask_list_include</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>mask_list_radius</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>156</x>
+     <y>688</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>162</x>
+     <y>721</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>mask_list_include</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>mask_list_variation</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>245</x>
+     <y>699</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>386</x>
+     <y>719</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
