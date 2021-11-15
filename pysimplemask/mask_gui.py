@@ -142,8 +142,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         return
 
     def mouse_clicked(self, event):
-        if not event.double() or \
-                not self.btn_mask_list_doubleclick.isChecked():
+        if not event.double():
             return
 
         # make sure the maskwidget is at manual mode;
@@ -156,7 +155,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
         mouse_point = self.mp1.getView().mapSceneToView(event.pos())
         col = int(mouse_point.x())
         row = int(mouse_point.y())
-        self.mask_list_xylist.addItem(str([col, row]))
+        if not self.mask_list_include.isChecked():
+            self.mask_list_add_pts([np.array([col, row])])
+        else:
+            kwargs = {
+                'radius': self.mask_list_radius.value(),
+                'variation': self.mask_list_variation.value(),
+                'cen': (row, col)
+            }
+            pos = self.sm.get_pts_with_similar_intensity(**kwargs)
+            self.mask_list_add_pts(pos)
 
     def mask_evaluate(self, target=None):
         if target is None or not self.sm.is_ready():
@@ -230,8 +238,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
 
         self.sm.mask_apply(target)
+
+        # perform evaluate again so the saxs1d shows the new results;
         if target == 'mask_outlier':
             self.mask_evaluate(target=target)
+        elif target == 'mask_manual':
+            self.mask_list_clear()
+
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(2)
 
@@ -385,8 +398,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             xy = xy - 1
 
         xy = xy.astype(np.int64)
-        xy_str = [str(t) for t in xy]
-        self.mask_list_xylist.addItems(xy_str)
+        self.mask_list_add_pts(xy)
 
     def mask_list_add(self):
         pts = self.mask_list_input.text()
@@ -397,10 +409,17 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         xy = text_to_array(pts)
         xy = xy[0: xy.size // 2 * 2].reshape(-1, 2)
-        xy_str = [str(t) for t in xy]
-        self.mask_list_xylist.addItems(xy_str)
+        self.mask_list_add_pts(xy)
+ 
+    def mask_list_add_pts(self, pts):
+        for xy in pts:
+            xy_str = str(xy)
+            if xy_str not in self.sm.bad_pixel_set:
+                self.mask_list_xylist.addItem(xy_str)
+                self.sm.bad_pixel_set.add(xy_str)
 
     def mask_list_clear(self):
+        self.sm.bad_pixel_set.clear()
         self.mask_list_xylist.clear()
 
     def load_last_config(self, ):
