@@ -111,8 +111,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.mask_outlier_hdl.setBackground((255, 255, 255))
         self.mp1.scene.sigMouseClicked.connect(self.mouse_clicked)
 
+        self.work_dir = None
         if path is not None:
-            self.fname.setText(str(path))
+            path = os.path.abspath(path)
+            if os.path.isfile(path):
+                self.fname.setText(str(path))
+                self.work_dir = os.path.dirname(path)
+            elif os.path.isdir(path):
+                self.work_dir = path
 
         self.MaskWidget.setCurrentIndex(0)
         self.setting_fname = os.path.join(home_dir, 'default_setting.json')
@@ -267,7 +273,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.plot()
 
     def select_raw(self):
-        fname = QFileDialog.getOpenFileName(self, 'Select raw file hdf')[0]
+        fname = QFileDialog.getOpenFileName(self,
+                                            caption='Select raw file hdf',
+                                            directory=self.work_dir
+                                            )[0]
         # fname = """
         # /Users/mqichu/Documents/local_dev/pysimplemask/tests/data/
         # E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_
