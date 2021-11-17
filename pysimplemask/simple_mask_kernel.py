@@ -30,6 +30,8 @@ class SimpleMask(object):
         self.mask_kernel = None
         self.saxs_lin = None
         self.saxs_log = None
+        self.saxs_log_min = None
+        self.plot_log = True
 
         self.new_partition = None
         self.meta = None
@@ -79,7 +81,6 @@ class SimpleMask(object):
         # preview the mask
         mask = self.mask_kernel.get_one_mask(target)
         self.data[5][:, :] = mask
-        self.hdl.setCurrentIndex(5)
         return msg
 
     def mask_apply(self, target):
@@ -87,7 +88,10 @@ class SimpleMask(object):
         self.mask_kernel.enable(target)
         self.mask = np.logical_and(self.mask, mask)
         self.data[1:] *= self.mask
-        self.hdl.setCurrentIndex(2)
+        if self.plot_log:
+            self.data[1][np.logical_not(self.mask)] = self.saxs_log_min
+        else:
+            self.data[1][np.logical_not(self.mask)] = self.saxs_lin_min
 
     def get_pts_with_similar_intensity(self, cen=None, radius=50,
                                        variation=50):
@@ -209,6 +213,11 @@ class SimpleMask(object):
         self.data_raw = np.zeros(shape=(6, *saxs.shape))
         self.mask = np.ones(saxs.shape, dtype=np.bool)
 
+        saxs_nonzero = saxs[saxs > 0]
+        # use percentile instead of min to be robust
+        self.saxs_lin_min = np.percentile(saxs_nonzero, 1)
+        self.saxs_log_min = np.log10(self.saxs_lin_min)
+
         self.saxs_lin = saxs.astype(np.float32)
         self.min_val = np.min(saxs[saxs > 0])
         self.saxs_log = np.log10(saxs + self.min_val)
@@ -303,6 +312,7 @@ class SimpleMask(object):
 
         center = (self.meta['bcx'], self.meta['bcy'])
 
+        self.plot_log = log
         if not log:
             self.data[0] = 10 ** self.data[0]
 
