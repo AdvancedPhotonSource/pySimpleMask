@@ -248,11 +248,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # perform evaluate again so the saxs1d shows the new results;
         if target == 'mask_outlier':
             self.mask_evaluate(target=target)
-        elif target == 'mask_manual':
+        elif target == 'mask_list':
             self.mask_list_clear()
 
         self.plot_index.setCurrentIndex(0)
-        self.plot_index.setCurrentIndex(2)
+        self.plot_index.setCurrentIndex(1)
 
     def update_index(self):
         idx = self.mp1.currentIndex
