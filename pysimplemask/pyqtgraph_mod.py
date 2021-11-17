@@ -11,7 +11,7 @@ class ImageViewROI(pg.ImageView):
         self.roi = []
         self.ui.roiBtn.setDisabled(True)
         self.ui.menuBtn.setDisabled(True)
-    
+
     def roiClicked(self):
         pass
 
@@ -40,12 +40,12 @@ class ImageViewROI(pg.ImageView):
                                      'yLimits': [None, None],
                                      'xRange': [None, None],
                                      'yRange': [None, None]
-                                     } 
+                                     }
 
     def set_colormap(self, cmap):
         pg_cmap = pg_get_cmap(plt.get_cmap(cmap))
         self.setColorMap(pg_cmap)
-    
+
     def clear(self):
         for t in self.roi:
             self.removeItem(t)
@@ -66,12 +66,12 @@ class ImageViewROI(pg.ImageView):
     def remove_item(self, t):
         self.roi.remove(t)
         self.removeItem(t)
-    
+
     def updateImage(self, autoHistogramRange=True):
-        ## Redraw image on screen
+        # Redraw image on screen
         if self.image is None:
             return
-            
+
         image = self.getProcessedImage()
 
         lmin = np.min(image[self.currentIndex])
@@ -79,18 +79,19 @@ class ImageViewROI(pg.ImageView):
         if autoHistogramRange:
             # self.ui.histogram.setHistogramRange(lmin, lmax)
             self.setLevels(rgba=[(lmin, lmax)])
-        
+
         # Transpose image into order expected by ImageItem
         if self.imageItem.axisOrder == 'col-major':
             axorder = ['t', 'x', 'y', 'c']
         else:
             axorder = ['t', 'y', 'x', 'c']
-        axorder = [self.axes[ax] for ax in axorder if self.axes[ax] is not None]
+        axorder = [self.axes[ax]
+                   for ax in axorder if self.axes[ax] is not None]
         image = image.transpose(axorder)
-            
+
         # Select time index
         if self.axes['t'] is not None:
             self.ui.roiPlot.show()
             image = image[self.currentIndex]
-            
+
         self.imageItem.updateImage(image)
