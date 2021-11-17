@@ -257,6 +257,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def update_index(self):
         idx = self.mp1.currentIndex
         self.plot_index.setCurrentIndex(idx)
+        # make the mask and preview binary
+        if idx in [2, 5]:
+            self.mp1.setLevels(0, 1)
 
     def update_parameters(self):
         if not self.sm.is_ready():
