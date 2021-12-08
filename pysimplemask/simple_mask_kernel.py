@@ -415,7 +415,7 @@ class SimpleMask(object):
             new_roi.addScaleHandle([1, 0.5], [0, 0.5])
 
         elif sl_type == 'Circle':
-            new_roi = pg.CircleROI([cen[1], cen[0]], [60, 80], **kwargs)
+            new_roi = pg.CircleROI([cen[1], cen[0]], [80, 80], **kwargs)
 
         elif sl_type == 'Polygon':
             if num_edges is None:
@@ -433,7 +433,7 @@ class SimpleMask(object):
         elif sl_type == 'Rectangle':
             new_roi = pg.RectROI([cen[1], cen[0]], [30, 150], **kwargs)
             new_roi.addScaleHandle([0, 0], [1, 1])
-            new_roi.addRotateHandle([0, 1], [0.5, 0.5])
+            # new_roi.addRotateHandle([0, 1], [0.5, 0.5])
 
         else:
             raise TypeError('type not implemented. %s' % sl_type)
