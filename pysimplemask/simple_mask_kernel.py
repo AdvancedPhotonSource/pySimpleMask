@@ -393,7 +393,8 @@ class SimpleMask(object):
                     sl_type='Polygon', width=3, sl_mode='exclusive'):
 
         shape = self.data.shape
-        cen = (shape[1] // 2, shape[2] // 2)
+        # cen = (shape[1] // 2, shape[2] // 2)
+        cen = (self.meta['bcy'], self.meta['bcx'])
         if sl_mode == 'inclusive':
             pen = pg.mkPen(color=color, width=width, style=QtCore.Qt.DotLine)
         else:
