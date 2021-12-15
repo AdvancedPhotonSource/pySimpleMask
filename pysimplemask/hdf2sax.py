@@ -1,5 +1,6 @@
 import h5py
 import hdf5plugin
+import numpy as np
 
 
 def hdf2saxs(fname, beg_idx=0, num_frames=-1):
@@ -27,19 +28,21 @@ def hdf2saxs(fname, beg_idx=0, num_frames=-1):
             end_idx = x.shape[0]
         else:
             end_idx = min(x.shape[0], beg_idx + num_frames)
-        y = x[beg_idx: end_idx].mean(axis=0).astype(x.dtype)
+        y = x[beg_idx: end_idx].astype(np.float32)
+        y = np.mean(y, axis=0)
+
     return y
 
 
 def test01():
-    fname = ('/Users/jeffr/Desktop/suli_fall_2021/D093_Lut_20C_att02_Lq0_003/D093_Lut_20C_att02_Lq0_003_001.h5')
+    fname = ('/Users/mqichu/Downloads/simulation_0010k_sparse_0.005/simulation_0010k_sparse_0.005.h5')
 # C:\Users\jeffr\Desktop\suli_fall_2021\D093_Lut_20C_att02_Lq0_003
 
     y = hdf2saxs(fname, num_frames=100)
 
     print(y)
     assert y.ndim == 2
-    # print(y)
+    print(np.max(y))
 
 
 if __name__ == "__main__":
