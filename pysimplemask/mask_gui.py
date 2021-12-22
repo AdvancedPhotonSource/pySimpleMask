@@ -54,6 +54,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_select_raw.clicked.connect(self.select_raw)
         # self.btn_select_txt.clicked.connect(self.select_txt)
         self.btn_update_parameters.clicked.connect(self.update_parameters)
+        self.btn_swapxy.clicked.connect(
+            lambda: self.update_parameters(swapxy=True))
 
         # need a function for save button -- simple_mask_ui
         self.pushButton.clicked.connect(self.save_mask)
@@ -260,8 +262,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # make the mask and preview binary
         if idx in [2, 5]:
             self.mp1.setLevels(0, 1)
-
-    def update_parameters(self):
+ 
+    def update_parameters(self, swapxy=False):
         if not self.sm.is_ready():
             self.statusbar.showMessage('No scattering image is not loaded.',
                                        500)
@@ -271,6 +273,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         values = []
         for pv in pvs:
             values.append(pv.value())
+        if swapxy:
+            y, x = values[0], values[1]
+            values[0], values[1] = x, y
+            self.db_cenx.setValue(x)
+            self.db_ceny.setValue(y)
         self.sm.update_parameters(values)
         self.groupBox.repaint()
         self.plot()
