@@ -175,9 +175,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.mask_list_add_pts(pos)
 
     def mask_evaluate(self, target=None):
-        if target is None or not self.sm.is_ready():
-            self.statusbar.showMessage('No scattering image is not loaded.',
-                                       500)
+        if target is None or not self.is_ready():
             return
 
         if target == 'mask_blemish':
@@ -240,9 +238,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         return
 
     def mask_apply(self, target):
-        if not self.sm.is_ready():
-            self.statusbar.showMessage('No scattering image is not loaded.',
-                                       500)
+        if not self.is_ready():
             return
 
         self.sm.mask_apply(target)
@@ -262,11 +258,17 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # make the mask and preview binary
         if idx in [2, 5]:
             self.mp1.setLevels(0, 1)
-
-    def update_parameters(self, swapxy=False):
+ 
+    def is_ready(self):
         if not self.sm.is_ready():
             self.statusbar.showMessage('No scattering image is loaded.', 500)
+            return False
+        return True
+    
+    def update_parameters(self, swapxy=False):
+        if not self.is_ready():
             return
+
         pvs = (self.db_cenx, self.db_ceny, self.db_energy, self.db_pix_dim,
                self.db_det_dist)
         values = []
@@ -349,9 +351,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.plot_index.setCurrentIndex(0)
 
     def add_drawing(self):
-        if not self.sm.is_ready():
-            self.statusbar.showMessage('No scattering image is not loaded.',
-                                       500)
+        if not self.is_ready():
             return
         color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
             self.cb_selector_color.currentIndex()]
@@ -365,9 +365,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         return
 
     def compute_partition(self):
-        if not self.sm.is_ready():
-            self.statusbar.showMessage('No scattering image is not loaded.',
-                                       500)
+        if not self.is_ready():
             return
 
         kwargs = {
@@ -381,10 +379,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.plot_index.setCurrentIndex(3)
 
     def save_mask(self):
-        if not self.sm.is_ready():
-            self.statusbar.showMessage('No scattering image is not loaded.',
-                                       500)
+        if not self.is_ready():
             return
+
         if self.sm.new_partition is None:
             self.compute_partition()
         save_fname = QFileDialog.getSaveFileName(
@@ -392,9 +389,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.sm.save_partition(save_fname)
 
     def mask_list_load(self):
-        if not self.sm.is_ready():
-            self.statusbar.showMessage('No scattering image is not loaded.',
-                                       500)
+        if not self.is_ready():
             return
 
         fname = QFileDialog.getOpenFileName(self, 'Select mask file')[0]
