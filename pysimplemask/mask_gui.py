@@ -262,11 +262,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # make the mask and preview binary
         if idx in [2, 5]:
             self.mp1.setLevels(0, 1)
- 
+
     def update_parameters(self, swapxy=False):
         if not self.sm.is_ready():
-            self.statusbar.showMessage('No scattering image is not loaded.',
-                                       500)
+            self.statusbar.showMessage('No scattering image is loaded.', 500)
             return
         pvs = (self.db_cenx, self.db_ceny, self.db_energy, self.db_pix_dim,
                self.db_det_dist)
