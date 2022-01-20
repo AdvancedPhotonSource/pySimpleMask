@@ -5,7 +5,6 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
 from area_mask import MaskAssemble
 
-
 # import other programs
 from imm_reader_with_plot import IMMReader8ID
 from rigaku_reader import RigakuReader
@@ -557,21 +556,23 @@ class SimpleMask(object):
         for n in range(dp_num):
             idx = dphi_partition == (n + 1)
             dyn_combined[idx] = dqmap_partition[idx] + n * dq_num
+        dyn_combined = dyn_combined * self.mask
 
         # combine sqmap and sqlist
         for n in range(sp_num):
             idx = sphi_partition == (n + 1)
             sta_combined[idx] = sqmap_partition[idx] + n * sq_num
+        sta_combined = sta_combined * self.mask
 
-        self.data[3] = dyn_combined * self.mask
-        self.data[4] = sta_combined * self.mask
+        self.data[3] = dyn_combined
+        self.data[4] = sta_combined
         self.hdl.setCurrentIndex(3)
 
         partition = {
             'dqval': dqval,
             'sqval': sqval,
-            'dynamicMap': dqmap_partition,
-            'staticMap': sqmap_partition,
+            'dynamicMap': dyn_combined,
+            'staticMap': sta_combined,
             'dphival': dphi,
             'sphival': sphi,
             'dqspan': dqspan,
