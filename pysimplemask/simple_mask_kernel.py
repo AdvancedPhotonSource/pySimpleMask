@@ -13,11 +13,39 @@ from hdf2sax import hdf2saxs
 pg.setConfigOptions(imageAxisOrder='row-major')
 
 
-def add_dimension(x, num):
-    assert x.ndim == 1
-    new_x = np.zeros((num, x.size), dtype=x.dtype)
-    new_x[:] = x
-    return new_x
+def combine_qp(q_num, p_num, qval, pval, qmap, pmap, mask):
+    combined_map = np.zeros_like(qmap, dtype=np.uint32)
+
+    # combine qmap and phi map
+    for n in range(p_num):
+        idx = pmap == (n + 1)
+        combined_map[idx] = qmap[idx] + n * q_num
+    combined_map = combined_map * mask
+
+    # total number of q's, including 0;
+    total_num = q_num * p_num + 1
+    num_pts = np.bincount(combined_map.ravel(), minlength=total_num)[1:]
+    # the roi that has zero points in it;
+    invalid_roi = (num_pts == 0)
+
+    cqval = np.tile(qval, p_num).reshape(p_num, q_num)
+    cqval = np.swapaxes(cqval, 0, 1).flatten()
+    cpval = np.tile(pval, q_num)
+    # the 0 axis is the q direction and 1st axis is phi direction
+
+    cqval[invalid_roi] = np.nan
+    cpval[invalid_roi] = np.nan
+
+    cqlist = cqval[np.logical_not(invalid_roi)]
+    cplist = cpval[np.logical_not(invalid_roi)]
+
+    cqval = np.expand_dims(cqval, axis=0)
+    cpval = np.expand_dims(cpval, axis=0)
+
+    cqlist = np.expand_dims(cqlist, axis=0)
+    cplist = np.expand_dims(cplist, axis=0)
+
+    return combined_map, cqval, cpval, cqlist, cplist
 
 
 class SimpleMask(object):
@@ -539,42 +567,37 @@ class SimpleMask(object):
         sq_num = (sq_num + dq_num - 1) // dq_num * dq_num
         sp_num = (sp_num + dp_num - 1) // dp_num * dp_num
 
-        dqspan, dqval, dqmap_partition = \
+        dqspan, dqval_1d, dqmap_partition = \
             self.get_partition(num=dq_num, style=style, mode='q')
-        sqspan, sqval, sqmap_partition = \
+        sqspan, sqval_1d, sqmap_partition = \
             self.get_partition(num=sq_num, style=style, mode='q')
 
-        dphispan, dphi, dphi_partition = \
+        dphispan, dphi_1d, dphi_partition = \
             self.get_partition(num=dp_num, style=style, mode='phi')
-        sphispan, sphi, sphi_partition = \
+        sphispan, sphi_1d, sphi_partition = \
             self.get_partition(num=sp_num, style=style, mode='phi')
 
-        dyn_combined = np.zeros_like(dqmap_partition, dtype=np.uint32)
-        sta_combined = np.zeros_like(dqmap_partition, dtype=np.uint32)
+        dyn_map, dqval, dpval, dqlist, dplist = combine_qp(
+            dq_num, dp_num, dqval_1d, dphi_1d, dqmap_partition, dphi_partition,
+            self.mask)
 
-        # combine dqmap and dqlist
-        for n in range(dp_num):
-            idx = dphi_partition == (n + 1)
-            dyn_combined[idx] = dqmap_partition[idx] + n * dq_num
-        dyn_combined = dyn_combined * self.mask
+        sta_map, sqval, spval, sqlist, splist = combine_qp(
+            sq_num, sp_num, sqval_1d, sphi_1d, sqmap_partition, sphi_partition,
+            self.mask)
 
-        # combine sqmap and sqlist
-        for n in range(sp_num):
-            idx = sphi_partition == (n + 1)
-            sta_combined[idx] = sqmap_partition[idx] + n * sq_num
-        sta_combined = sta_combined * self.mask
-
-        self.data[3] = dyn_combined
-        self.data[4] = sta_combined
+        self.data[3] = dyn_map
+        self.data[4] = sta_map
         self.hdl.setCurrentIndex(3)
 
         partition = {
             'dqval': dqval,
             'sqval': sqval,
-            'dynamicMap': dyn_combined,
-            'staticMap': sta_combined,
-            'dphival': dphi,
-            'sphival': sphi,
+            'dynamicMap': dyn_map,
+            'staticMap': sta_map,
+            'dphival': dpval,
+            'sphival': spval,
+            'dynamicQList': dqlist,
+            'staticQList': sqlist,
             'dqspan': dqspan,
             'sqspan': sqspan,
             'dphispan': dphispan,
@@ -582,13 +605,8 @@ class SimpleMask(object):
             'dnophi': dp_num,
             'snophi': sp_num,
             'dnoq': dq_num,
-            'snoq': sq_num
+            'snoq': sq_num,
         }
-
-        for key in ['dphival', 'dqspan', 'dqval']:
-            partition[key] = add_dimension(partition[key], dp_num)
-        for key in ['sphival', 'sqspan', 'sqval']:
-            partition[key] = add_dimension(partition[key], sp_num)
 
         self.new_partition = partition
         return partition
