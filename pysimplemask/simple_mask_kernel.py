@@ -17,9 +17,12 @@ def combine_qp(q_num, p_num, qval, pval, qmap, pmap, mask):
     combined_map = np.zeros_like(qmap, dtype=np.uint32)
 
     # combine qmap and phi map
-    for n in range(p_num):
-        idx = pmap == (n + 1)
-        combined_map[idx] = qmap[idx] + n * q_num
+    # for n in range(p_num):
+    #     idx = pmap == (n + 1)
+    #     combined_map[idx] = qmap[idx] + n * q_num
+    for n in range(q_num):
+        idx = qmap == (n + 1)
+        combined_map[idx] = pmap[idx] + n * p_num
     combined_map = combined_map * mask
 
     # total number of q's, including 0;
