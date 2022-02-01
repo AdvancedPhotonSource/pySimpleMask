@@ -13,17 +13,13 @@ from hdf2sax import hdf2saxs
 pg.setConfigOptions(imageAxisOrder='row-major')
 
 
-def combine_qp(q_num, p_num, qval, pval, qmap, pmap, mask):
+def combine_qp(q_num, p_num, qval_1d, pval_1d, qmap, pmap):
     combined_map = np.zeros_like(qmap, dtype=np.uint32)
 
-    # combine qmap and phi map
-    # for n in range(p_num):
-    #     idx = pmap == (n + 1)
-    #     combined_map[idx] = qmap[idx] + n * q_num
     for n in range(q_num):
         idx = qmap == (n + 1)
         combined_map[idx] = pmap[idx] + n * p_num
-    combined_map = combined_map * mask
+    combined_map = combined_map
 
     # total number of q's, including 0;
     total_num = q_num * p_num + 1
@@ -31,24 +27,18 @@ def combine_qp(q_num, p_num, qval, pval, qmap, pmap, mask):
     # the roi that has zero points in it;
     invalid_roi = (num_pts == 0)
 
-    cqval = np.tile(qval, p_num).reshape(p_num, q_num)
+    cqval = np.tile(qval_1d, p_num).reshape(p_num, q_num)
     cqval = np.swapaxes(cqval, 0, 1).flatten()
-    cpval = np.tile(pval, q_num)
+    cpval = np.tile(pval_1d, q_num)
     # the 0 axis is the q direction and 1st axis is phi direction
 
     cqval[invalid_roi] = np.nan
     cpval[invalid_roi] = np.nan
 
-    cqlist = cqval[np.logical_not(invalid_roi)]
-    cplist = cpval[np.logical_not(invalid_roi)]
-
     cqval = np.expand_dims(cqval, axis=0)
     cpval = np.expand_dims(cpval, axis=0)
 
-    cqlist = np.expand_dims(cqlist, axis=0)
-    cplist = np.expand_dims(cplist, axis=0)
-
-    return combined_map, cqval, cpval, cqlist, cplist
+    return combined_map, cqval, cpval
 
 
 class SimpleMask(object):
@@ -98,6 +88,7 @@ class SimpleMask(object):
         with h5py.File(fname, 'r') as f:
             for key, val in keys.items():
                 meta[key] = np.squeeze(f[val][()])
+            meta['data_name'] = os.path.basename(fname).encode("ascii")
         return meta
 
     def is_ready(self):
@@ -157,10 +148,6 @@ class SimpleMask(object):
             dt = h5py.vlen_dtype(np.dtype('int32'))
             version = data.create_dataset('Version', (1,), dtype=dt)
             version[0] = [5]
-            xspec = data.create_dataset('xspec', (1,), dtype=dt)
-            xspec[0] = [-1]
-            yspec = data.create_dataset('yspec', (1,), dtype=dt)
-            yspec[0] = [-1]
 
             maps = data.create_group("Maps")
             dt = h5py.special_dtype(vlen=str)
@@ -177,8 +164,12 @@ class SimpleMask(object):
             maps.create_dataset('y', data=empty_arr)
 
             for key, val in self.meta.items():
-                if key == 'saxs':
+                if key in ['datetime', 'energy', 'det_dist', 'pix_dim', 'bcx',
+                           'bcy', 'saxs']:
                     continue
+                val = np.array(val)
+                if val.size == 1:
+                    val = val.reshape(1, 1)
                 data.create_dataset(key, data=val)
         print('partition map is saved')
 
@@ -279,6 +270,7 @@ class SimpleMask(object):
         qx = qr * np.cos(phi)
         qy = qr * np.sin(phi)
 
+        phi = np.rad2deg(phi)
         qmap = {
             'phi': phi.astype(np.float32),
             'alpha': alpha.astype(np.float32),
@@ -319,7 +311,7 @@ class SimpleMask(object):
 
         qx = self.qmap['qx'][row, col]
         qy = self.qmap['qy'][row, col]
-        phi = self.qmap['phi'][row, col] * 180 / np.pi
+        phi = self.qmap['phi'][row, col]
         val = self.data[self.hdl.currentIndex][row, col]
 
         # msg = f'{self.idx_map[self.hdl.currentIndex]}: ' + \
@@ -508,6 +500,7 @@ class SimpleMask(object):
         for n in range(num):
             val = qspan[n]
             partition[vmap >= val] = n + 1
+        qspan = qspan.reshape(1, -1)
         return qspan, qlist, partition
 
     def compute_saxs1d(self, cutoff=3.0, episilon=1e-16, **kwargs):
@@ -575,18 +568,18 @@ class SimpleMask(object):
         sqspan, sqval_1d, sqmap_partition = \
             self.get_partition(num=sq_num, style=style, mode='q')
 
-        dphispan, dphi_1d, dphi_partition = \
+        dphispan, dphival_1d, dphi_partition = \
             self.get_partition(num=dp_num, style=style, mode='phi')
-        sphispan, sphi_1d, sphi_partition = \
+        sphispan, sphival_1d, sphi_partition = \
             self.get_partition(num=sp_num, style=style, mode='phi')
 
-        dyn_map, dqval, dpval, dqlist, dplist = combine_qp(
-            dq_num, dp_num, dqval_1d, dphi_1d, dqmap_partition, dphi_partition,
-            self.mask)
+        dyn_map, dqval, dphival = combine_qp(dq_num, dp_num, dqval_1d,
+                                             dphival_1d, dqmap_partition,
+                                             dphi_partition)
 
-        sta_map, sqval, spval, sqlist, splist = combine_qp(
-            sq_num, sp_num, sqval_1d, sphi_1d, sqmap_partition, sphi_partition,
-            self.mask)
+        sta_map, sqval, sphival = combine_qp(sq_num, sp_num, sqval_1d,
+                                             sphival_1d, sqmap_partition,
+                                             sphi_partition)
 
         self.data[3] = dyn_map
         self.data[4] = sta_map
@@ -597,10 +590,10 @@ class SimpleMask(object):
             'sqval': sqval,
             'dynamicMap': dyn_map,
             'staticMap': sta_map,
-            'dphival': dpval,
-            'sphival': spval,
-            'dynamicQList': dqlist,
-            'staticQList': sqlist,
+            'dphival': dphival,
+            'sphival': sphival,
+            'dynamicQList': np.arange(0, dq_num + 1).reshape(1, -1),
+            'staticQList': np.arange(0, sq_num + 1).reshape(1, -1),
             'dqspan': dqspan,
             'sqspan': sqspan,
             'dphispan': dphispan,
@@ -609,7 +602,13 @@ class SimpleMask(object):
             'snophi': sp_num,
             'dnoq': dq_num,
             'snoq': sq_num,
+            'x0': np.array([self.meta['bcx']]).reshape(1, 1),
+            'y0': np.array([self.meta['bcy']]).reshape(1, 1),
+            'xspec': np.array(-1.0).reshape(1, 1),
+            'yspec': np.array(-1.0).reshape(1, 1),
         }
+        for key in ['snophi', 'snoq', 'dnophi', 'dnoq']:
+            partition[key] = np.array(partition[key]).reshape(1, 1)
 
         self.new_partition = partition
         return partition
