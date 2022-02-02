@@ -400,8 +400,18 @@ class SimpleMaskGUI(QMainWindow, Ui):
             'dp_num': self.sb_dpnum.value(),
             'style': self.partition_style.currentText(),
         }
+
+        num_rings = len(self.sm.qrings)
+        if num_rings > 1 and kwargs['dq_num'] % num_rings:
+            self.statusbar.showMessage(
+                'dq_num must be a multiple of qrings', 1000)
+        # self.btn_compute_qpartition.setStyleSheet("background-color: red")
+            return
+
         self.sm.compute_partition(**kwargs)
+        self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(3)
+        # self.btn_compute_qpartition.setStyleSheet("background-color: green")
 
     def save_mask(self):
         if not self.is_ready():
