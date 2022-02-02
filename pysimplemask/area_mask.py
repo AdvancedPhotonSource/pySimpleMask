@@ -12,6 +12,7 @@ class MaskBase():
         self.zero_loc = None
         self.mtype = 'base'
         self.enabled = True
+        self.qrings = []
 
     def set_enabled(self, flag=True):
         self.enabled = flag
@@ -108,14 +109,17 @@ class MaskThreshold(MaskBase):
 
 class MaskQring(MaskBase):
     """
-    use a ring on the qmap to define the mask 
+    use a ring on the qmap to define the mask
     """
+
     def __init__(self, shape=(512, 1024)) -> None:
         super().__init__(shape=shape)
+        self.qrings = []
 
     def evaluate(self, qmap, qbegin=0.001, qend=0.008, qnum=3,
                  flag_const_width=True):
         mask = np.zeros_like(qmap, dtype=np.bool)
+        qrings = []
 
         if qbegin > qend:
             qbegin, qend = qend, qbegin
@@ -129,10 +133,15 @@ class MaskQring(MaskBase):
             else:
                 low = (qcen - qhalf) * n
                 high = (qcen + qhalf) * n
+            qrings.append((low, high))
             tmp = np.logical_and((qmap > low), (qmap < high))
             mask[tmp] = 1
         mask = np.logical_not(mask)
         self.zero_loc = np.array(np.nonzero(mask))
+        self.qrings = qrings
+
+    def get_qrings(self):
+        return self.qrings.copy()
 
 
 class MaskArray(MaskBase):
