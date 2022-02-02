@@ -244,9 +244,10 @@ class SimpleMask(object):
         self.saxs_log = np.log10(saxs + self.min_val)
 
         self.shape = self.data_raw[0].shape
-        self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
 
         self.qmap = self.compute_qmap()
+        self.mask_kernel = MaskAssemble(self.shape, self.saxs_log,
+                                        self.qmap['q'])
         self.extent = self.compute_extent()
 
         # self.meta['saxs'] = saxs
@@ -280,6 +281,13 @@ class SimpleMask(object):
         }
 
         return qmap
+
+    def get_q_value(self, x, y):
+        shape = self.qmap['q'].shape
+        if 0 <= x < shape[1] and 0 <= y < shape[0]:
+            return self.qmap['q'][y, x]
+        else:
+            return None
 
     def compute_extent(self):
         k0 = 2 * np.pi / (12.3980 / self.meta['energy'])

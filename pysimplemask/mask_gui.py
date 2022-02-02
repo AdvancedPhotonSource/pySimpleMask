@@ -110,6 +110,12 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_outlier_apply.clicked.connect(
             lambda: self.mask_apply('mask_outlier'))
 
+        # btn_mask_qring
+        self.btn_mask_qring_evaluate.clicked.connect(
+            lambda: self.mask_evaluate('mask_qring'))
+        self.btn_mask_qring_apply.clicked.connect(
+            lambda: self.mask_apply('mask_qring'))
+
         self.mask_outlier_hdl.setBackground((255, 255, 255))
         self.mp1.scene.sigMouseClicked.connect(self.mouse_clicked)
 
@@ -153,8 +159,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not event.double():
             return
 
-        # make sure the maskwidget is at manual mode;
-        if self.MaskWidget.currentIndex() != 3:
+        # make sure the maskwidget is at manual mode or qring mode;
+        current_idx = self.MaskWidget.currentIndex()
+        if current_idx not in [3, 5]:
             return
 
         if not self.mp1.scene.itemsBoundingRect().contains(event.pos()):
@@ -163,16 +170,27 @@ class SimpleMaskGUI(QMainWindow, Ui):
         mouse_point = self.mp1.getView().mapSceneToView(event.pos())
         col = int(mouse_point.x())
         row = int(mouse_point.y())
-        if not self.mask_list_include.isChecked():
-            self.mask_list_add_pts([np.array([col, row])])
+        if current_idx == 3:
+            # manual mode; select the dead pixel with mouse click
+            if not self.mask_list_include.isChecked():
+                self.mask_list_add_pts([np.array([col, row])])
+            else:
+                kwargs = {
+                    'radius': self.mask_list_radius.value(),
+                    'variation': self.mask_list_variation.value(),
+                    'cen': (row, col)
+                }
+                pos = self.sm.get_pts_with_similar_intensity(**kwargs)
+                self.mask_list_add_pts(pos)
         else:
-            kwargs = {
-                'radius': self.mask_list_radius.value(),
-                'variation': self.mask_list_variation.value(),
-                'cen': (row, col)
-            }
-            pos = self.sm.get_pts_with_similar_intensity(**kwargs)
-            self.mask_list_add_pts(pos)
+            # qring mode, select qbegin and qend with mouse
+            q = self.sm.get_q_value(col, row)
+            if q is None:
+                return
+            if self.btn_mask_qbegin.isChecked():
+                self.mask_qring_begin.setValue(q)
+            else:
+                self.mask_qring_end.setValue(q)
 
     def mask_evaluate(self, target=None):
         if target is None or not self.is_ready():
@@ -230,6 +248,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
             p.setLabel('left', 'Intensity (a.u.)')
             p.setLogMode(y=True)
             kwargs = {'zero_loc': zero_loc}
+        elif target == 'mask_qring':
+            kwargs = {
+                "qbegin": self.mask_qring_begin.value(),
+                "qend": self.mask_qring_end.value(),
+                "qnum": self.mask_qring_num.value(),
+                "flag_const_width": self.mask_qring_constwidth.isChecked(),
+            }
 
         msg = self.sm.mask_evaluate(target, **kwargs)
         self.statusbar.showMessage(msg, 10000)
@@ -258,13 +283,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # make the mask and preview binary
         if idx in [2, 5]:
             self.mp1.setLevels(0, 1)
- 
+
     def is_ready(self):
         if not self.sm.is_ready():
             self.statusbar.showMessage('No scattering image is loaded.', 500)
             return False
         return True
-    
+
     def update_parameters(self, swapxy=False):
         if not self.is_ready():
             return
@@ -284,14 +309,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.plot()
 
     def select_raw(self):
-        fname = QFileDialog.getOpenFileName(self,
-                                            caption='Select raw file hdf',
-                                            directory=self.work_dir
-                                            )[0]
-        # fname = """
-        # /Users/mqichu/Documents/local_dev/pysimplemask/tests/data/
-        # E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_
-        # att04_Rq0_00001_0001-100000.hdf"
+        # fname = QFileDialog.getOpenFileName(self,
+        #                                     caption='Select raw file hdf',
+        #                                     directory=self.work_dir
+        #                                     )[0]
+        fname = (
+            "/Users/mqichu/Documents/local_dev/pysimplemask/tests/data/"
+            "E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_"
+            "att04_Rq0_00001_0001-100000.hdf")
 
         if fname not in [None, '']:
             self.fname.setText(fname)
