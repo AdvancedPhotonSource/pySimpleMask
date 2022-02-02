@@ -106,6 +106,35 @@ class MaskThreshold(MaskBase):
         self.zero_loc = np.array(np.nonzero(mask))
 
 
+class MaskQring(MaskBase):
+    """
+    use a ring on the qmap to define the mask 
+    """
+    def __init__(self, shape=(512, 1024)) -> None:
+        super().__init__(shape=shape)
+
+    def evaluate(self, qmap, qbegin=0.001, qend=0.008, qnum=3,
+                 flag_const_width=True):
+        mask = np.zeros_like(qmap, dtype=np.bool)
+
+        if qbegin > qend:
+            qbegin, qend = qend, qbegin
+        qcen = (qbegin + qend) / 2.0
+        qhalf = (qend - qbegin) / 2.0
+
+        for n in range(1, qnum + 1):
+            if flag_const_width:
+                low = qcen * n - qhalf
+                high = qcen * n + qhalf
+            else:
+                low = (qcen - qhalf) * n
+                high = (qcen + qhalf) * n
+            tmp = np.logical_and((qmap > low), (qmap < high))
+            mask[tmp] = 1
+        mask = np.logical_not(mask)
+        self.zero_loc = np.array(np.nonzero(mask))
+
+
 class MaskArray(MaskBase):
     def __init__(self, shape=(512, 1024)) -> None:
         super().__init__(shape=shape)
@@ -116,7 +145,7 @@ class MaskArray(MaskBase):
 
 
 class MaskAssemble():
-    def __init__(self, shape=(128, 128), saxs_log=None) -> None:
+    def __init__(self, shape=(128, 128), saxs_log=None, qmap=None) -> None:
         self.workers = {
             'mask_blemish': MaskFile(shape),
             'mask_file': MaskFile(shape),
@@ -124,17 +153,21 @@ class MaskAssemble():
             'mask_list': MaskList(shape),
             'mask_draw': MaskArray(shape),
             'mask_outlier': MaskList(shape),
+            'mask_qring': MaskQring(shape)
         }
         self.saxs_log = saxs_log
+        self.qmap = qmap
 
     def enable(self, target, flag=True):
         self.workers[target].set_enabled(flag)
 
     def evaluate(self, target, **kwargs):
-        if target != 'mask_threshold':
-            self.workers[target].evaluate(**kwargs)
-        else:
+        if target == 'mask_threshold':
             self.workers[target].evaluate(self.saxs_log, **kwargs)
+        elif target == 'mask_qring':
+            self.workers[target].evaluate(self.qmap, **kwargs)
+        else:
+            self.workers[target].evaluate(**kwargs)
 
         return self.workers[target].describe()
 
