@@ -24,14 +24,14 @@ def combine_qp(q_num, p_num, qval_1d, pval_1d, qmap, pmap):
     # total number of q's, including 0;
     total_num = q_num * p_num + 1
     num_pts = np.bincount(combined_map.ravel(), minlength=total_num)[1:]
-    # the roi that has zero points in it;
-    invalid_roi = (num_pts == 0)
 
     cqval = np.tile(qval_1d, p_num).reshape(p_num, q_num)
     cqval = np.swapaxes(cqval, 0, 1).flatten()
     cpval = np.tile(pval_1d, q_num)
     # the 0 axis is the q direction and 1st axis is phi direction
 
+    # the roi that has zero points in it;
+    invalid_roi = (num_pts == 0)
     cqval[invalid_roi] = np.nan
     cpval[invalid_roi] = np.nan
 
