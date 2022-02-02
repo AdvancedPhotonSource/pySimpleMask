@@ -309,14 +309,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.plot()
 
     def select_raw(self):
-        # fname = QFileDialog.getOpenFileName(self,
-        #                                     caption='Select raw file hdf',
-        #                                     directory=self.work_dir
-        #                                     )[0]
-        fname = (
-            "/Users/mqichu/Documents/local_dev/pysimplemask/tests/data/"
-            "E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_"
-            "att04_Rq0_00001_0001-100000.hdf")
+        fname = QFileDialog.getOpenFileName(self,
+                                            caption='Select raw file hdf',
+                                            directory=self.work_dir
+                                            )[0]
+        # fname = (
+        #     "/Users/mqichu/Documents/local_dev/pysimplemask/tests/data/"
+        #     "E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_"
+        #     "att04_Rq0_00001_0001-100000.hdf")
 
         if fname not in [None, '']:
             self.fname.setText(fname)
