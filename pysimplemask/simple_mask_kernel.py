@@ -267,8 +267,12 @@ class SimpleMask(object):
         vg, hg = np.meshgrid(v, h, indexing='ij')
 
         r = np.sqrt(vg * vg + hg * hg) * self.meta['pix_dim']
-        phi = np.arctan2(vg, hg)
+        # phi = np.arctan2(vg, hg)
+        # to be compatible with matlab xpcs-gui; phi = 0 starts at 6 clock
+        # and it goes clockwise;
+        phi = np.arctan2(hg, vg)
         phi[phi < 0] = phi[phi < 0] + np.pi * 2.0
+        phi = np.max(phi) - phi     # make it clockwise
 
         alpha = np.arctan(r / self.meta['det_dist'])
         qr = np.sin(alpha) * k0
@@ -277,10 +281,12 @@ class SimpleMask(object):
         qy = qr * np.sin(phi)
 
         phi = np.rad2deg(phi)
+
+        # keep phi and q as np.float64 to keep the precision.
         qmap = {
-            'phi': phi.astype(np.float32),
+            'phi': phi,
             'alpha': alpha.astype(np.float32),
-            'q': qr.astype(np.float32),
+            'q': qr,
             'qx': qx.astype(np.float32),
             'qy': qy.astype(np.float32)
         }
