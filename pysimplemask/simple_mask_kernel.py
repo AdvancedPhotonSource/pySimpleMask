@@ -38,7 +38,21 @@ def combine_qp(q_num, p_num, qval_1d, pval_1d, qmap, pmap):
     cqval = np.expand_dims(cqval, axis=0)
     cpval = np.expand_dims(cpval, axis=0)
 
+    combined_map = reindex_qmap(combined_map)
+
     return combined_map, cqval, cpval
+
+
+def reindex_qmap(qmap):
+    """
+    remove the zeros qbins and reindex;
+    """
+    count = np.bincount(qmap.ravel())
+    curr_idx = np.nonzero(count > 0)[0][1:]  # tuple(); zeros term omitted;
+    real_idx = np.arange(1, len(curr_idx) + 1)
+    for q0, q1 in zip(curr_idx, real_idx):
+        qmap[qmap == q0] = q1
+    return qmap
 
 
 class SimpleMask(object):
