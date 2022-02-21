@@ -167,12 +167,18 @@
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
+                 <property name="decimals">
+                  <number>4</number>
+                 </property>
                 </widget>
                </item>
                <item row="1" column="4">
                 <widget class="QDoubleSpinBox" name="db_det_dist">
                  <property name="enabled">
                   <bool>true</bool>
+                 </property>
+                 <property name="decimals">
+                  <number>4</number>
                  </property>
                  <property name="maximum">
                   <double>99999.000000000000000</double>
@@ -246,6 +252,9 @@
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
+                 <property name="decimals">
+                  <number>4</number>
+                 </property>
                 </widget>
                </item>
                <item row="3" column="4">
@@ -273,6 +282,9 @@
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
+                 <property name="decimals">
+                  <number>4</number>
+                 </property>
                  <property name="minimum">
                   <double>-9999.000000000000000</double>
                  </property>
@@ -298,6 +310,9 @@
                 <widget class="QDoubleSpinBox" name="db_ceny">
                  <property name="enabled">
                   <bool>true</bool>
+                 </property>
+                 <property name="decimals">
+                  <number>4</number>
                  </property>
                  <property name="minimum">
                   <double>-9999.000000000000000</double>
