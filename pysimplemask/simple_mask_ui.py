@@ -1076,4 +1076,4 @@ class Ui_SimpleMask(object):
         self.comboBox_2.setItemText(2, _translate("SimpleMask", "QPartition Only (tif)"))
 
 from pyqtgraph import PlotWidget
-from pyqtgraph_mod import ImageViewROI
+from .pyqtgraph_mod import ImageViewROI

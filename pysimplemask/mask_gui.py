@@ -2,12 +2,12 @@ import os
 import sys
 import json
 import logging
-
-from simple_mask_ui import Ui_SimpleMask as Ui
-from simple_mask_kernel import SimpleMask
-from PyQt5.QtWidgets import QFileDialog, QApplication, QMainWindow
 import numpy as np
 import pyqtgraph as pg
+
+from .simple_mask_ui import Ui_SimpleMask as Ui
+from .simple_mask_kernel import SimpleMask
+from PyQt5.QtWidgets import QFileDialog, QApplication, QMainWindow
 
 
 home_dir = os.path.join(os.path.expanduser('~'), '.simple-mask')
