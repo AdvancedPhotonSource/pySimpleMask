@@ -2,4 +2,13 @@
 
 __author__ = """Miaoqi Chu"""
 __email__ = 'mqichu@anl.gov'
-__version__ = '0.0.1'
+
+
+from pkg_resources import get_distribution, DistributionNotFound
+try:
+    __version__ = get_distribution(__name__).version
+except DistributionNotFound:
+    __version__ = "0.0.0"
+
+from .mask_gui import run 
+__all__ = (run, )

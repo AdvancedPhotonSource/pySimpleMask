@@ -1,0 +1,8 @@
+matplotlib>=3.5.1
+PyQt5>=5.15.2
+pyqtgraph>=0.12.3
+numpy
+scipy
+h5py
+hdf5plugin
+scikit-image

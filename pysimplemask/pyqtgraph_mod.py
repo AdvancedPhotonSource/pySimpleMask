@@ -1,5 +1,5 @@
 import pyqtgraph as pg
-from mpl_cmaps_in_ImageItem import pg_get_cmap
+from .mpl_cmaps_in_ImageItem import pg_get_cmap
 import matplotlib.pyplot as plt
 import numpy as np
 
