@@ -10,7 +10,8 @@ with open('README.rst') as readme_file:
 with open('HISTORY.rst') as history_file:
     history = history_file.read()
 
-requirements = [ ]
+with open("requirements.txt", "r") as f:
+    requirements = f.read().splitlines()
 
 test_requirements = [ ]
 
@@ -44,6 +45,6 @@ setup(
     test_suite='tests',
     tests_require=test_requirements,
     url='https://github.com/AZjk/pysimplemask',
-    version='0.0.1',
+    use_scm_version=True,
     zip_safe=False,
 )
