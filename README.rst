@@ -22,6 +22,29 @@ A GUI tool to create mask and qmap for xarea detectors used in xray experiments
 * Free software: MIT license
 * Documentation: https://pysimplemask.readthedocs.io.
 
+Installation
+--------
+Step 1. create your virtual environement::
+
+    conda create -n YOUR_ENV_NAME python==3.9.7
+    
+Step 2. activate your newly created environment::
+
+    conda activate YOUR_ENV_NAME
+
+Step 3. clone pysimple to your local disk::
+    
+    git clone https://github.com/AdvancedPhotonSource/pySimpleMask.git
+    
+Step 4. install it::
+    
+    cd pySimpleMask
+    pip install .
+
+Step 5. run simplemask, open a terminal and activate your virtual environment, ::
+    
+    pysimplemask
+
 
 Features
 --------
