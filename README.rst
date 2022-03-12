@@ -44,6 +44,7 @@ Step 4. install it::
 Step 5. run simplemask, open a terminal and activate your virtual environment, ::
     
     pysimplemask
+    pysimplemask --path YOUR_HDF_PATH
 
 
 Features
