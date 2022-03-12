@@ -5,7 +5,6 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
 from .area_mask import MaskAssemble
 
-# import other programs
 from .reader.imm_reader_with_plot import IMMReader8ID
 from .reader.rigaku_reader import RigakuReader
 from .reader.hdf2sax import hdf2saxs
