@@ -127,6 +127,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 self.work_dir = os.path.dirname(path)
             elif os.path.isdir(path):
                 self.work_dir = path
+        else:
+            self.work_dir = os.path.expanduser('~')
 
         self.MaskWidget.setCurrentIndex(0)
         self.setting_fname = os.path.join(home_dir, 'default_setting.json')
@@ -320,6 +322,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         if fname not in [None, '']:
             self.fname.setText(fname)
+        self.work_dir = os.path.dirname(fname)
+
         return
 
     def select_blemish(self):
@@ -499,15 +503,12 @@ class SimpleMaskGUI(QMainWindow, Ui):
             json.dump(config, fhdl)
 
 
-def run():
+def run(path=None):
     # if os.name == 'nt':
     #     setup_windows_icon()
     # QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
     app = QApplication(sys.argv)
-    if len(sys.argv) > 1:
-        window = SimpleMaskGUI(sys.argv[1])
-    else:
-        window = SimpleMaskGUI()
+    window = SimpleMaskGUI(path)
     app.exec_()
 
 

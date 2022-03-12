@@ -6,7 +6,7 @@ import sys
 def main():
     """Console script for pysimplemask."""
     parser = argparse.ArgumentParser()
-    parser.add_argument('_', nargs='*')
+    parser.add_argument('--path', nargs='?')
     args = parser.parse_args()
     kwargs = vars(args)
     from .mask_gui import run
