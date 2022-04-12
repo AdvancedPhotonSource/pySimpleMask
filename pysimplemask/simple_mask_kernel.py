@@ -95,14 +95,21 @@ class SimpleMask(object):
             'energy': '/measurement/instrument/source_begin/energy',
             'det_dist': '/measurement/instrument/detector/distance',
             'pix_dim': '/measurement/instrument/detector/x_pixel_size',
-            'bcx': '/measurement/instrument/acquisition/beam_center_x',
-            'bcy': '/measurement/instrument/acquisition/beam_center_y',
+            'bcx0': '/measurement/instrument/acquisition/beam_center_x',
+            'bcy0': '/measurement/instrument/acquisition/beam_center_y',
         }
         meta = {}
         with h5py.File(fname, 'r') as f:
             for key, val in keys.items():
                 meta[key] = np.squeeze(f[val][()])
             meta['data_name'] = os.path.basename(fname).encode("ascii")
+
+        ccdx, ccdx0 = meta['ccdx'], meta['ccdx0']
+        ccdz, ccdz0 = meta['ccdz'], meta['ccdz0']
+
+        meta['bcx'] = meta['bcx0'] + (ccdx - ccdx0) / meta['pix_dim']
+        meta['bcy'] = meta['bcy0'] + (ccdz - ccdz0) / meta['pix_dim']
+
         return meta
 
     def is_ready(self):
