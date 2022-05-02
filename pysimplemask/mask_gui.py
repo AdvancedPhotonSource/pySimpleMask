@@ -424,7 +424,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if self.sm.new_partition is None:
             self.compute_partition()
         save_fname = QFileDialog.getSaveFileName(
-            self, caption='Save mask/qmap as')[0]
+            self, caption='Save mask/qmap as', filter='HDF (*.h5)')[0]
         self.sm.save_partition(save_fname)
 
     def mask_list_load(self):
