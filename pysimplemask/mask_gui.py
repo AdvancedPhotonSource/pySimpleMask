@@ -207,9 +207,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
         except Exception:
             self.statusbar.showMessage('Failed to find center. Abort', 2000)
         else:
+            cen_old = (
+                self.db_cenx.value(), self.db_ceny.value()
+            )
             self.db_cenx.setValue(center[1])
             self.db_ceny.setValue(center[0])
             self.update_parameters()
+            cen_new = (round(center[1], 4), round(center[0], 4))
+            logger.info(f'found center: {cen_old} --> {cen_new}')
         finally:
             self.btn_find_center.setText('Find Center')
 
