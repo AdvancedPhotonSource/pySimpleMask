@@ -57,6 +57,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_swapxy.clicked.connect(
             lambda: self.update_parameters(swapxy=True))
 
+        self.btn_find_center.clicked.connect(self.find_center)
+
         # need a function for save button -- simple_mask_ui
         self.pushButton.clicked.connect(self.save_mask)
 
@@ -193,6 +195,18 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 self.mask_qring_begin.setValue(q)
             else:
                 self.mask_qring_end.setValue(q)
+
+    def find_center(self):
+        if not self.is_ready():
+            return
+        try:
+            center = self.sm.find_center()
+        except Exception:
+            self.statusbar.showMessage('Failed to find center. Abort', 2000)
+        else:
+            self.db_cenx.setValue(center[1])
+            self.db_ceny.setValue(center[0])
+            self.update_parameters()
 
     def mask_evaluate(self, target=None):
         if target is None or not self.is_ready():
@@ -359,6 +373,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.statusbar.showMessage('select a valid file')
             return
 
+        self.statusbar.showMessage('loading data...', 120000)
         fname = self.fname.text()
         self.sm.read_data(fname)
 
@@ -370,6 +385,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.le_shape.setText(str(self.sm.shape))
         self.groupBox.repaint()
         self.plot()
+        self.statusbar.showMessage('data is loaded', 500)
 
     def plot(self):
         kwargs = {
