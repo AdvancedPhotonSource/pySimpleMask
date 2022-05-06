@@ -9,6 +9,8 @@ import pyqtgraph as pg
 from .simple_mask_ui import Ui_SimpleMask as Ui
 from .simple_mask_kernel import SimpleMask
 from PyQt5.QtWidgets import QFileDialog, QApplication, QMainWindow
+from .area_mask import create_qring
+from .table_model import QringTableModel
 
 
 home_dir = os.path.join(os.path.expanduser('~'), '.simple-mask')
@@ -118,6 +120,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
             lambda: self.mask_evaluate('mask_qring'))
         self.btn_mask_qring_apply.clicked.connect(
             lambda: self.mask_apply('mask_qring'))
+        self.btn_mask_qring_add1.clicked.connect(
+            lambda: self.mask_qring_list_add('mouse_click'))
+        self.btn_mask_qring_add2.clicked.connect(
+            lambda: self.mask_qring_list_add('manual'))
+        self.btn_mask_qring_add3.clicked.connect(
+            lambda: self.mask_qring_list_add('file'))
+        self.btn_mask_qring_clear.clicked.connect(self.clear_qring_list)
+
 
         self.mask_outlier_hdl.setBackground((255, 255, 255))
         self.mp1.scene.sigMouseClicked.connect(self.mouse_clicked)
@@ -134,6 +144,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.work_dir = os.path.expanduser('~')
 
         self.MaskWidget.setCurrentIndex(0)
+        self.qring_model = QringTableModel(data=[[]])
+        self.tableView.setModel(self.qring_model)
         self.setting_fname = os.path.join(home_dir, 'default_setting.json')
         self.lastconfig_fname = os.path.join(home_dir, 'last_config.json')
         self.load_default_settings()
@@ -276,12 +288,12 @@ class SimpleMaskGUI(QMainWindow, Ui):
             p.setLogMode(y=True)
             kwargs = {'zero_loc': zero_loc}
         elif target == 'mask_qring':
-            kwargs = {
-                "qbegin": self.mask_qring_begin.value(),
-                "qend": self.mask_qring_end.value(),
-                "qnum": self.mask_qring_num.value(),
-                "flag_const_width": self.mask_qring_constwidth.isChecked(),
-            }
+            if self.qring_model.data == [[]]:
+                return
+            else:
+                data = self.qring_model.data.copy()
+                # self.qring_model.data = [[]]
+            kwargs = {'qrings': data}
 
         msg = self.sm.mask_evaluate(target, **kwargs)
         self.statusbar.showMessage(msg, 10000)
@@ -303,6 +315,68 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(1)
+
+    def mask_qring_list_add(self, method='manual'):
+        if method == 'mouse_click':
+            tmp_kwargs = {
+                "qbegin": self.mask_qring_begin.value(),
+                "qend": self.mask_qring_end.value(),
+                "qnum": self.mask_qring_num.value(),
+                "flag_const_width": self.mask_qring_constwidth.isChecked(),
+            }
+            qrings = create_qring(**tmp_kwargs)
+        elif method == 'manual':
+            pts = self.mask_qring_input.text()
+            self.mask_qring_input.clear()
+            if len(pts) < 1:
+                self.statusbar.showMessage('Input list is invalid.', 500)
+                return
+            try:
+                xy = text_to_array(pts)
+                xy = xy[0: xy.size // 2 * 2].reshape(-1, 2)
+            except Exception:
+                self.statusbar.showMessage('Input list is invalid.', 500)
+                return
+            # to a 2d list
+            qrings = [[xy[n][0], xy[n][1]] for n in range(xy.shape[0])] 
+
+        elif method == 'file':
+            fname = QFileDialog.getOpenFileName(self, 'Select qring file',
+                    filter='Text/Json (*.txt *.csv *.json);;All files(*.*)')[0]
+            if fname in ['', None]:
+                return
+        
+            if fname.endswith('.json'):
+                with open(fname, 'r') as f:
+                    x = json.load(f)
+                xy = []
+                for _, v in x.items():
+                    xy.append(v)
+
+            elif fname.endswith('.txt') or fname.endswith('.csv'):
+                try:
+                    xy = np.loadtxt(fname, delimiter=',')
+                except ValueError:
+                    xy = np.loadtxt(fname)
+                except Exception:
+                    self.statusbar.showMessage(
+                        'only support csv and space separated file', 500)
+                    return
+
+            xy = xy[0: xy.size // 2 * 2].reshape(-1, 2)
+            qrings = [[xy[n][0], xy[n][1]] for n in range(xy.shape[0])] 
+
+        if self.qring_model.data == [[]]:
+            self.qring_model.data = qrings
+        else:
+            self.qring_model.data.extend(qrings)
+        # update tableview
+        self.tableView.setModel(None)
+        self.tableView.setModel(self.qring_model)
+        return
+    
+    def clear_qring_list(self):
+        self.qring_model.data = [[]]
 
     def update_index(self):
         idx = self.mp1.currentIndex
