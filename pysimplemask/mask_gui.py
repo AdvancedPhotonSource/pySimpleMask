@@ -431,18 +431,27 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
 
-        fname = QFileDialog.getOpenFileName(self, 'Select mask file')[0]
+        fname = QFileDialog.getOpenFileName(self, 'Select mask file',
+                    filter='Text/Json (*.txt *.csv *.json);;All files(*.*)')[0]
         if fname in ['', None]:
             return
-
-        try:
-            xy = np.loadtxt(fname, delimiter=',')
-        except ValueError:
-            xy = np.loadtxt(fname)
-        except Exception:
-            self.statusbar.showMessage(
-                'only support csv and space separated file', 500)
-            return
+        
+        if fname.endswith('.json'):
+            with open(fname, 'r') as f:
+                x = json.load(f)['Bad pixels']
+            xy = []
+            for t in x:
+                xy.append(t['Pixel'])
+            xy = np.array(xy)
+        elif fname.endswith('.txt') or fname.endswith('.csv'):
+            try:
+                xy = np.loadtxt(fname, delimiter=',')
+            except ValueError:
+                xy = np.loadtxt(fname)
+            except Exception:
+                self.statusbar.showMessage(
+                    'only support csv and space separated file', 500)
+                return
 
         if self.mask_list_rowcol.isChecked():
             xy = np.roll(xy, shift=1, axis=1)
