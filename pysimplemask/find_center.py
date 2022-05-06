@@ -1,12 +1,9 @@
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import numpy as np
 import skimage.io as skio
 from skimage.morphology import disk
 from skimage.filters import median
 from skimage.registration import phase_cross_correlation
-
-img = skio.imread('../tests/data/saxs_test.tif')
-
 
 
 def percentile_filter(img0, percentile_range=(2.0, 98.0)):
@@ -87,4 +84,5 @@ def find_center(img, iter_bad_pixel=1, iter_median_filter=3,
 
 
 if __name__ == '__main__':
+    img = skio.imread('../tests/data/saxs_test.tif')
     print(find_center(img))
