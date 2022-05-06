@@ -6,6 +6,24 @@ import skimage.io as skio
 import matplotlib.pyplot as plt
 
 
+def create_qring(qbegin, qend, qnum=1, flag_const_width=True):
+    qrings = []
+    if qbegin > qend:
+        qbegin, qend = qend, qbegin
+    qcen = (qbegin + qend) / 2.0
+    qhalf = (qend - qbegin) / 2.0
+
+    for n in range(1, qnum + 1):
+        if flag_const_width:
+            low = qcen * n - qhalf
+            high = qcen * n + qhalf
+        else:
+            low = (qcen - qhalf) * n
+            high = (qcen + qhalf) * n
+        qrings.append([low, high])
+    return qrings
+
+
 class MaskBase():
     def __init__(self, shape=(512, 1024)) -> None:
         self.shape = shape
@@ -116,26 +134,16 @@ class MaskQring(MaskBase):
         super().__init__(shape=shape)
         self.qrings = []
 
-    def evaluate(self, qmap, qbegin=0.001, qend=0.008, qnum=3,
-                 flag_const_width=True):
+    def evaluate(self, qmap, qrings=None):
         mask = np.zeros_like(qmap, dtype=np.bool)
-        qrings = []
-
-        if qbegin > qend:
-            qbegin, qend = qend, qbegin
-        qcen = (qbegin + qend) / 2.0
-        qhalf = (qend - qbegin) / 2.0
-
-        for n in range(1, qnum + 1):
-            if flag_const_width:
-                low = qcen * n - qhalf
-                high = qcen * n + qhalf
-            else:
-                low = (qcen - qhalf) * n
-                high = (qcen + qhalf) * n
-            qrings.append((low, high))
-            tmp = np.logical_and((qmap > low), (qmap < high))
+        qnum = len(qrings)
+        if qrings is None or qnum == 0:
+            return
+        for n in range(qnum):
+            low, high  = qrings[n]
+            tmp = np.logical_and((qmap >= low), (qmap < high))
             mask[tmp] = 1
+
         mask = np.logical_not(mask)
         self.zero_loc = np.array(np.nonzero(mask))
         self.qrings = qrings
