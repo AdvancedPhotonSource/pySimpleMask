@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import logging
+from typing import final
 import numpy as np
 import pyqtgraph as pg
 
@@ -200,6 +201,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
         try:
+            self.btn_find_center.setText('Finding Center ...')
+            self.centralwidget.repaint()
             center = self.sm.find_center()
         except Exception:
             self.statusbar.showMessage('Failed to find center. Abort', 2000)
@@ -207,6 +210,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.db_cenx.setValue(center[1])
             self.db_ceny.setValue(center[0])
             self.update_parameters()
+        finally:
+            self.btn_find_center.setText('Find Center')
+
 
     def mask_evaluate(self, target=None):
         if target is None or not self.is_ready():
@@ -373,7 +379,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.statusbar.showMessage('select a valid file')
             return
 
+        self.btn_load.setText('loading...')
         self.statusbar.showMessage('loading data...', 120000)
+        self.centralwidget.repaint()
+        
         fname = self.fname.text()
         self.sm.read_data(fname)
 
@@ -386,6 +395,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.groupBox.repaint()
         self.plot()
         self.statusbar.showMessage('data is loaded', 500)
+        self.btn_load.setText('load data')
+        self.btn_load.repaint()
 
     def plot(self):
         kwargs = {
