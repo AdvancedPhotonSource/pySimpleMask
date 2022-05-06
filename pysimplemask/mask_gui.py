@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import logging
+from typing import final
 import numpy as np
 import pyqtgraph as pg
 
@@ -56,6 +57,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_update_parameters.clicked.connect(self.update_parameters)
         self.btn_swapxy.clicked.connect(
             lambda: self.update_parameters(swapxy=True))
+
+        self.btn_find_center.clicked.connect(self.find_center)
 
         # need a function for save button -- simple_mask_ui
         self.pushButton.clicked.connect(self.save_mask)
@@ -194,6 +197,28 @@ class SimpleMaskGUI(QMainWindow, Ui):
             else:
                 self.mask_qring_end.setValue(q)
 
+    def find_center(self):
+        if not self.is_ready():
+            return
+        try:
+            self.btn_find_center.setText('Finding Center ...')
+            self.centralwidget.repaint()
+            center = self.sm.find_center()
+        except Exception:
+            self.statusbar.showMessage('Failed to find center. Abort', 2000)
+        else:
+            cen_old = (
+                self.db_cenx.value(), self.db_ceny.value()
+            )
+            self.db_cenx.setValue(center[1])
+            self.db_ceny.setValue(center[0])
+            self.update_parameters()
+            cen_new = (round(center[1], 4), round(center[0], 4))
+            logger.info(f'found center: {cen_old} --> {cen_new}')
+        finally:
+            self.btn_find_center.setText('Find Center')
+
+
     def mask_evaluate(self, target=None):
         if target is None or not self.is_ready():
             return
@@ -312,9 +337,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     def select_raw(self):
         fname = QFileDialog.getOpenFileName(self,
-                                            caption='Select raw file hdf',
-                                            directory=self.work_dir
-                                            )[0]
+                    caption='Select raw file hdf',
+                    filter='HDF File(*.hdf);;All file(*.*)',
+                    directory=self.work_dir)[0]
+
         # fname = (
         #     "/Users/mqichu/Documents/local_dev/pysimplemask/tests/data/"
         #     "E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_"
@@ -327,7 +353,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         return
 
     def select_blemish(self):
-        fname = QFileDialog.getOpenFileName(self, 'Select blemish file')[0]
+        fname = QFileDialog.getOpenFileName(self, 'Select blemish file',
+                    filter='Supported format (.tiff .tif .h5 .hdf .hdf5')[0]
         if fname not in [None, '']:
             self.blemish_fname.setText(fname)
 
@@ -339,7 +366,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         return
 
     def select_maskfile(self):
-        fname = QFileDialog.getOpenFileName(self, 'Select mask file')[0]
+        fname = QFileDialog.getOpenFileName(self, 'Select mask file',
+                    filter='Supported format (.tiff .tif .h5 .hdf .hdf5')[0]
         # fname = "../tests/data/triangle_mask/mask_lambda_test.h5"
         if fname not in [None, '']:
             self.maskfile_fname.setText(fname)
@@ -356,6 +384,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.statusbar.showMessage('select a valid file')
             return
 
+        self.btn_load.setText('loading...')
+        self.statusbar.showMessage('loading data...', 120000)
+        self.centralwidget.repaint()
+        
         fname = self.fname.text()
         self.sm.read_data(fname)
 
@@ -367,6 +399,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.le_shape.setText(str(self.sm.shape))
         self.groupBox.repaint()
         self.plot()
+        self.statusbar.showMessage('data is loaded', 500)
+        self.btn_load.setText('load data')
+        self.btn_load.repaint()
 
     def plot(self):
         kwargs = {
@@ -431,18 +466,27 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
 
-        fname = QFileDialog.getOpenFileName(self, 'Select mask file')[0]
+        fname = QFileDialog.getOpenFileName(self, 'Select mask file',
+                    filter='Text/Json (*.txt *.csv *.json);;All files(*.*)')[0]
         if fname in ['', None]:
             return
-
-        try:
-            xy = np.loadtxt(fname, delimiter=',')
-        except ValueError:
-            xy = np.loadtxt(fname)
-        except Exception:
-            self.statusbar.showMessage(
-                'only support csv and space separated file', 500)
-            return
+        
+        if fname.endswith('.json'):
+            with open(fname, 'r') as f:
+                x = json.load(f)['Bad pixels']
+            xy = []
+            for t in x:
+                xy.append(t['Pixel'])
+            xy = np.array(xy)
+        elif fname.endswith('.txt') or fname.endswith('.csv'):
+            try:
+                xy = np.loadtxt(fname, delimiter=',')
+            except ValueError:
+                xy = np.loadtxt(fname)
+            except Exception:
+                self.statusbar.showMessage(
+                    'only support csv and space separated file', 500)
+                return
 
         if self.mask_list_rowcol.isChecked():
             xy = np.roll(xy, shift=1, axis=1)

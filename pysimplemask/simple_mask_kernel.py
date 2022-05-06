@@ -8,6 +8,7 @@ from .area_mask import MaskAssemble
 from .reader.imm_reader_with_plot import IMMReader8ID
 from .reader.rigaku_reader import RigakuReader
 from .reader.hdf2sax import hdf2saxs
+from .find_center import find_center
 
 pg.setConfigOptions(imageAxisOrder='row-major')
 
@@ -117,6 +118,12 @@ class SimpleMask(object):
             return False
         else:
             return True
+    
+    def find_center(self):
+        if self.saxs_lin is None:
+            return
+        center = find_center(self.saxs_lin, scale='log')
+        return center
 
     def mask_evaluate(self, target, **kwargs):
         msg = self.mask_kernel.evaluate(target, **kwargs)
@@ -211,13 +218,13 @@ class SimpleMask(object):
         dirname = os.path.dirname(os.path.realpath(fname))
         files = os.listdir(os.path.dirname(os.path.realpath(fname)))
 
+        saxs = None
         for fname in files:
             if fname.endswith('.bin'):
                 print("-----------.bin found.-----------")
                 bin_file = os.path.join(dirname, fname)
                 reader = RigakuReader(bin_file)
                 saxs = reader.load()
-                return saxs
 
             # seeks .imm file
             elif fname.endswith('.imm'):
@@ -225,7 +232,6 @@ class SimpleMask(object):
                 imm_file = os.path.join(dirname, fname)
                 reader = IMMReader8ID(imm_file)
                 saxs = reader.calc_avg_pixel()
-                return saxs
 
             # seeks .h5 file
             elif fname.endswith('.h5') or fname.endswith('.hdf'):
@@ -236,8 +242,7 @@ class SimpleMask(object):
                         print("-----------.hdf/.h5 found.-----------")
                         saxs = hdf2saxs(hdf_file, beg_idx=beg_idx,
                                         num_frames=num_frames)
-                        return saxs
-        return None
+        return saxs
 
     # generate 2d saxs
     def read_data(self, fname=None, **kwargs):
