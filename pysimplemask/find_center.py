@@ -73,6 +73,8 @@ def find_center(img, iter_bad_pixel=1, iter_median_filter=3,
         img = median_filter(img)
 
     if scale == 'log':
+        min_value = np.min(img[img > 0])
+        img[img <= 0] = min_value
         img = np.log10(img).astype(np.float32)
     else:
         img = img.astype(np.float32)
