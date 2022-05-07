@@ -35,12 +35,17 @@ def exception_hook(exc_type, exc_value, exc_traceback):
 sys.excepthook = exception_hook
 
 
-def text_to_array(pts):
+def text_to_array(pts, dtype=np.int64):
     for symbol in '[](),':
         pts = pts.replace(symbol, ' ')
     pts = pts.split(' ')
-    pts = [int(x) for x in pts if x != '']
-    pts = np.array(pts).astype(np.int64)
+
+    if dtype == np.int64:
+        pts = [int(x) for x in pts if x != '']
+    elif dtype == np.float64:
+        pts = [float(x) for x in pts if x != '']
+
+    pts = np.array(pts).astype(dtype)
 
     return pts
 
@@ -312,6 +317,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.mask_evaluate(target=target)
         elif target == 'mask_list':
             self.mask_list_clear()
+        elif target == 'mask_qring':
+            self.clear_qring_list()
 
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(1)
@@ -332,7 +339,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 self.statusbar.showMessage('Input list is invalid.', 500)
                 return
             try:
-                xy = text_to_array(pts)
+                xy = text_to_array(pts, dtype=np.float64)
                 xy = xy[0: xy.size // 2 * 2].reshape(-1, 2)
             except Exception:
                 self.statusbar.showMessage('Input list is invalid.', 500)
@@ -352,6 +359,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 xy = []
                 for _, v in x.items():
                     xy.append(v)
+                xy = np.array(xy)
 
             elif fname.endswith('.txt') or fname.endswith('.csv'):
                 try:
@@ -376,7 +384,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         return
     
     def clear_qring_list(self):
+        self.tableView.setModel(None)
         self.qring_model.data = [[]]
+        self.tableView.setModel(self.qring_model)
 
     def update_index(self):
         idx = self.mp1.currentIndex
