@@ -213,7 +213,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             if self.box_qring_qmin.isChecked():
                 self.mask_qring_qmin.setValue(q)
                 label = 'qring_qmin'
-                color = 'g'
+                color = 'k'
             elif self.box_qring_qmax.isChecked():
                 self.mask_qring_qmax.setValue(q)
                 label = 'qring_qmax'
@@ -221,7 +221,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             elif self.box_qring_pmin.isChecked():
                 self.mask_qring_pmin.setValue(p)
                 label = 'qring_pmin'
-                color = 'g'
+                color = 'k'
             elif self.box_qring_pmax.isChecked():
                 self.mask_qring_pmax.setValue(p)
                 label = 'qring_pmax'
@@ -455,7 +455,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def select_raw(self):
         fname = QFileDialog.getOpenFileName(self,
                     caption='Select raw file hdf',
-                    filter='HDF File(*.hdf);;All file(*.*)',
+                    filter='HDF File(*.hdf);;Tiff File(*.tif *.tiff);;All file(*.*)',
                     directory=self.work_dir)[0]
 
         # fname = (

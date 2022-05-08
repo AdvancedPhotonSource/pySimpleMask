@@ -187,6 +187,10 @@ class MaskAssemble():
         self.saxs_log = saxs_log
         self.qmap = qmap
         self.pmap = pmap
+    
+    def update_qmap(self, qmap_all):
+        self.qmap = qmap_all['q']
+        self.pmap = qmap_all['phi']
 
     def enable(self, target, flag=True):
         self.workers[target].set_enabled(flag)
