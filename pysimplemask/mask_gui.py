@@ -419,6 +419,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.tableView.setModel(None)
         self.qring_model.data = [[]]
         self.tableView.setModel(self.qring_model)
+        self.sm.hdl.remove_rois(filter_str='qring_')
 
     def update_index(self):
         idx = self.mp1.currentIndex
