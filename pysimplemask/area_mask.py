@@ -140,10 +140,19 @@ class MaskQring(MaskBase):
             return
 
         for n in range(len(qrings)):
+            pmap_loc = np.copy(pmap)
+
             qmin, qmax, pmin, pmax = qrings[n]
-            qrings.append(qrings[n])
+            if qmin > qmax:
+                qmin, qmax = qmax, qmin
+
             qroi = np.logical_and((qmap >= qmin), (qmap < qmax))
-            proi = np.logical_and((pmap >= pmin), (pmap < pmax))
+            if pmin > pmax:
+                pmax += 360.0
+                pmap_loc[pmap_loc < pmin] += 360.0
+
+            proi = np.logical_and((pmap_loc >= pmin), (pmap_loc < pmax))
+
             mask[qroi * proi] = 1
 
         mask = np.logical_not(mask)
