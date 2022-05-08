@@ -2,7 +2,6 @@ import os
 import sys
 import json
 import logging
-from typing import final
 import numpy as np
 import pyqtgraph as pg
 
