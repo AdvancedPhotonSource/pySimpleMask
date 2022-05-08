@@ -212,12 +212,39 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 return
             if self.box_qring_qmin.isChecked():
                 self.mask_qring_qmin.setValue(q)
+                label = 'qring_qmin'
+                color = 'g'
             elif self.box_qring_qmax.isChecked():
                 self.mask_qring_qmax.setValue(q)
+                label = 'qring_qmax'
+                color = 'r'
             elif self.box_qring_pmin.isChecked():
                 self.mask_qring_pmin.setValue(p)
+                label = 'qring_pmin'
+                color = 'g'
             elif self.box_qring_pmax.isChecked():
                 self.mask_qring_pmax.setValue(p)
+                label = 'qring_pmax'
+                color = 'r'
+            if label.startswith('qring_q'):
+                new_roi = self.sm.add_drawing(sl_type='Circle',
+                                          second_point=(col, row),
+                                          width=1.0,
+                                          color=color,
+                                          label=label)
+            else:
+                new_roi = self.sm.add_drawing(sl_type='Line',
+                                          second_point=(col, row),
+                                          width=0.5,
+                                          color=color,
+                                          label=label)
+            new_roi.sigRegionChanged.connect(self.update_qring_values)
+    
+    def update_qring_values(self):
+        new_state = self.sm.get_qring_values()
+        for k, v in new_state.items():
+            if v is not None:
+                self.__dict__['mask_' + k].setValue(v)
 
     def find_center(self):
         if not self.is_ready():
@@ -467,6 +494,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         return
 
     def load(self):
+        # self.fname.setText('/mnt/c/Users/mqichu/Documents/local_dev/pysimplemask/tests/data/E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_att04_Rq0_00001_0001-100000.hdf')
         if not os.path.isfile(self.fname.text()):
             self.select_raw()
         if not os.path.isfile(self.fname.text()):
