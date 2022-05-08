@@ -511,6 +511,63 @@ class SimpleMask(object):
 
     def remove_roi(self, roi):
         self.hdl.remove_item(roi)
+    
+    def get_partition2(self, qnum, pnum, qmin=None, qmax=None, pmin=None, 
+                       pmax=None, style='linear'):
+
+        mask = self.mask 
+        qmap = self.qmap['q'] * mask
+        pmap = self.qmap['phi'] * mask
+
+        if qmin is None or qmax is None:
+            qmin = np.min(self.qmap['q'][mask > 0])
+            qmax = np.max(self.qmap['q'][mask > 0]) + 1e-9  # exclusive
+        if pmin is None or pmax is None:
+            pmin = 0
+            pmax = 360.0 + 1e-9
+
+        assert style in ('linear', 'logarithmic')
+        # q
+        if style == 'linear':
+            qspan = np.linspace(qmin, qmax, qnum + 1)
+            qlist = (qspan[1:] + qspan[:-1]) / 2.0
+        elif style == 'logarithmic':
+            qmin = np.log10(qmin)
+            qmax = np.log10(qmax)
+            qspan = np.logspace(qmin, qmax, pnum + 1)
+            qlist = np.sqrt(qspan[1:] * qspan[:-1])
+
+        # phi
+        pspan = np.linspace(pmin, pmax, pnum + 1)
+        plist = (pspan[1:] + pspan[:-1]) / 2.0
+
+        qroi = np.logical_and(qmap >= qmin, qmap < qmax)
+        proi = np.logical_and(pmap >= pmin, pmap < pmax)
+        roi = np.logical_and(qroi, proi)
+
+        qmap = qmap * roi
+        pmap = pmap * roi
+
+        partition = np.zeros_like(roi, dtype=np.uint32)
+
+        cqlist = np.tile(qlist, pnum).reshape(pnum, qnum)
+        cqlist = np.swapaxes(cqlist, 0, 1)
+        cplist = np.tile(plist, qnum).reshape(qnum, pnum)
+
+        idx = 1
+        for m in range(qnum):
+            qroi = (qmap >= qspan[m]) * (qmap < qspan[m + 1])
+            for n in range(pnum):
+                proi = (pmap >= pspan[n]) * (pmap < pspan[n + 1])
+                comb_roi = qroi * proi 
+                if np.sum(comb_roi) == 0:
+                    cqlist[m, n] = np.nan
+                    cplist[m, n] = np.nan
+                else:
+                    partition[comb_roi] = idx
+                    idx += 1
+
+        return (qspan, cqlist, pspan, cplist), partition
 
     def get_partition(self, mask=None, num=400, style='linear', mode='q',
                       qrings=None):
@@ -621,8 +678,98 @@ class SimpleMask(object):
         zero_loc = np.vstack([rows, cols])
 
         return saxs1d, zero_loc
+    
+    def compute_partition(self, 
+                           dq_num=10, sq_num=100, style='linear',
+                           dp_num=36, sp_num=360):
+        if self.meta is None or self.data_raw is None:
+            return
+        
+        qrings = self.qrings
 
-    def compute_partition(self, dq_num=10, sq_num=100, style='linear',
+        if qrings is None or len(qrings) == 0:
+            qrings = [[None, None, 0, 360]]
+
+        # dqspan = []
+        # , dqval, dphispan, dphival, dyn_map
+        dyn_map = np.zeros_like(self.mask, dtype=np.uint32)
+        sta_map = np.zeros_like(self.mask, dtype=np.uint32)
+
+        def combine_span_val(record, new_item):
+            for n in range(4):
+                record[n].append(new_item)
+            return record
+        
+        dq_record = [[] for n in range(4)]
+        sq_record = [[] for n in range(4)]
+
+        for segment in qrings:
+            # qmin, qmax, pmin, pmax = segment, 0, 60
+            qmin, qmax = segment
+            pmin, pmax = 0, 60
+            t_dq_span_val, tdyn_map = self.get_partition2(
+                dq_num, dp_num, qmin, qmax, pmin, pmax, style)
+            dq_record = combine_span_val(dq_record, t_dq_span_val)
+
+            # offset the nonzero dynamic qmap
+            tdyn_map[tdyn_map > 0] += np.max(dyn_map)
+            dyn_map += tdyn_map
+
+            # offset the nonzero static qmap
+            t_sq_span_val, tsta_map = self.get_partition2(
+                sq_num, sp_num, qmin, qmax, pmin, pmax, style)
+            sq_record = combine_span_val(sq_record, t_sq_span_val)
+        
+            tsta_map[tsta_map > 0] += np.max(sta_map)
+            sta_map += tsta_map
+        
+        # (qspan, cqlist, pspan, cplist)
+        dqspan = np.hstack(dq_record[0])
+        sqspan = np.hstack(sq_record[0])
+
+        dqval = np.hstack(dq_record[1]).reshape(1, -1)
+        sqval = np.hstack(sq_record[1]).reshape(1, -1)
+
+        dphispan = np.hstack(dq_record[2])
+        sphispan = np.hstack(sq_record[2])
+
+        dphival = np.hstack(dq_record[3]).reshape(1, -1)
+        sphival = np.hstack(sq_record[3]).reshape(1, -1)
+        
+        # dump result to file;
+        self.data[3] = dyn_map
+        self.data[4] = sta_map
+        self.hdl.setCurrentIndex(3)
+
+        partition = {
+            'dqval': dqval,
+            'sqval': sqval,
+            'dynamicMap': dyn_map,
+            'staticMap': sta_map,
+            'dphival': dphival,
+            'sphival': sphival,
+            'dynamicQList': np.arange(0, dq_num * dp_num + 1).reshape(1, -1),
+            'staticQList': np.arange(0, sq_num * sp_num + 1).reshape(1, -1),
+            'dqspan': dqspan,
+            'sqspan': sqspan,
+            'dphispan': dphispan,
+            'sphispan': sphispan,
+            'dnophi': dp_num,
+            'snophi': sp_num,
+            'dnoq': dq_num,
+            'snoq': sq_num,
+            'x0': np.array([self.meta['bcx']]).reshape(1, 1),
+            'y0': np.array([self.meta['bcy']]).reshape(1, 1),
+            'xspec': np.array(-1.0).reshape(1, 1),
+            'yspec': np.array(-1.0).reshape(1, 1),
+        }
+        for key in ['snophi', 'snoq', 'dnophi', 'dnoq']:
+            partition[key] = np.array(partition[key]).reshape(1, 1)
+
+        self.new_partition = partition
+        return partition
+
+    def compute_partition2(self, dq_num=10, sq_num=100, style='linear',
                           dp_num=36, sp_num=360):
         if self.meta is None or self.data_raw is None:
             return
