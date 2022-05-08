@@ -836,7 +836,7 @@ class Ui_SimpleMask(object):
         self.gridLayout_28.addWidget(self.btn_mask_qring_add3, 0, 1, 1, 1)
         self.gridLayout_31.addWidget(self.groupBox_16, 1, 1, 1, 1)
         self.groupBox_18 = QtWidgets.QGroupBox(self.tab6)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.groupBox_18.sizePolicy().hasHeightForWidth())
