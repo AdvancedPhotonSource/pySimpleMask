@@ -9,6 +9,7 @@ from .reader.imm_reader_with_plot import IMMReader8ID
 from .reader.rigaku_reader import RigakuReader
 from .reader.hdf2sax import hdf2saxs
 from .find_center import find_center
+from .pyqtgraph_mod import LineROI
 
 pg.setConfigOptions(imageAxisOrder='row-major')
 
@@ -278,6 +279,8 @@ class SimpleMask(object):
         return qmap
 
     def get_qp_value(self, x, y):
+        x = int(x)
+        y = int(y)
         shape = self.qmap['q'].shape
         if 0 <= x < shape[1] and 0 <= y < shape[0]:
             return self.qmap['q'][y, x], self.qmap['phi'][y, x]
@@ -353,7 +356,7 @@ class SimpleMask(object):
         if plot_center:
             t = pg.ScatterPlotItem()
             t.addPoints(x=[center[0]], y=[center[1]], symbol='+', size=15)
-            self.hdl.add_item(t)
+            self.hdl.add_item(t, label='center')
 
         self.hdl.setCurrentIndex(plot_index)
 
@@ -362,20 +365,15 @@ class SimpleMask(object):
     def apply_drawing(self):
         if self.meta is None or self.data_raw is None:
             return
-        if len(self.hdl.roi) <= 0:
-            return
 
         ones = np.ones(self.data[0].shape, dtype=np.bool)
         mask_n = np.zeros_like(ones, dtype=np.bool)
         mask_e = np.zeros_like(mask_n)
         mask_i = np.zeros_like(mask_n)
 
-        remove_roi = []
-        for x in self.hdl.roi:
-            # get ride of the center plot if it's there
-            if isinstance(x, pg.ScatterPlotItem):
+        for k, x in self.hdl.roi.items():
+            if not k.startswith('roi_'):
                 continue
-            remove_roi.append(x)
 
             mask_temp = np.zeros_like(ones, dtype=np.bool)
             # return slice and transfrom
@@ -401,11 +399,7 @@ class SimpleMask(object):
             elif x.sl_mode == 'inclusive':
                 mask_i[mask_temp] = 1
 
-        # remove roi; using for loop directly in self.hdl.roi only works if
-        # there is only one ROI.
-        for x in remove_roi:
-            self.remove_roi(x)
-        del remove_roi
+        self.hdl.remove_rois(filter_str='roi_')
 
         if np.sum(mask_i) == 0:
             mask_i = 1
@@ -415,11 +409,15 @@ class SimpleMask(object):
         return mask_p
 
     def add_drawing(self, num_edges=None, radius=60, color='r',
-                    sl_type='Polygon', width=3, sl_mode='exclusive'):
+                    sl_type='Polygon', width=3, sl_mode='exclusive',
+                    second_point=None, label=None):
+        # label: label of roi; default is None, which is for roi-draw
 
-        shape = self.data.shape
+        if label is not None and label in self.hdl.roi:
+            self.hdl.remove_item(label)
+
         # cen = (shape[1] // 2, shape[2] // 2)
-        cen = (self.meta['bcy'], self.meta['bcx'])
+        cen = (self.meta['bcx'], self.meta['bcy'])
         if sl_mode == 'inclusive':
             pen = pg.mkPen(color=color, width=width, style=QtCore.Qt.DotLine)
         else:
@@ -432,7 +430,7 @@ class SimpleMask(object):
             'handlePen': pen
         }
         if sl_type == 'Ellipse':
-            new_roi = pg.EllipseROI([cen[1], cen[0]], [60, 80], **kwargs)
+            new_roi = pg.EllipseROI(cen, [60, 80], **kwargs)
             # add scale handle
             new_roi.addScaleHandle([0.5, 0], [0.5, 1], )
             new_roi.addScaleHandle([0.5, 1], [0.5, 0])
@@ -440,7 +438,12 @@ class SimpleMask(object):
             new_roi.addScaleHandle([1, 0.5], [0, 0.5])
 
         elif sl_type == 'Circle':
-            new_roi = pg.CircleROI([cen[1], cen[0]], [80, 80], **kwargs)
+            if second_point is not None:
+                radius = np.sqrt((second_point[1] - cen[1]) ** 2 + 
+                                 (second_point[0] - cen[0]) ** 2)
+            new_roi = pg.CircleROI(pos=[cen[0] - radius, cen[1] - radius],
+                                   radius=radius,
+                                   **kwargs)
 
         elif sl_type == 'Polygon':
             if num_edges is None:
@@ -450,33 +453,61 @@ class SimpleMask(object):
             # other
             offset = np.random.random_integers(0, 359)
             theta = np.linspace(0, np.pi * 2, num_edges + 1) + offset
-            x = radius * np.cos(theta) + cen[1]
-            y = radius * np.sin(theta) + cen[0]
+            x = radius * np.cos(theta) + cen[0]
+            y = radius * np.sin(theta) + cen[1]
             pts = np.vstack([x, y]).T
             new_roi = pg.PolyLineROI(pts, closed=True, **kwargs)
 
         elif sl_type == 'Rectangle':
-            new_roi = pg.RectROI([cen[1], cen[0]], [30, 150], **kwargs)
+            new_roi = pg.RectROI(cen, [30, 150], **kwargs)
             new_roi.addScaleHandle([0, 0], [1, 1])
             # new_roi.addRotateHandle([0, 1], [0.5, 0.5])
-
+        
+        elif sl_type == 'Line':
+            if second_point is None:
+                return
+            width = kwargs.pop('width', 1)
+            new_roi = LineROI(cen, second_point, width,
+                              **kwargs)
         else:
             raise TypeError('type not implemented. %s' % sl_type)
 
         new_roi.sl_mode = sl_mode
-        self.hdl.add_item(new_roi)
-        new_roi.sigRemoveRequested.connect(lambda: self.remove_roi(new_roi))
-        return
+        roi_key = self.hdl.add_item(new_roi, label)
+        new_roi.sigRemoveRequested.connect(lambda: self.remove_roi(roi_key))
+        return new_roi
+    
+    def get_qring_values(self):
+        result = {}
+        cen = (self.meta['bcx'], self.meta['bcy'])
 
-    def remove_roi(self, roi):
-        self.hdl.remove_item(roi)
+        for key in ['qring_qmin', 'qring_qmax']:
+            if key in self.hdl.roi:
+                x = tuple(self.hdl.roi[key].state['size'])[0] / 2.0 + cen[0]
+                value, _ = self.get_qp_value(x, cen[1])
+            else:
+                value = None
+            result[key] = value
+
+        for key in ['qring_pmin', 'qring_pmax']:
+            if key in self.hdl.roi:
+                value = self.hdl.roi[key].state['angle']
+                value = value - 90
+                value = value - np.floor(value / 360.0) * 360.0
+            else:
+                value = None
+            result[key] = value
+        return result
+
+    def remove_roi(self, roi_key):
+        self.hdl.remove_item(roi_key)
     
     def get_partition(self, qnum, pnum, qmin=None, qmax=None, pmin=None, 
                        pmax=None, style='linear'):
 
         mask = self.mask 
         qmap = self.qmap['q'] * mask
-        pmap = self.qmap['phi'] * mask
+        pmap_org = self.qmap['phi'] * mask
 
         if qmin is None or qmax is None:
             qmin = np.min(self.qmap['q'][mask > 0])
@@ -497,6 +528,12 @@ class SimpleMask(object):
             qlist = np.sqrt(qspan[1:] * qspan[:-1])
 
         # phi
+        pmap = pmap_org.copy()
+        # deal with edge case, eg (pmin, pmax) = (350, 10)
+        if pmax < pmin:
+            pmax += 360.0
+            pmap[pmap < pmin] += 360.0
+        
         pspan = np.linspace(pmin, pmax, pnum + 1)
         plist = (pspan[1:] + pspan[:-1]) / 2.0
 
