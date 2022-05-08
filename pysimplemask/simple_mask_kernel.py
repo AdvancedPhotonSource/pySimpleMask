@@ -507,7 +507,7 @@ class SimpleMask(object):
 
         mask = self.mask 
         qmap = self.qmap['q'] * mask
-        pmap = self.qmap['phi'] * mask
+        pmap_org = self.qmap['phi'] * mask
 
         if qmin is None or qmax is None:
             qmin = np.min(self.qmap['q'][mask > 0])
@@ -528,6 +528,12 @@ class SimpleMask(object):
             qlist = np.sqrt(qspan[1:] * qspan[:-1])
 
         # phi
+        pmap = pmap_org.copy()
+        # deal with edge case, eg (pmin, pmax) = (350, 10)
+        if pmax < pmin:
+            pmax += 360.0
+            pmap[pmap < pmin] += 360.0
+        
         pspan = np.linspace(pmin, pmax, pnum + 1)
         plist = (pspan[1:] + pspan[:-1]) / 2.0
 
