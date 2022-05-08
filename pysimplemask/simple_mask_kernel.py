@@ -599,7 +599,7 @@ class SimpleMask(object):
 
         def combine_span_val(record, new_item):
             for n in range(4):
-                record[n].append(new_item)
+                record[n].append(new_item[n])
             return record
         
         dq_record = [[] for n in range(4)]
