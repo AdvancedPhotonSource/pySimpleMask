@@ -6,6 +6,24 @@ import skimage.io as skio
 import matplotlib.pyplot as plt
 
 
+def create_qring(qmin, qmax, pmin, pmax, qnum=1, flag_const_width=True):
+    qrings = []
+    if qmin > qmax:
+        qmin, qmax = qmax, qmin
+    qcen = (qmin + qmax) / 2.0
+    qhalf = (qmax - qmin) / 2.0
+
+    for n in range(1, qnum + 1):
+        if flag_const_width:
+            low = qcen * n - qhalf
+            high = qcen * n + qhalf
+        else:
+            low = (qcen - qhalf) * n
+            high = (qcen + qhalf) * n
+        qrings.append((low, high, pmin, pmax))
+    return qrings
+
+
 class MaskBase():
     def __init__(self, shape=(512, 1024)) -> None:
         self.shape = shape
@@ -116,26 +134,18 @@ class MaskQring(MaskBase):
         super().__init__(shape=shape)
         self.qrings = []
 
-    def evaluate(self, qmap, qbegin=0.001, qend=0.008, qnum=3,
-                 flag_const_width=True):
+    def evaluate(self, qmap, pmap, qrings=None):
         mask = np.zeros_like(qmap, dtype=np.bool)
-        qrings = []
+        if qrings is None:
+            return
 
-        if qbegin > qend:
-            qbegin, qend = qend, qbegin
-        qcen = (qbegin + qend) / 2.0
-        qhalf = (qend - qbegin) / 2.0
+        for n in range(len(qrings)):
+            qmin, qmax, pmin, pmax = qrings[n]
+            qrings.append(qrings[n])
+            qroi = np.logical_and((qmap >= qmin), (qmap < qmax))
+            proi = np.logical_and((pmap >= pmin), (pmap < pmax))
+            mask[qroi * proi] = 1
 
-        for n in range(1, qnum + 1):
-            if flag_const_width:
-                low = qcen * n - qhalf
-                high = qcen * n + qhalf
-            else:
-                low = (qcen - qhalf) * n
-                high = (qcen + qhalf) * n
-            qrings.append((low, high))
-            tmp = np.logical_and((qmap > low), (qmap < high))
-            mask[tmp] = 1
         mask = np.logical_not(mask)
         self.zero_loc = np.array(np.nonzero(mask))
         self.qrings = qrings
@@ -154,7 +164,8 @@ class MaskArray(MaskBase):
 
 
 class MaskAssemble():
-    def __init__(self, shape=(128, 128), saxs_log=None, qmap=None) -> None:
+    def __init__(self, shape=(128, 128), saxs_log=None, qmap=None, pmap=None,
+            ) -> None:
         self.workers = {
             'mask_blemish': MaskFile(shape),
             'mask_file': MaskFile(shape),
@@ -166,6 +177,7 @@ class MaskAssemble():
         }
         self.saxs_log = saxs_log
         self.qmap = qmap
+        self.pmap = pmap
 
     def enable(self, target, flag=True):
         self.workers[target].set_enabled(flag)
@@ -174,7 +186,7 @@ class MaskAssemble():
         if target == 'mask_threshold':
             self.workers[target].evaluate(self.saxs_log, **kwargs)
         elif target == 'mask_qring':
-            self.workers[target].evaluate(self.qmap, **kwargs)
+            self.workers[target].evaluate(self.qmap, self.pmap, **kwargs)
         else:
             self.workers[target].evaluate(**kwargs)
 

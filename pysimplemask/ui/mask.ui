@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1901</width>
-    <height>1026</height>
+    <width>2702</width>
+    <height>1509</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -524,7 +524,7 @@
            <string>Mask</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
-           <item row="1" column="0">
+           <item row="0" column="0">
             <widget class="QTabWidget" name="MaskWidget">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
@@ -1165,7 +1165,7 @@
                   </sizepolicy>
                  </property>
                  <property name="title">
-                  <string>Import from file</string>
+                  <string>Import from a file</string>
                  </property>
                  <layout class="QGridLayout" name="gridLayout_18">
                   <item row="0" column="0">
@@ -1458,15 +1458,32 @@
               <attribute name="title">
                <string>q-rings</string>
               </attribute>
-              <layout class="QGridLayout" name="gridLayout_29">
-               <item row="1" column="0">
+              <layout class="QGridLayout" name="gridLayout_31">
+               <item row="0" column="0" colspan="2">
                 <widget class="QGroupBox" name="groupBox_15">
                  <property name="title">
-                  <string>q-ring settings:</string>
+                  <string>Manual selection</string>
                  </property>
                  <layout class="QGridLayout" name="gridLayout_26">
+                  <item row="5" column="0">
+                   <widget class="QLabel" name="label_33">
+                    <property name="text">
+                     <string>Max-order</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QRadioButton" name="box_qring_qmin">
+                    <property name="text">
+                     <string>q-begin (1/Å)</string>
+                    </property>
+                    <property name="checked">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
                   <item row="1" column="1">
-                   <widget class="QDoubleSpinBox" name="mask_qring_begin">
+                   <widget class="QDoubleSpinBox" name="mask_qring_qmin">
                     <property name="decimals">
                      <number>4</number>
                     </property>
@@ -1475,14 +1492,44 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="3" column="0">
-                   <widget class="QLabel" name="label_33">
+                  <item row="2" column="0">
+                   <widget class="QRadioButton" name="box_qring_pmin">
                     <property name="text">
-                     <string>Max-order</string>
+                     <string>phi-begin (deg)</string>
+                    </property>
+                    <property name="checked">
+                     <bool>false</bool>
                     </property>
                    </widget>
                   </item>
-                  <item row="3" column="1">
+                  <item row="2" column="1">
+                   <widget class="QDoubleSpinBox" name="mask_qring_pmin">
+                    <property name="decimals">
+                     <number>2</number>
+                    </property>
+                    <property name="maximum">
+                     <double>360.000000000000000</double>
+                    </property>
+                    <property name="value">
+                     <double>0.000000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="2">
+                   <widget class="QRadioButton" name="box_qring_pmax">
+                    <property name="text">
+                     <string>phi-end  (deg)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <widget class="QRadioButton" name="box_qring_qmax">
+                    <property name="text">
+                     <string>q-end  (1/Å)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="1">
                    <widget class="QSpinBox" name="mask_qring_num">
                     <property name="minimum">
                      <number>1</number>
@@ -1495,24 +1542,7 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="3" column="5">
-                   <widget class="QPushButton" name="btn_mask_qring_apply">
-                    <property name="text">
-                     <string>Apply</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="4" colspan="2">
-                   <widget class="QDoubleSpinBox" name="mask_qring_end">
-                    <property name="decimals">
-                     <number>4</number>
-                    </property>
-                    <property name="value">
-                     <double>0.004200000000000</double>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="3" column="2">
+                  <item row="5" column="2">
                    <widget class="QCheckBox" name="mask_qring_constwidth">
                     <property name="text">
                      <string>constant q-width</string>
@@ -1522,31 +1552,43 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="3" column="3" colspan="2">
-                   <widget class="QPushButton" name="btn_mask_qring_evaluate">
-                    <property name="text">
-                     <string>Evaluate</string>
+                  <item row="5" column="3">
+                   <widget class="QPushButton" name="btn_mask_qring_add1">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
                     </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="0">
-                   <widget class="QRadioButton" name="btn_mask_qbegin">
                     <property name="text">
-                     <string>q-begin (1/Å)</string>
-                    </property>
-                    <property name="checked">
-                     <bool>true</bool>
+                     <string>Add qrings</string>
                     </property>
                    </widget>
                   </item>
                   <item row="1" column="3">
-                   <widget class="QRadioButton" name="btn_mask_qend">
-                    <property name="text">
-                     <string>q-end  (1/Å)</string>
+                   <widget class="QDoubleSpinBox" name="mask_qring_qmax">
+                    <property name="decimals">
+                     <number>4</number>
+                    </property>
+                    <property name="value">
+                     <double>0.004200000000000</double>
                     </property>
                    </widget>
                   </item>
-                  <item row="0" column="0" colspan="6">
+                  <item row="2" column="3">
+                   <widget class="QDoubleSpinBox" name="mask_qring_pmax">
+                    <property name="decimals">
+                     <number>2</number>
+                    </property>
+                    <property name="maximum">
+                     <double>360.000000000000000</double>
+                    </property>
+                    <property name="value">
+                     <double>360.000000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="0" colspan="4">
                    <widget class="QLabel" name="label_25">
                     <property name="text">
                      <string>check the radial button and double click on the scattering pattern to get the q values.</string>
@@ -1556,18 +1598,126 @@
                  </layout>
                 </widget>
                </item>
-               <item row="2" column="0">
-                <spacer name="verticalSpacer_3">
-                 <property name="orientation">
-                  <enum>Qt::Vertical</enum>
+               <item row="1" column="0">
+                <widget class="QGroupBox" name="groupBox_17">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
                  </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>20</width>
-                   <height>40</height>
-                  </size>
+                 <property name="title">
+                  <string>Input coordinates</string>
                  </property>
-                </spacer>
+                 <layout class="QGridLayout" name="gridLayout_30">
+                  <item row="0" column="1">
+                   <widget class="QPushButton" name="btn_mask_qring_add2">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>Add qrings</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="0">
+                   <widget class="QLineEdit" name="mask_qring_input">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>200</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                    <property name="toolTip">
+                     <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;(qbegin1, qend1), (qbegin2, qend2), ...&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                    <property name="placeholderText">
+                     <string>(q_begin1, q_end1, phi_begin1, phi_end1),  ...</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QGroupBox" name="groupBox_16">
+                 <property name="title">
+                  <string>Import qrings from a file</string>
+                 </property>
+                 <layout class="QGridLayout" name="gridLayout_28">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_29">
+                    <property name="text">
+                     <string>Supported format: txt, csv, json</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QPushButton" name="btn_mask_qring_add3">
+                    <property name="text">
+                     <string>Select File</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item row="2" column="0" colspan="2">
+                <widget class="QGroupBox" name="groupBox_18">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="title">
+                  <string>qring list</string>
+                 </property>
+                 <layout class="QGridLayout" name="gridLayout_29">
+                  <item row="0" column="0" rowspan="3">
+                   <widget class="QTableView" name="tableView"/>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QPushButton" name="btn_mask_qring_clear">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>Clear List</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QPushButton" name="btn_mask_qring_evaluate">
+                    <property name="text">
+                     <string>Evaluate</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="1">
+                   <widget class="QPushButton" name="btn_mask_qring_apply">
+                    <property name="text">
+                     <string>Apply</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
                </item>
               </layout>
              </widget>

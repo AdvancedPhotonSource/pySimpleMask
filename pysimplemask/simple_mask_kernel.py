@@ -13,48 +13,6 @@ from .find_center import find_center
 pg.setConfigOptions(imageAxisOrder='row-major')
 
 
-def combine_qp(q_num, p_num, qval_1d, pval_1d, qmap, pmap):
-    combined_map = np.zeros_like(qmap, dtype=np.uint32)
-
-    for n in range(q_num):
-        idx = qmap == (n + 1)
-        combined_map[idx] = pmap[idx] + n * p_num
-    combined_map = combined_map
-
-    # total number of q's, including 0;
-    total_num = q_num * p_num + 1
-    num_pts = np.bincount(combined_map.ravel(), minlength=total_num)[1:]
-
-    cqval = np.tile(qval_1d, p_num).reshape(p_num, q_num)
-    cqval = np.swapaxes(cqval, 0, 1).flatten()
-    cpval = np.tile(pval_1d, q_num)
-    # the 0 axis is the q direction and 1st axis is phi direction
-
-    # the roi that has zero points in it;
-    invalid_roi = (num_pts == 0)
-    cqval[invalid_roi] = np.nan
-    cpval[invalid_roi] = np.nan
-
-    cqval = np.expand_dims(cqval, axis=0)
-    cpval = np.expand_dims(cpval, axis=0)
-
-    combined_map = reindex_qmap(combined_map)
-
-    return combined_map, cqval, cpval
-
-
-def reindex_qmap(qmap):
-    """
-    remove the zeros qbins and reindex;
-    """
-    count = np.bincount(qmap.ravel())
-    curr_idx = np.nonzero(count > 0)[0][1:]  # tuple(); zeros term omitted;
-    real_idx = np.arange(1, len(curr_idx) + 1)
-    for q0, q1 in zip(curr_idx, real_idx):
-        qmap[qmap == q0] = q1
-    return qmap
-
-
 class SimpleMask(object):
     def __init__(self, pg_hdl, infobar):
         self.data_raw = None
@@ -277,7 +235,8 @@ class SimpleMask(object):
         self.qrings = []
         self.qmap = self.compute_qmap()
         self.mask_kernel = MaskAssemble(self.shape, self.saxs_log,
-                                        self.qmap['q'])
+                                        qmap=self.qmap['q'], 
+                                        pmap=self.qmap['phi'])
         self.extent = self.compute_extent()
 
         # self.meta['saxs'] = saxs
@@ -318,12 +277,12 @@ class SimpleMask(object):
 
         return qmap
 
-    def get_q_value(self, x, y):
+    def get_qp_value(self, x, y):
         shape = self.qmap['q'].shape
         if 0 <= x < shape[1] and 0 <= y < shape[0]:
-            return self.qmap['q'][y, x]
+            return self.qmap['q'][y, x], self.qmap['phi'][y, x]
         else:
-            return None
+            return None, None
 
     def compute_extent(self):
         k0 = 2 * np.pi / (12.3980 / self.meta['energy'])
@@ -511,70 +470,70 @@ class SimpleMask(object):
 
     def remove_roi(self, roi):
         self.hdl.remove_item(roi)
+    
+    def get_partition(self, qnum, pnum, qmin=None, qmax=None, pmin=None, 
+                       pmax=None, style='linear'):
 
-    def get_partition(self, mask=None, num=400, style='linear', mode='q',
-                      qrings=None):
-        """
-        get_partion computes the partition for either qmap or phi-map
-        Args:
-            mask: 2d array to use as the mask. if none is given, then use the
-                default mask
-            num: integer, number of points
-            style = ['linear', 'logarithmic']. logarithmic only works for q map
-            mode = ['q', 'phi']
-            qrings: list of tuples (qmin, qmax) or empty list or None, describe
-                the start and end q value
-        """
-        assert mode in ['q', 'phi']
-        if mask is None:
-            mask = self.mask
+        mask = self.mask 
+        qmap = self.qmap['q'] * mask
+        pmap = self.qmap['phi'] * mask
 
-        vmap = self.qmap[mode] * mask
-        vmap_valid = vmap[self.mask == 1]
-        if qrings is None or len(qrings) == 0:
-            vmin = np.min(vmap_valid)
-            vmax = np.max(vmap_valid)
-            qrings = [(vmin, vmax)]
+        if qmin is None or qmax is None:
+            qmin = np.min(self.qmap['q'][mask > 0])
+            qmax = np.max(self.qmap['q'][mask > 0]) + 1e-9  # exclusive
+        if pmin is None or pmax is None:
+            pmin = 0
+            pmax = 360.0 + 1e-9
 
-        qspan = []
-        qlist = []
-
-        num_rings = len(qrings)
-        pnum = num // num_rings     # partial number in each ring 
-        if mode == 'phi' or style == 'linear':
-            for m in range(num_rings):
-                vmin, vmax = qrings[m]
-                tmp = np.linspace(vmin, vmax, pnum + 1)
-                qspan.append(tmp)
-                qlist.append((tmp[1:] + tmp[:-1]) / 2.0)
+        assert style in ('linear', 'logarithmic')
+        # q
+        if style == 'linear':
+            qspan = np.linspace(qmin, qmax, qnum + 1)
+            qlist = (qspan[1:] + qspan[:-1]) / 2.0
         elif style == 'logarithmic':
-            for m in range(num_rings):
-                vmin, vmax = qrings[m]
-                qmin = np.log10(vmin)
-                qmax = np.log10(vmax)
-                tmp = np.logspace(qmin, qmax, pnum + 1)
-                qspan.append(tmp)
-                qlist.append(np.sqrt(tmp[1:] * tmp[:-1]))
+            qmin = np.log10(qmin)
+            qmax = np.log10(qmax)
+            qspan = np.logspace(qmin, qmax, pnum + 1)
+            qlist = np.sqrt(qspan[1:] * qspan[:-1])
 
-        partition = np.zeros_like(vmap, dtype=np.uint32)
-        for m in range(num_rings):
+        # phi
+        pspan = np.linspace(pmin, pmax, pnum + 1)
+        plist = (pspan[1:] + pspan[:-1]) / 2.0
+
+        qroi = np.logical_and(qmap >= qmin, qmap < qmax)
+        proi = np.logical_and(pmap >= pmin, pmap < pmax)
+        roi = np.logical_and(qroi, proi)
+
+        qmap = qmap * roi
+        pmap = pmap * roi
+
+        partition = np.zeros_like(roi, dtype=np.uint32)
+
+        cqlist = np.tile(qlist, pnum).reshape(pnum, qnum)
+        cqlist = np.swapaxes(cqlist, 0, 1)
+        cplist = np.tile(plist, qnum).reshape(qnum, pnum)
+
+        idx = 1
+        for m in range(qnum):
+            qroi = (qmap >= qspan[m]) * (qmap < qspan[m + 1])
             for n in range(pnum):
-                val = qspan[m][n]
-                partition[vmap >= val] = n + 1 + (pnum * m)  # overall offset
-        qlist = np.hstack(qlist)
-        # remove one element starting from the second array so that the 
-        # dimension matches
-        for n in range(1, num_rings):
-            qspan[n] = qspan[n][1:]
-        qspan = np.hstack(qspan)
- 
-        qspan = qspan.reshape(1, -1)
-        return qspan, qlist, partition
+                proi = (pmap >= pspan[n]) * (pmap < pspan[n + 1])
+                comb_roi = qroi * proi 
+                if np.sum(comb_roi) == 0:
+                    cqlist[m, n] = np.nan
+                    cplist[m, n] = np.nan
+                else:
+                    partition[comb_roi] = idx
+                    idx += 1
 
-    def compute_saxs1d(self, cutoff=3.0, episilon=1e-16, **kwargs):
-        _, qlist, partition = self.get_partition(**kwargs)
+        return (qspan, cqlist, pspan, cplist), partition
+
+    def compute_saxs1d(self, cutoff=3.0, episilon=1e-16, num=180):
+        t_dq_span_val, partition = self.get_partition(num, 1, 
+            None, None, 0, 360, 'linear')
+        qlist = t_dq_span_val[1].flatten()
+
         self.data[5] = partition
-
         num_q = qlist.size
         saxs1d = np.zeros((5, num_q), dtype=np.float64)
 
@@ -621,42 +580,64 @@ class SimpleMask(object):
         zero_loc = np.vstack([rows, cols])
 
         return saxs1d, zero_loc
-
-    def compute_partition(self, dq_num=10, sq_num=100, style='linear',
-                          dp_num=36, sp_num=360):
+    
+    def compute_partition(self, 
+                           dq_num=10, sq_num=100, style='linear',
+                           dp_num=36, sp_num=360):
         if self.meta is None or self.data_raw is None:
             return
+        
+        qrings = self.qrings
 
-        # make the dq number equal to the multiples of num-rings
-        num_rings = len(self.qrings)
-        if num_rings > 0:
-            dq_num = (dq_num + num_rings - 1) // num_rings * num_rings
+        if qrings is None or len(qrings) == 0:
+            qrings = [[None, None, 0, 360]]
 
-        # make the static values multiples of the dynamic value
-        sq_num = (sq_num + dq_num - 1) // dq_num * dq_num
-        sp_num = (sp_num + dp_num - 1) // dp_num * dp_num
+        # dqspan = []
+        # , dqval, dphispan, dphival, dyn_map
+        dyn_map = np.zeros_like(self.mask, dtype=np.uint32)
+        sta_map = np.zeros_like(self.mask, dtype=np.uint32)
 
-        dqspan, dqval_1d, dqmap_partition = \
-            self.get_partition(num=dq_num, style=style, mode='q',
-                               qrings=self.qrings)
+        def combine_span_val(record, new_item):
+            for n in range(4):
+                record[n].append(new_item[n])
+            return record
+        
+        dq_record = [[] for n in range(4)]
+        sq_record = [[] for n in range(4)]
 
-        sqspan, sqval_1d, sqmap_partition = \
-            self.get_partition(num=sq_num, style=style, mode='q',
-                               qrings=self.qrings)
+        for segment in qrings:
+            # qmin, qmax, pmin, pmax = segment, 0, 60
+            qmin, qmax, pmin, pmax = segment
+            t_dq_span_val, tdyn_map = self.get_partition(
+                dq_num, dp_num, qmin, qmax, pmin, pmax, style)
+            dq_record = combine_span_val(dq_record, t_dq_span_val)
 
-        dphispan, dphival_1d, dphi_partition = \
-            self.get_partition(num=dp_num, style=style, mode='phi')
-        sphispan, sphival_1d, sphi_partition = \
-            self.get_partition(num=sp_num, style=style, mode='phi')
+            # offset the nonzero dynamic qmap
+            tdyn_map[tdyn_map > 0] += np.max(dyn_map)
+            dyn_map += tdyn_map
 
-        dyn_map, dqval, dphival = combine_qp(dq_num, dp_num, dqval_1d,
-                                             dphival_1d, dqmap_partition,
-                                             dphi_partition)
+            # offset the nonzero static qmap
+            t_sq_span_val, tsta_map = self.get_partition(
+                sq_num, sp_num, qmin, qmax, pmin, pmax, style)
+            sq_record = combine_span_val(sq_record, t_sq_span_val)
+        
+            tsta_map[tsta_map > 0] += np.max(sta_map)
+            sta_map += tsta_map
+        
+        # (qspan, cqlist, pspan, cplist)
+        dqspan = np.hstack(dq_record[0])
+        sqspan = np.hstack(sq_record[0])
 
-        sta_map, sqval, sphival = combine_qp(sq_num, sp_num, sqval_1d,
-                                             sphival_1d, sqmap_partition,
-                                             sphi_partition)
+        dqval = np.hstack(dq_record[1]).reshape(1, -1)
+        sqval = np.hstack(sq_record[1]).reshape(1, -1)
 
+        dphispan = np.hstack(dq_record[2])
+        sphispan = np.hstack(sq_record[2])
+
+        dphival = np.hstack(dq_record[3]).reshape(1, -1)
+        sphival = np.hstack(sq_record[3]).reshape(1, -1)
+        
+        # dump result to file;
         self.data[3] = dyn_map
         self.data[4] = sta_map
         self.hdl.setCurrentIndex(3)
