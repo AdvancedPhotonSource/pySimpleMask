@@ -5,11 +5,9 @@ import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
 from .area_mask import MaskAssemble
 
-from .reader.imm_reader_with_plot import IMMReader8ID
-from .reader.rigaku_reader import RigakuReader
-from .reader.hdf2sax import hdf2saxs
 from .find_center import find_center
 from .pyqtgraph_mod import LineROI
+from .file_reader import APS8IDIReader, TiffReader
 
 pg.setConfigOptions(imageAxisOrder='row-major')
 
@@ -44,33 +42,6 @@ class SimpleMask(object):
             4: "sqmap_partition",
             5: "preview"
         }
-
-    def load_meta(self, fname):
-        keys = {
-            'ccdx': '/measurement/instrument/acquisition/stage_x',
-            'ccdx0': '/measurement/instrument/acquisition/stage_zero_x',
-            'ccdz': '/measurement/instrument/acquisition/stage_z',
-            'ccdz0': '/measurement/instrument/acquisition/stage_zero_z',
-            'datetime': '/measurement/instrument/source_begin/datetime',
-            'energy': '/measurement/instrument/source_begin/energy',
-            'det_dist': '/measurement/instrument/detector/distance',
-            'pix_dim': '/measurement/instrument/detector/x_pixel_size',
-            'bcx0': '/measurement/instrument/acquisition/beam_center_x',
-            'bcy0': '/measurement/instrument/acquisition/beam_center_y',
-        }
-        meta = {}
-        with h5py.File(fname, 'r') as f:
-            for key, val in keys.items():
-                meta[key] = np.squeeze(f[val][()])
-            meta['data_name'] = os.path.basename(fname).encode("ascii")
-
-        ccdx, ccdx0 = meta['ccdx'], meta['ccdx0']
-        ccdz, ccdz0 = meta['ccdz'], meta['ccdz0']
-
-        meta['bcx'] = meta['bcx0'] + (ccdx - ccdx0) / meta['pix_dim']
-        meta['bcy'] = meta['bcy0'] + (ccdz - ccdz0) / meta['pix_dim']
-
-        return meta
 
     def is_ready(self):
         if self.meta is None or self.data_raw is None:
@@ -162,60 +133,20 @@ class SimpleMask(object):
                 data.create_dataset(key, data=val)
         print('partition map is saved')
 
-    def verify_metadata_hdf(self, file):
-        try:
-            with h5py.File(file, 'r') as hf:
-                if '/measurement/instrument/acquisition' in hf:
-                    return True
-                else:
-                    return False
-        except Exception:
-            return False
-
-    def get_scattering(self, fname, num_frames=-1, beg_idx=0, **kwargs):
-        # seeks directory of existing hdf program
-        dirname = os.path.dirname(os.path.realpath(fname))
-        files = os.listdir(os.path.dirname(os.path.realpath(fname)))
-
-        saxs = None
-        for fname in files:
-            if fname.endswith('.bin'):
-                print("-----------.bin found.-----------")
-                bin_file = os.path.join(dirname, fname)
-                reader = RigakuReader(bin_file)
-                saxs = reader.load()
-
-            # seeks .imm file
-            elif fname.endswith('.imm'):
-                print("-----------.imm found.-----------")
-                imm_file = os.path.join(dirname, fname)
-                reader = IMMReader8ID(imm_file)
-                saxs = reader.calc_avg_pixel()
-
-            # seeks .h5 file
-            elif fname.endswith('.h5') or fname.endswith('.hdf'):
-                hdf_file = os.path.join(dirname, fname)
-                with h5py.File(hdf_file, 'r') as hf:
-                    if '/entry/data/data' in hf:
-                        # correct h5 file, contains raw data
-                        print("-----------.hdf/.h5 found.-----------")
-                        saxs = hdf2saxs(hdf_file, beg_idx=beg_idx,
-                                        num_frames=num_frames)
-        return saxs
-
     # generate 2d saxs
     def read_data(self, fname=None, **kwargs):
-        if not self.verify_metadata_hdf(fname):
-            # raise ValueError('check raw file')
-            print('the selected file is not a valid metadata hdf file.')
-            return
+        ext_name = os.path.splitext(fname)[-1]
+        if ext_name in ('.hdf', '.h5'):
+            reader = APS8IDIReader(fname)
+        elif  ext_name in ('.tif', '.tiff'):
+            reader = TiffReader(fname)
 
-        saxs = self.get_scattering(fname, **kwargs)
+        saxs = reader.get_scattering(**kwargs)
         if saxs is None:
             print('cannot read the scattering data from raw data file.')
             return
 
-        self.meta = self.load_meta(fname)
+        self.meta = reader.load_meta()
 
         # keep same
         self.data_raw = np.zeros(shape=(6, *saxs.shape))
