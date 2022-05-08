@@ -206,13 +206,17 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 self.mask_list_add_pts(pos)
         else:
             # qring mode, select qbegin and qend with mouse
-            q = self.sm.get_q_value(col, row)
-            if q is None:
+            q, p = self.sm.get_qp_value(col, row)
+            if q is None or p is None:
                 return
-            if self.btn_mask_qbegin.isChecked():
-                self.mask_qring_begin.setValue(q)
-            else:
-                self.mask_qring_end.setValue(q)
+            if self.box_qring_qmin.isChecked():
+                self.mask_qring_qmin.setValue(q)
+            elif self.box_qring_qmax.isChecked():
+                self.mask_qring_qmax.setValue(q)
+            elif self.box_qring_pmin.isChecked():
+                self.mask_qring_pmin.setValue(p)
+            elif self.box_qring_pmax.isChecked():
+                self.mask_qring_pmax.setValue(p)
 
     def find_center(self):
         if not self.is_ready():
@@ -326,8 +330,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def mask_qring_list_add(self, method='manual'):
         if method == 'mouse_click':
             tmp_kwargs = {
-                "qbegin": self.mask_qring_begin.value(),
-                "qend": self.mask_qring_end.value(),
+                "qmin": self.mask_qring_qmin.value(),
+                "qmax": self.mask_qring_qmax.value(),
+                "pmin": self.mask_qring_pmin.value(),
+                "pmax": self.mask_qring_pmax.value(),
                 "qnum": self.mask_qring_num.value(),
                 "flag_const_width": self.mask_qring_constwidth.isChecked(),
             }
@@ -523,13 +529,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
             'dp_num': self.sb_dpnum.value(),
             'style': self.partition_style.currentText(),
         }
-
-        num_rings = len(self.sm.qrings)
-        if num_rings > 1 and kwargs['dq_num'] % num_rings:
-            self.statusbar.showMessage(
-                'dq_num must be a multiple of qrings', 1000)
-        # self.btn_compute_qpartition.setStyleSheet("background-color: red")
-            return
 
         self.sm.compute_partition(**kwargs)
         self.plot_index.setCurrentIndex(0)

@@ -13,8 +13,6 @@ from .find_center import find_center
 pg.setConfigOptions(imageAxisOrder='row-major')
 
 
-
-
 class SimpleMask(object):
     def __init__(self, pg_hdl, infobar):
         self.data_raw = None
@@ -237,7 +235,8 @@ class SimpleMask(object):
         self.qrings = []
         self.qmap = self.compute_qmap()
         self.mask_kernel = MaskAssemble(self.shape, self.saxs_log,
-                                        self.qmap['q'])
+                                        qmap=self.qmap['q'], 
+                                        pmap=self.qmap['phi'])
         self.extent = self.compute_extent()
 
         # self.meta['saxs'] = saxs
@@ -278,12 +277,12 @@ class SimpleMask(object):
 
         return qmap
 
-    def get_q_value(self, x, y):
+    def get_qp_value(self, x, y):
         shape = self.qmap['q'].shape
         if 0 <= x < shape[1] and 0 <= y < shape[0]:
-            return self.qmap['q'][y, x]
+            return self.qmap['q'][y, x], self.qmap['phi'][y, x]
         else:
-            return None
+            return None, None
 
     def compute_extent(self):
         k0 = 2 * np.pi / (12.3980 / self.meta['energy'])
@@ -608,8 +607,7 @@ class SimpleMask(object):
 
         for segment in qrings:
             # qmin, qmax, pmin, pmax = segment, 0, 60
-            qmin, qmax = segment
-            pmin, pmax = 0, 60
+            qmin, qmax, pmin, pmax = segment
             t_dq_span_val, tdyn_map = self.get_partition(
                 dq_num, dp_num, qmin, qmax, pmin, pmax, style)
             dq_record = combine_span_val(dq_record, t_dq_span_val)

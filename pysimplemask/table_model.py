@@ -13,7 +13,7 @@ class QringTableModel(QtCore.QAbstractTableModel):
     def headerData(self, section: int, orientation: Qt.Orientation, role: int):
         if role == QtCore.Qt.DisplayRole:
             if orientation == Qt.Horizontal:
-                return ('qbegin', 'qend')[section]
+                return ('q_begin', 'qend', 'phi_begin', 'phi_end')[section]
             else:
                 return "roi_" + str(section)
 
