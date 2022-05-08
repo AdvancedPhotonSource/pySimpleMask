@@ -8,7 +8,8 @@ class ImageViewROI(pg.ImageView):
     def __init__(self, *arg, **kwargs):
         super(ImageViewROI, self).__init__(*arg, **kwargs)
         self.removeItem(self.roi)
-        self.roi = []
+        self.roi = {}
+        self.roi_idx = 0
         self.ui.roiBtn.setDisabled(True)
         self.ui.menuBtn.setDisabled(True)
 
@@ -45,12 +46,18 @@ class ImageViewROI(pg.ImageView):
     def set_colormap(self, cmap):
         pg_cmap = pg_get_cmap(plt.get_cmap(cmap))
         self.setColorMap(pg_cmap)
+    
+    def remove_rois(self, filter_str=None):
+        # if filter_str is None; then remove all rois
+        keys = list(self.roi.keys()).copy()
+        if filter_str is not None:
+            keys = list(filter(lambda x: x.startswith(filter_str), keys))
+        for key in keys:
+            self.remove_item(key)
 
     def clear(self):
-        for t in self.roi:
-            self.removeItem(t)
-        self.roi = []
-
+        self.remove_rois()
+        self.roi = {}
         super(ImageViewROI, self).clear()
         self.reset_limits()
         # incase the signal isn't connected to anything.
@@ -59,13 +66,18 @@ class ImageViewROI(pg.ImageView):
         # except:
         #     pass
 
-    def add_item(self, t):
-        self.roi.append(t)
+    def add_item(self, t, label=None):
+        if label is None:
+            label = f"roi_{self.roi_idx:06d}"
+            self.roi_idx += 1
+        self.roi[label] = t
         self.addItem(t)
+        return label
 
-    def remove_item(self, t):
-        self.roi.remove(t)
-        self.removeItem(t)
+    def remove_item(self, label):
+        t = self.roi.pop(label, None)
+        if t is not None:
+            self.removeItem(t)
 
     def updateImage(self, autoHistogramRange=True):
         # Redraw image on screen
@@ -95,3 +107,36 @@ class ImageViewROI(pg.ImageView):
             image = image[self.currentIndex]
 
         self.imageItem.updateImage(image)
+
+
+class LineROI(pg.ROI):
+    r"""
+    Rectangular ROI subclass with scale-rotate handles on either side. This
+    allows the ROI to be positioned as if moving the ends of a line segment.
+    A third handle controls the width of the ROI orthogonal to its "line" axis.
+    
+    ============== =============================================================
+    **Arguments**
+    pos1           (length-2 sequence) The position of the center of the ROI's
+                   left edge.
+    pos2           (length-2 sequence) The position of the center of the ROI's
+                   right edge.
+    width          (float) The width of the ROI.
+    \**args        All extra keyword arguments are passed to ROI()
+    ============== =============================================================
+    
+    """
+    def __init__(self, pos1, pos2, width, **args):
+        pos1 = pg.Point(pos1)
+        pos2 = pg.Point(pos2)
+        d = pos2-pos1
+        l = d.length()
+        ra = d.angle(pg.Point(1, 0), units="radians")
+        c = pg.Point(width/2. * np.sin(ra), -width/2. * np.cos(ra))
+        pos1 = pos1 + c
+        
+        pg.ROI.__init__(self, pos1, size=pg.Point(l, width), 
+                        angle=np.rad2deg(ra), **args)
+        # self.addScaleRotateHandle([0, 0.5], [1, 0.5])
+        self.addScaleRotateHandle([1, 0.5], [0, 0])
+        # self.addScaleHandle([0.5, 1], [0.5, 0.5])
