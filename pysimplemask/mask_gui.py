@@ -8,7 +8,7 @@ import pyqtgraph as pg
 
 from .simple_mask_ui import Ui_SimpleMask as Ui
 from .simple_mask_kernel import SimpleMask
-from PyQt5.QtWidgets import QFileDialog, QApplication, QMainWindow
+from PyQt5.QtWidgets import QFileDialog, QApplication, QMainWindow, QHeaderView
 from .area_mask import create_qring
 from .table_model import QringTableModel
 
@@ -151,6 +151,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.MaskWidget.setCurrentIndex(0)
         self.qring_model = QringTableModel(data=[[]])
         self.tableView.setModel(self.qring_model)
+        header = self.tableView.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.Stretch)  
         self.setting_fname = os.path.join(home_dir, 'default_setting.json')
         self.lastconfig_fname = os.path.join(home_dir, 'last_config.json')
         self.load_default_settings()
@@ -346,12 +348,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 return
             try:
                 xy = text_to_array(pts, dtype=np.float64)
-                xy = xy[0: xy.size // 2 * 2].reshape(-1, 2)
+                # to a 2d list
+                qrings = xy[0: xy.size // 4 * 4].reshape(-1, 4).tolist()
             except Exception:
                 self.statusbar.showMessage('Input list is invalid.', 500)
                 return
-            # to a 2d list
-            qrings = [[xy[n][0], xy[n][1]] for n in range(xy.shape[0])] 
 
         elif method == 'file':
             fname = QFileDialog.getOpenFileName(self, 'Select qring file',
@@ -364,6 +365,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                     x = json.load(f)
                 xy = []
                 for _, v in x.items():
+                    print(fname, v)
                     xy.append(v)
                 xy = np.array(xy)
 
@@ -376,9 +378,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                     self.statusbar.showMessage(
                         'only support csv and space separated file', 500)
                     return
-
-            xy = xy[0: xy.size // 2 * 2].reshape(-1, 2)
-            qrings = [[xy[n][0], xy[n][1]] for n in range(xy.shape[0])] 
+            qrings = xy[0: xy.size // 4 * 4].reshape(-1, 4).tolist()
 
         if self.qring_model.data == [[]]:
             self.qring_model.data = qrings
