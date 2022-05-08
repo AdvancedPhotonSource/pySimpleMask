@@ -455,7 +455,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def select_raw(self):
         fname = QFileDialog.getOpenFileName(self,
                     caption='Select raw file hdf',
-                    filter='HDF File(*.hdf);;All file(*.*)',
+                    filter='HDF File(*.hdf);;Tiff File(*.tif *.tiff);;All file(*.*)',
                     directory=self.work_dir)[0]
 
         # fname = (
