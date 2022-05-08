@@ -166,9 +166,8 @@ class SimpleMask(object):
         # reset the qrings after data loading
         self.qrings = []
         self.qmap = self.compute_qmap()
-        self.mask_kernel = MaskAssemble(self.shape, self.saxs_log,
-                                        qmap=self.qmap['q'], 
-                                        pmap=self.qmap['phi'])
+        self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
+        self.mask_kernel.update_qmap(self.qmap)
         self.extent = self.compute_extent()
 
         # self.meta['saxs'] = saxs
@@ -644,6 +643,7 @@ class SimpleMask(object):
                 ['bcx', 'bcy', 'energy', 'pix_dim', 'det_dist']):
             self.meta[key] = val[idx]
         self.qmap = self.compute_qmap()
+        self.mask_kernel.update_qmap(self.qmap)
 
     def get_parameters(self):
         val = []
