@@ -231,7 +231,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
                                           second_point=(col, row),
                                           width=1.0,
                                           color=color,
-                                          label=label)
+                                          label=label,
+                                          movable=False)
             else:
                 new_roi = self.sm.add_drawing(sl_type='Line',
                                           second_point=(col, row),
