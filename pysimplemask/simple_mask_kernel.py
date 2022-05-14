@@ -340,7 +340,7 @@ class SimpleMask(object):
 
     def add_drawing(self, num_edges=None, radius=60, color='r',
                     sl_type='Polygon', width=3, sl_mode='exclusive',
-                    second_point=None, label=None):
+                    second_point=None, label=None, movable=True):
         # label: label of roi; default is None, which is for roi-draw
 
         if label is not None and label in self.hdl.roi:
@@ -357,7 +357,8 @@ class SimpleMask(object):
             'pen': pen,
             'removable': True,
             'hoverPen': pen,
-            'handlePen': pen
+            'handlePen': pen,
+            'movable': movable
         }
         if sl_type == 'Ellipse':
             new_roi = pg.EllipseROI(cen, [60, 80], **kwargs)
