@@ -472,7 +472,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     def select_blemish(self):
         fname = QFileDialog.getOpenFileName(self, 'Select blemish file',
-                    filter='Supported format (.tiff .tif .h5 .hdf .hdf5')[0]
+                    filter='Supported format (*.tiff *.tif *.h5 *.hdf *.hdf5')[0]
         if fname not in [None, '']:
             self.blemish_fname.setText(fname)
 
@@ -485,7 +485,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     def select_maskfile(self):
         fname = QFileDialog.getOpenFileName(self, 'Select mask file',
-                    filter='Supported format (.tiff .tif .h5 .hdf .hdf5')[0]
+                    filter='Supported format (*.tiff *.tif *.h5 *.hdf *.hdf5')[0]
         # fname = "../tests/data/triangle_mask/mask_lambda_test.h5"
         if fname not in [None, '']:
             self.maskfile_fname.setText(fname)
