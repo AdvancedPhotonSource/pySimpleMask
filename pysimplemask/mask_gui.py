@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import logging
+import traceback
 import numpy as np
 import pyqtgraph as pg
 
@@ -255,6 +256,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.centralwidget.repaint()
             center = self.sm.find_center()
         except Exception:
+            traceback.print_exc()
             self.statusbar.showMessage('Failed to find center. Abort', 2000)
         else:
             cen_old = (
