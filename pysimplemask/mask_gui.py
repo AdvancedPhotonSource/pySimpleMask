@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import logging
+import traceback
 import numpy as np
 import pyqtgraph as pg
 
@@ -255,6 +256,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.centralwidget.repaint()
             center = self.sm.find_center()
         except Exception:
+            traceback.print_exc()
             self.statusbar.showMessage('Failed to find center. Abort', 2000)
         else:
             cen_old = (
@@ -472,7 +474,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     def select_blemish(self):
         fname = QFileDialog.getOpenFileName(self, 'Select blemish file',
-                    filter='Supported format (.tiff .tif .h5 .hdf .hdf5')[0]
+                    filter='Supported format (*.tiff *.tif *.h5 *.hdf *.hdf5')[0]
         if fname not in [None, '']:
             self.blemish_fname.setText(fname)
 
@@ -485,7 +487,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     def select_maskfile(self):
         fname = QFileDialog.getOpenFileName(self, 'Select mask file',
-                    filter='Supported format (.tiff .tif .h5 .hdf .hdf5')[0]
+                    filter='Supported format (*.tiff *.tif *.h5 *.hdf *.hdf5')[0]
         # fname = "../tests/data/triangle_mask/mask_lambda_test.h5"
         if fname not in [None, '']:
             self.maskfile_fname.setText(fname)

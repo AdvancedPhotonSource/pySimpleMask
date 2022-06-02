@@ -52,27 +52,36 @@ class SimpleMask(object):
     def find_center(self):
         if self.saxs_lin is None:
             return
-        center = find_center(self.saxs_lin, scale='log')
+        mask = self.mask
+        # center = (self.meta['bcy'], self.meta['bcx'])
+        center = find_center(self.saxs_lin, mask=mask, center_guess=None,
+                             scale='log')
         return center
 
     def mask_evaluate(self, target, **kwargs):
         msg = self.mask_kernel.evaluate(target, **kwargs)
         # preview the mask
         mask = self.mask_kernel.get_one_mask(target)
-        self.data[5][:, :] = mask
+        self.data_raw[5][:, :] = mask
         return msg
 
     def mask_apply(self, target):
         mask = self.mask_kernel.get_one_mask(target)
         self.mask_kernel.enable(target)
         self.mask = np.logical_and(self.mask, mask)
+
+        self.data_raw[1] = self.saxs_log * self.mask
+        self.data_raw[2] = self.mask
+
         if target == "mask_qring":
             self.qrings = self.mask_kernel.workers[target].get_qrings()
-        self.data[1:] *= self.mask
+
         if self.plot_log:
-            self.data[1][np.logical_not(self.mask)] = self.saxs_log_min
+            log_min = np.min(self.saxs_log[self.mask > 0])
+            self.data_raw[1][np.logical_not(self.mask)] = log_min
         else:
-            self.data[1][np.logical_not(self.mask)] = self.saxs_lin_min
+            lin_min = np.min(self.saxs_lin[self.mask > 0])
+            self.data_raw[1][np.logical_not(self.mask)] = lin_min
 
     def get_pts_with_similar_intensity(self, cen=None, radius=50,
                                        variation=50):
@@ -248,7 +257,7 @@ class SimpleMask(object):
         qx = self.qmap['qx'][row, col]
         qy = self.qmap['qy'][row, col]
         phi = self.qmap['phi'][row, col]
-        val = self.data[self.hdl.currentIndex][row, col]
+        val = self.data_raw[self.hdl.currentIndex][row, col]
 
         # msg = f'{self.idx_map[self.hdl.currentIndex]}: ' + \
         msg = f'[x={col:4d}, y={row:4d}, ' + \
@@ -266,19 +275,22 @@ class SimpleMask(object):
             return
         # self.hdl.reset_limits()
         self.hdl.clear()
-        self.data = np.copy(self.data_raw)
+        # self.data = np.copy(self.data_raw)
+        # print('show_saxs', np.min(self.data[1]))
 
         center = (self.meta['bcx'], self.meta['bcy'])
 
         self.plot_log = log
         if not log:
-            self.data[0] = 10 ** self.data[0]
+            self.data_raw[0] = self.saxs_lin 
+        else:
+            self.data_raw[0] = self.saxs_log 
 
-        if invert:
-            temp = np.max(self.data[0]) - self.data[0]
-            self.data[0] = temp
+        # if invert:
+        #     temp = np.max(self.data[0]) - self.data[0]
+        #     self.data[0] = temp
 
-        self.hdl.setImage(self.data)
+        self.hdl.setImage(self.data_raw)
         self.hdl.adjust_viewbox()
         self.hdl.set_colormap(cmap)
 
@@ -296,7 +308,7 @@ class SimpleMask(object):
         if self.meta is None or self.data_raw is None:
             return
 
-        ones = np.ones(self.data[0].shape, dtype=np.bool)
+        ones = np.ones(self.data_raw[0].shape, dtype=np.bool)
         mask_n = np.zeros_like(ones, dtype=np.bool)
         mask_e = np.zeros_like(mask_n)
         mask_i = np.zeros_like(mask_n)
@@ -307,7 +319,7 @@ class SimpleMask(object):
 
             mask_temp = np.zeros_like(ones, dtype=np.bool)
             # return slice and transfrom
-            sl, _ = x.getArraySlice(self.data[1], self.hdl.imageItem)
+            sl, _ = x.getArraySlice(self.data_raw[1], self.hdl.imageItem)
             y = x.getArrayRegion(ones, self.hdl.imageItem)
 
             # sometimes the roi size returned from getArraySlice and
@@ -501,7 +513,7 @@ class SimpleMask(object):
             None, None, 0, 360, 'linear')
         qlist = t_dq_span_val[1].flatten()
 
-        self.data[5] = partition
+        self.data_raw[5] = partition
         num_q = qlist.size
         saxs1d = np.zeros((5, num_q), dtype=np.float64)
 
@@ -606,8 +618,8 @@ class SimpleMask(object):
         sphival = np.hstack(sq_record[3]).reshape(1, -1)
         
         # dump result to file;
-        self.data[3] = dyn_map
-        self.data[4] = sta_map
+        self.data_raw[3] = dyn_map
+        self.data_raw[4] = sta_map
         self.hdl.setCurrentIndex(3)
 
         partition = {
