@@ -533,7 +533,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             'plot_center': self.plot_center.isChecked(),
         }
         self.sm.show_saxs(**kwargs)
-        self.plot_index.setCurrentIndex(0)
+        self.plot_index.setCurrentIndex(1)
 
     def add_drawing(self):
         if not self.is_ready():
