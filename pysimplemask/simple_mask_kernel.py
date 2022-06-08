@@ -365,11 +365,13 @@ class SimpleMask(object):
         else:
             pen = pg.mkPen(color=color, width=width)
 
+        handle_pen = pg.mkPen(color=color, width=width)
+
         kwargs = {
             'pen': pen,
             'removable': True,
             'hoverPen': pen,
-            'handlePen': pen,
+            'handlePen': handle_pen,
             'movable': movable
         }
         if sl_type == 'Ellipse':
