@@ -7,7 +7,31 @@ import numpy as np
 import h5py
 import hdf5plugin
 from skimage.io import imread
+from astropy.io import fits
 
+
+def verify_metadata_hdf(fname):
+    try:
+        with h5py.File(fname, 'r') as hf:
+            if '/measurement/instrument/acquisition' in hf:
+                return True
+            else:
+                return False
+    except Exception:
+        return False
+
+
+def get_fake_metadata(shape):
+    # fake metadata
+    metadata = {
+        'datetime': "2022-05-08 14:00:51,799",
+        'energy': 11.0,         # keV
+        'det_dist': 7800,       # mm
+        'pix_dim': 55e-3,       # mm
+        'bcx': shape[1] // 2.0,
+        'bcy': shape[0] // 2.0
+    }
+    return metadata
 
 class FileReader(object):
 
@@ -19,14 +43,14 @@ class FileReader(object):
         raise NotImplementedError
     
     def load_meta(self):
-        raise NotImplementedError
+        # implement the method that reads the real metadata; other wise it
+        # will just return some fake metadata as the place holder
+        return get_fake_metadata(self.shape) 
 
 
 class APS8IDIReader(FileReader):
     def __init__(self, fname) -> None:
         super(APS8IDIReader, self).__init__(fname)
-        if not self.verify_metadata_hdf:
-            raise TypeError(f'data format is not supported: {self.fname}')
 
     def get_scattering(self, num_frames=-1, beg_idx=0, **kwargs):
         # seeks directory of existing hdf program
@@ -86,18 +110,9 @@ class APS8IDIReader(FileReader):
 
         return meta
     
-    def verify_metadata_hdf(self):
-        try:
-            with h5py.File(self.fname, 'r') as hf:
-                if '/measurement/instrument/acquisition' in hf:
-                    return True
-                else:
-                    return False
-        except Exception:
-            return False
 
 
-class TiffReader(object):
+class TiffReader(FileReader):
 
     def __init__(self, fname) -> None:
         self.fname = fname
@@ -108,17 +123,41 @@ class TiffReader(object):
         self.shape = data.shape
         return data
     
-    def load_meta(self):
-        # should load a extra metadata file
-        metadata = {
-            'datetime': "2022-05-08 14:00:51,799",
-            'energy': 11.0,         # keV
-            'det_dist': 7800,       # mm
-            'pix_dim': 55e-3,       # mm
-            'bcx': self.shape[1] // 2.0,
-            'bcy': self.shape[0] // 2.0
-        }
-        return metadata
+
+class NormalHDFReader(FileReader):
+    def __init__(self, fname) -> None:
+        self.fname = fname
+        self.shape = None
+
+    def get_scattering(self, key='/entry/data/data'):
+        data = hdf2saxs(self.fname, key=key)
+        self.shape = data.shape
+        return data
+    
+
+class FitsReader(FileReader):
+    def __init__(self, fname) -> None:
+        self.fname = fname
+        self.shape = None
+
+    def get_scattering(self, index=2):
+        with fits.open(self.fname) as f:
+            data = np.array(f[index].data)
+        self.shape = data.shape
+        return data
+
+    
+def read_raw_file(fname):
+    ext_name = os.path.splitext(fname)[-1]
+    if ext_name in ('.hdf', '.h5', '.hdf5'):
+        if verify_metadata_hdf(fname):
+            return APS8IDIReader(fname)
+        else:
+            return NormalHDFReader(fname)
+    elif ext_name in ('.tif', '.tiff'):
+        return TiffReader(fname)
+    elif ext_name in ('.fits'):
+        return FitsReader(fname)
 
 
 if __name__ == '__main__':

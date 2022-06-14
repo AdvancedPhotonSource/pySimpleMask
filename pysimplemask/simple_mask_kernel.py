@@ -7,7 +7,7 @@ from .area_mask import MaskAssemble
 
 from .find_center import find_center
 from .pyqtgraph_mod import LineROI
-from .file_reader import APS8IDIReader, TiffReader
+from .file_reader import read_raw_file 
 
 pg.setConfigOptions(imageAxisOrder='row-major')
 
@@ -144,11 +144,7 @@ class SimpleMask(object):
 
     # generate 2d saxs
     def read_data(self, fname=None, **kwargs):
-        ext_name = os.path.splitext(fname)[-1]
-        if ext_name in ('.hdf', '.h5'):
-            reader = APS8IDIReader(fname)
-        elif  ext_name in ('.tif', '.tiff'):
-            reader = TiffReader(fname)
+        reader = read_raw_file(fname)
 
         saxs = reader.get_scattering(**kwargs)
         if saxs is None:
@@ -365,11 +361,13 @@ class SimpleMask(object):
         else:
             pen = pg.mkPen(color=color, width=width)
 
+        handle_pen = pg.mkPen(color=color, width=width)
+
         kwargs = {
             'pen': pen,
             'removable': True,
             'hoverPen': pen,
-            'handlePen': pen,
+            'handlePen': handle_pen,
             'movable': movable
         }
         if sl_type == 'Ellipse':
