@@ -21,6 +21,18 @@ def verify_metadata_hdf(fname):
         return False
 
 
+def get_fake_metadata(shape):
+    # fake metadata
+    metadata = {
+        'datetime': "2022-05-08 14:00:51,799",
+        'energy': 11.0,         # keV
+        'det_dist': 7800,       # mm
+        'pix_dim': 55e-3,       # mm
+        'bcx': shape[1] // 2.0,
+        'bcy': shape[0] // 2.0
+    }
+    return metadata
+
 class FileReader(object):
 
     def __init__(self, fname) -> None:
@@ -31,7 +43,9 @@ class FileReader(object):
         raise NotImplementedError
     
     def load_meta(self):
-        raise NotImplementedError
+        # implement the method that reads the real metadata; other wise it
+        # will just return some fake metadata as the place holder
+        return get_fake_metadata(self.shape) 
 
 
 class APS8IDIReader(FileReader):
@@ -98,7 +112,7 @@ class APS8IDIReader(FileReader):
     
 
 
-class TiffReader(object):
+class TiffReader(FileReader):
 
     def __init__(self, fname) -> None:
         self.fname = fname
@@ -109,19 +123,8 @@ class TiffReader(object):
         self.shape = data.shape
         return data
     
-    def load_meta(self):
-        # should load a extra metadata file
-        metadata = {
-            'datetime': "2022-05-08 14:00:51,799",
-            'energy': 11.0,         # keV
-            'det_dist': 7800,       # mm
-            'pix_dim': 55e-3,       # mm
-            'bcx': self.shape[1] // 2.0,
-            'bcy': self.shape[0] // 2.0
-        }
-        return metadata
 
-class NormalHDFReader(object):
+class NormalHDFReader(FileReader):
     def __init__(self, fname) -> None:
         self.fname = fname
         self.shape = None
@@ -131,24 +134,30 @@ class NormalHDFReader(object):
         self.shape = data.shape
         return data
     
-    def load_meta(self):
-        # should load a extra metadata file
-        metadata = {
-            'datetime': "2022-05-08 14:00:51,799",
-            'energy': 11.0,         # keV
-            'det_dist': 7800,       # mm
-            'pix_dim': 55e-3,       # mm
-            'bcx': self.shape[1] // 2.0,
-            'bcy': self.shape[0] // 2.0
-        }
-        return metadata
-    
 
-def read_hdf(fname):
-    if verify_metadata_hdf(fname):
-        return APS8IDIReader(fname)
-    else:
-        return NormalHDFReader(fname)
+class FitsReader(FileReader):
+    def __init__(self, fname) -> None:
+        self.fname = fname
+        self.shape = None
+
+    def get_scattering(self, index=2):
+        with fits.open(self.fname) as f:
+            data = np.array(f[index].data)
+        self.shape = data.shape
+        return data
+
+    
+def read_raw_file(fname):
+    ext_name = os.path.splitext(fname)[-1]
+    if ext_name in ('.hdf', '.h5', '.hdf5'):
+        if verify_metadata_hdf(fname):
+            return APS8IDIReader(fname)
+        else:
+            return NormalHDFReader(fname)
+    elif ext_name in ('.tif', '.tiff'):
+        return TiffReader(fname)
+    elif ext_name in ('.fits'):
+        return FitsReader(fname)
 
 
 if __name__ == '__main__':
