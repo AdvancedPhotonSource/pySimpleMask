@@ -7,6 +7,18 @@ import numpy as np
 import h5py
 import hdf5plugin
 from skimage.io import imread
+from astropy.io import fits
+
+
+def verify_metadata_hdf(fname):
+    try:
+        with h5py.File(fname, 'r') as hf:
+            if '/measurement/instrument/acquisition' in hf:
+                return True
+            else:
+                return False
+    except Exception:
+        return False
 
 
 class FileReader(object):
@@ -25,8 +37,6 @@ class FileReader(object):
 class APS8IDIReader(FileReader):
     def __init__(self, fname) -> None:
         super(APS8IDIReader, self).__init__(fname)
-        if not self.verify_metadata_hdf:
-            raise TypeError(f'data format is not supported: {self.fname}')
 
     def get_scattering(self, num_frames=-1, beg_idx=0, **kwargs):
         # seeks directory of existing hdf program
@@ -86,15 +96,6 @@ class APS8IDIReader(FileReader):
 
         return meta
     
-    def verify_metadata_hdf(self):
-        try:
-            with h5py.File(self.fname, 'r') as hf:
-                if '/measurement/instrument/acquisition' in hf:
-                    return True
-                else:
-                    return False
-        except Exception:
-            return False
 
 
 class TiffReader(object):
@@ -119,6 +120,35 @@ class TiffReader(object):
             'bcy': self.shape[0] // 2.0
         }
         return metadata
+
+class NormalHDFReader(object):
+    def __init__(self, fname) -> None:
+        self.fname = fname
+        self.shape = None
+
+    def get_scattering(self, key='/entry/data/data'):
+        data = hdf2saxs(self.fname, key=key)
+        self.shape = data.shape
+        return data
+    
+    def load_meta(self):
+        # should load a extra metadata file
+        metadata = {
+            'datetime': "2022-05-08 14:00:51,799",
+            'energy': 11.0,         # keV
+            'det_dist': 7800,       # mm
+            'pix_dim': 55e-3,       # mm
+            'bcx': self.shape[1] // 2.0,
+            'bcy': self.shape[0] // 2.0
+        }
+        return metadata
+    
+
+def read_hdf(fname):
+    if verify_metadata_hdf(fname):
+        return APS8IDIReader(fname)
+    else:
+        return NormalHDFReader(fname)
 
 
 if __name__ == '__main__':
