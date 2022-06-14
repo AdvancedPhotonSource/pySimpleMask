@@ -3,18 +3,18 @@ import hdf5plugin
 import numpy as np
 
 
-def hdf2saxs(fname, beg_idx=0, num_frames=-1):
+def hdf2saxs(fname, beg_idx=0, num_frames=-1, key='/entry/data/data'):
     '''
     read a xpcs hdf file, collapse the time series to get a two dimensional
     small angle scattering pattern.
     Args:
-        fname: string. filename of the hdf/h5 file; the file must have
-            '/entry/data/data'
+        fname: string. filename of the hdf/h5 file;
         beg_idx: integer: beginning index. It is used to skip the frames in
             in the beginning in case the detector was not ready. default is 0.
         num_frames: integer: number of frames to average. This is useful if
             the file has too many frames which takes too much time to load.
             default is -1, which means it will use all frames.
+        key: the field name for the data stored in the HDF file
     Return:
         a 2d numpy array for the saxs pattern.
     Example:
@@ -23,7 +23,9 @@ def hdf2saxs(fname, beg_idx=0, num_frames=-1):
         print(y.shape)
     '''
     with h5py.File(fname, 'r') as f:
-        x = f['/entry/data/data']
+        if key not in f:
+            raise IOError(f'key [{key}] does not exist.')
+        x = f[key]
         if num_frames < 0:
             end_idx = x.shape[0]
         else:
