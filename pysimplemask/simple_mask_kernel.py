@@ -463,9 +463,7 @@ class SimpleMask(object):
             qspan = np.linspace(qmin, qmax, qnum + 1)
             qlist = (qspan[1:] + qspan[:-1]) / 2.0
         elif style == 'logarithmic':
-            qmin = np.log10(qmin)
-            qmax = np.log10(qmax)
-            qspan = np.logspace(qmin, qmax, pnum + 1)
+            qspan = np.logspace(np.log10(qmin), np.log10(qmax), qnum + 1)
             qlist = np.sqrt(qspan[1:] * qspan[:-1])
 
         # phi
