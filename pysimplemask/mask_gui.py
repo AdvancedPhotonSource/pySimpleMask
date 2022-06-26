@@ -561,7 +561,17 @@ class SimpleMaskGUI(QMainWindow, Ui):
             'style': self.partition_style.currentText(),
         }
 
-        self.sm.compute_partition(**kwargs)
+        self.btn_compute_qpartition.setDisabled(True)
+        self.statusbar.showMessage('Computing partition ... ', 10000)
+        self.centralwidget.repaint()
+
+        try:
+            self.sm.compute_partition(**kwargs)
+        except Exception:
+            traceback.print_exception()
+
+        self.statusbar.showMessage('New partition is generated.', 1000)
+        self.btn_compute_qpartition.setEnabled(True)
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(3)
         # self.btn_compute_qpartition.setStyleSheet("background-color: green")
