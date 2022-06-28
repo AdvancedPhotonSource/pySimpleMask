@@ -155,6 +155,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         header.setSectionResizeMode(QHeaderView.Stretch)  
         self.setting_fname = os.path.join(home_dir, 'default_setting.json')
         self.lastconfig_fname = os.path.join(home_dir, 'last_config.json')
+
+        self.tabWidget.setCurrentIndex(0)
         self.load_default_settings()
         self.load_last_config()
         self.show()
@@ -553,14 +555,23 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
 
-        kwargs = {
-            'sq_num': self.sb_sqnum.value(),
-            'dq_num': self.sb_dqnum.value(),
-            'sp_num': self.sb_spnum.value(),
-            'dp_num': self.sb_dpnum.value(),
-            'style': self.partition_style.currentText(),
-        }
-
+        if self.tabWidget.currentIndex() == 0:
+            kwargs = {
+                'mode': 'q-phi',
+                'sq_num': self.sb_sqnum.value(),
+                'dq_num': self.sb_dqnum.value(),
+                'sp_num': self.sb_spnum.value(),
+                'dp_num': self.sb_dpnum.value(),
+                'style': self.partition_style.currentText(),
+            }
+        elif self.tabWidget.currentIndex() == 1:
+            kwargs = {
+                'mode': 'xy-mesh',
+                'sx_num': self.sb_sxnum.value(),
+                'sy_num': self.sb_synum.value(),
+                'dx_num': self.sb_dxnum.value(),
+                'dy_num': self.sb_dynum.value(),
+            }
         self.btn_compute_qpartition.setDisabled(True)
         self.statusbar.showMessage('Computing partition ... ', 10000)
         self.centralwidget.repaint()
