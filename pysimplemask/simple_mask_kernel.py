@@ -12,6 +12,59 @@ from .file_reader import read_raw_file
 pg.setConfigOptions(imageAxisOrder='row-major')
 
 
+def create_xy_mesh(mask, qmap, x_num, y_num):
+    mask_nz = np.nonzero(mask)
+    vrange = (np.min(mask_nz[0]), np.max(mask_nz[0]) + 1)
+    hrange = (np.min(mask_nz[1]), np.max(mask_nz[1]) + 1)
+
+    vg, hg = np.meshgrid(np.arange(mask.shape[0]), np.arange(mask.shape[1]),
+                         indexing='ij')
+
+    dy = (vrange[1] - vrange[0]) * 1.0 / y_num
+    dx = (hrange[1] - hrange[0]) * 1.0 / x_num
+
+    idx_map = np.zeros_like(mask, dtype=np.uint32)
+
+    # -- x --
+    for n in range(x_num):
+        roi = hg >= hrange[0] + dx * n
+        roi = roi * (hg < hrange[0] + dx * (n + 1))
+        idx_map[roi] = n + 1
+
+    # -- y --
+    for n in range(y_num):
+        roi = vg >= vrange[0] + (dy * n)
+        roi = roi * (vg < vrange[0] + dy * (n + 1))
+        idx_map[roi] += x_num * n
+
+    idx_map = idx_map * mask
+
+    xcorr =  np.linspace(hrange[0], hrange[1], x_num + 1) + 0.5
+    # qxspan = qmap['qx'][0][xcorr.astype(np.int64)]
+    qxspan = xcorr
+
+    xcorr2 = (xcorr[:-1] + xcorr[1:]) / 2.0
+    # qxlist = qmap['qx'][0][xcorr2.astype(np.int64)]
+    qxlist = xcorr2 # qmap['qx'][0][xcorr2.astype(np.int64)]
+
+    qxlist = np.tile(qxlist, y_num).reshape(y_num, x_num)
+    qxlist = np.swapaxes(qxlist, 0, 1)
+    qxlist = qxlist.reshape(1, -1)
+
+    ycorr =  np.linspace(vrange[0], vrange[1], y_num + 1) + 0.5
+    # qyspan = qmap['qy'][:, 0][xcorr.astype(np.int64)]
+    qyspan = ycorr
+
+    ycorr2 = (ycorr[:-1] + ycorr[1:]) / 2.0
+    # qylist = qmap['qx'][:, 0][ycorr2.astype(np.int64)]
+    qylist = ycorr2
+    
+    qylist = np.tile(qylist, x_num).reshape(x_num, y_num)
+    qylist = qylist.reshape(1, -1)
+
+    return idx_map, qxspan, qyspan, qxlist, qylist
+
+
 class SimpleMask(object):
     def __init__(self, pg_hdl, infobar):
         self.data_raw = None
@@ -304,7 +357,9 @@ class SimpleMask(object):
         if self.meta is None or self.data_raw is None:
             return
 
-        ones = np.ones(self.data_raw[0].shape, dtype=np.bool)
+        # ones = np.ones(self.data_raw[0].shape, dtype=np.bool)
+        shape = self.data_raw[0].shape
+        ones = np.ones((shape[0] + 1, shape[1] + 1), dtype=np.bool)
         mask_n = np.zeros_like(ones, dtype=np.bool)
         mask_e = np.zeros_like(mask_n)
         mask_i = np.zeros_like(mask_n)
@@ -323,14 +378,14 @@ class SimpleMask(object):
             nz_idx = np.nonzero(y)
 
             h_beg = np.min(nz_idx[1])
-            h_end = np.max(nz_idx[1])
+            h_end = np.max(nz_idx[1]) + 1
 
             v_beg = np.min(nz_idx[0])
-            v_end = np.max(nz_idx[0])
+            v_end = np.max(nz_idx[0]) + 1
 
-            sl_v = slice(sl[0].start, sl[0].start + v_end - v_beg + 1)
-            sl_h = slice(sl[1].start, sl[1].start + h_end - h_beg + 1)
-            mask_temp[sl_v, sl_h] = y[v_beg:v_end + 1, h_beg: h_end + 1]
+            sl_v = slice(sl[0].start, sl[0].start + v_end - v_beg)
+            sl_h = slice(sl[1].start, sl[1].start + h_end - h_beg)
+            mask_temp[sl_v, sl_h] = y[v_beg: v_end, h_beg: h_end]
 
             if x.sl_mode == 'exclusive':
                 mask_e[mask_temp] = 1
@@ -557,9 +612,15 @@ class SimpleMask(object):
 
         return saxs1d, zero_loc
     
-    def compute_partition(self, 
-                           dq_num=10, sq_num=100, style='linear',
-                           dp_num=36, sp_num=360):
+    def compute_partition(self, mode='q-phi', **kwargs):
+        if mode == 'q-phi':
+            return self.compute_partition_qphi(**kwargs)
+        elif mode == 'xy-mesh':
+            return self.compute_partition_xymesh(**kwargs)
+    
+    def compute_partition_qphi(self,
+                          dq_num=10, sq_num=100, style='linear',
+                          dp_num=36, sp_num=360):
         if self.meta is None or self.data_raw is None:
             return
         
@@ -635,6 +696,52 @@ class SimpleMask(object):
             'snophi': sp_num,
             'dnoq': dq_num,
             'snoq': sq_num,
+            'x0': np.array([self.meta['bcx']]).reshape(1, 1),
+            'y0': np.array([self.meta['bcy']]).reshape(1, 1),
+            'xspec': np.array(-1.0).reshape(1, 1),
+            'yspec': np.array(-1.0).reshape(1, 1),
+        }
+        for key in ['snophi', 'snoq', 'dnophi', 'dnoq']:
+            partition[key] = np.array(partition[key]).reshape(1, 1)
+
+        self.new_partition = partition
+        return partition
+    
+    def compute_partition_xymesh(self, sx_num=8, sy_num=8, dx_num=1, dy_num=1):
+        if self.meta is None or self.data_raw is None:
+            return
+
+        # make the static numbers multiples of the dynamics numbers
+        sy_num = (sy_num + dy_num - 1) // dy_num * dy_num
+        sx_num = (sx_num + dx_num - 1) // dx_num * dx_num
+
+        # return idx_map, qxspan, qyspan, qxlist, qylist
+        dyn_map, dxspan, dyspan, dxlist, dylist = create_xy_mesh(
+            self.mask, self.qmap, dx_num, dy_num)
+        sta_map, sxspan, syspan, sxlist, sylist = create_xy_mesh(
+            self.mask, self.qmap, sx_num, sy_num)
+
+        self.data_raw[3] = dyn_map
+        self.data_raw[4] = sta_map
+        self.hdl.setCurrentIndex(3)
+
+        partition = {
+            'dqval': dxlist,
+            'sqval': sxlist,
+            'dynamicMap': dyn_map,
+            'staticMap': sta_map,
+            'dphival': dylist,
+            'sphival': sylist,
+            'dynamicQList': np.arange(0, dx_num * dy_num + 1).reshape(1, -1),
+            'staticQList': np.arange(0, sx_num * sx_num + 1).reshape(1, -1),
+            'dqspan': dxspan,
+            'sqspan': sxspan,
+            'dphispan': dyspan,
+            'sphispan': syspan,
+            'dnophi': dy_num,
+            'snophi': sy_num,
+            'dnoq': dx_num,
+            'snoq': sx_num,
             'x0': np.array([self.meta['bcx']]).reshape(1, 1),
             'y0': np.array([self.meta['bcy']]).reshape(1, 1),
             'xspec': np.array(-1.0).reshape(1, 1),
