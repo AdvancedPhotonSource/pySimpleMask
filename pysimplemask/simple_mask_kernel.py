@@ -357,7 +357,9 @@ class SimpleMask(object):
         if self.meta is None or self.data_raw is None:
             return
 
-        ones = np.ones(self.data_raw[0].shape, dtype=np.bool)
+        # ones = np.ones(self.data_raw[0].shape, dtype=np.bool)
+        shape = self.data_raw[0].shape
+        ones = np.ones((shape[0] + 1, shape[1] + 1), dtype=np.bool)
         mask_n = np.zeros_like(ones, dtype=np.bool)
         mask_e = np.zeros_like(mask_n)
         mask_i = np.zeros_like(mask_n)
@@ -376,14 +378,14 @@ class SimpleMask(object):
             nz_idx = np.nonzero(y)
 
             h_beg = np.min(nz_idx[1])
-            h_end = np.max(nz_idx[1])
+            h_end = np.max(nz_idx[1]) + 1
 
             v_beg = np.min(nz_idx[0])
-            v_end = np.max(nz_idx[0])
+            v_end = np.max(nz_idx[0]) + 1
 
-            sl_v = slice(sl[0].start, sl[0].start + v_end - v_beg + 1)
-            sl_h = slice(sl[1].start, sl[1].start + h_end - h_beg + 1)
-            mask_temp[sl_v, sl_h] = y[v_beg:v_end + 1, h_beg: h_end + 1]
+            sl_v = slice(sl[0].start, sl[0].start + v_end - v_beg)
+            sl_h = slice(sl[1].start, sl[1].start + h_end - h_beg)
+            mask_temp[sl_v, sl_h] = y[v_beg: v_end, h_beg: h_end]
 
             if x.sl_mode == 'exclusive':
                 mask_e[mask_temp] = 1
