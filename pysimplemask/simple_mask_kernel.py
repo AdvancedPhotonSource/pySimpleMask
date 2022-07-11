@@ -398,6 +398,7 @@ class SimpleMask(object):
             mask_i = 1
 
         mask_p = np.logical_not(mask_e) * mask_i
+        mask_p = mask_p[:-1, :-1]
 
         return mask_p
 
