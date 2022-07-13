@@ -940,7 +940,7 @@ class Ui_SimpleMask(object):
         self.label_20.setObjectName("label_20")
         self.gridLayout_6.addWidget(self.label_20, 2, 1, 1, 1)
         self.sb_dqnum = QtWidgets.QSpinBox(self.tab_9)
-        self.sb_dqnum.setMinimum(2)
+        self.sb_dqnum.setMinimum(1)
         self.sb_dqnum.setMaximum(999)
         self.sb_dqnum.setProperty("value", 36)
         self.sb_dqnum.setObjectName("sb_dqnum")
@@ -1065,7 +1065,7 @@ class Ui_SimpleMask(object):
         self.retranslateUi(SimpleMask)
         self.tabWidget_2.setCurrentIndex(0)
         self.MaskWidget.setCurrentIndex(5)
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
         self.mask_list_include.toggled['bool'].connect(self.mask_list_radius.setEnabled) # type: ignore
         self.mask_list_include.toggled['bool'].connect(self.mask_list_variation.setEnabled) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(SimpleMask)
