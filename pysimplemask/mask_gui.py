@@ -512,7 +512,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.centralwidget.repaint()
         
         fname = self.fname.text()
-        self.sm.read_data(fname)
+        kwargs = {
+            'begin_idx': self.spinBox_3.value(),
+            'num_frames': self.spinBox_4.value()
+        }
+        self.sm.read_data(fname, **kwargs)
 
         self.db_cenx.setValue(self.sm.meta['bcx'])
         self.db_ceny.setValue(self.sm.meta['bcy'])
