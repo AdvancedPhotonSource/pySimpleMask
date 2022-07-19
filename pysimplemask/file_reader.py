@@ -52,7 +52,7 @@ class APS8IDIReader(FileReader):
     def __init__(self, fname) -> None:
         super(APS8IDIReader, self).__init__(fname)
 
-    def get_scattering(self, num_frames=-1, beg_idx=0, **kwargs):
+    def get_scattering(self, num_frames=-1, begin_idx=0, **kwargs):
         # seeks directory of existing hdf program
         dirname = os.path.dirname(os.path.realpath(self.fname))
         files = os.listdir(os.path.dirname(os.path.realpath(self.fname)))
@@ -69,7 +69,7 @@ class APS8IDIReader(FileReader):
             elif fname.endswith('.imm'):
                 print("-----------.imm found.-----------")
                 imm_file = os.path.join(dirname, fname)
-                reader = IMMReader8ID(imm_file)
+                reader = IMMReader8ID(imm_file, no_of_frames=num_frames)
                 saxs = reader.calc_avg_pixel()
 
             # seeks .h5 file
@@ -79,7 +79,7 @@ class APS8IDIReader(FileReader):
                     if '/entry/data/data' in hf:
                         # correct h5 file, contains raw data
                         print("-----------.hdf/.h5 found.-----------")
-                        saxs = hdf2saxs(hdf_file, beg_idx=beg_idx,
+                        saxs = hdf2saxs(hdf_file, beg_idx=begin_idx,
                                         num_frames=num_frames)
         return saxs
 
@@ -129,8 +129,8 @@ class NormalHDFReader(FileReader):
         self.fname = fname
         self.shape = None
 
-    def get_scattering(self, key='/entry/data/data'):
-        data = hdf2saxs(self.fname, key=key)
+    def get_scattering(self, key='/entry/data/data', **kwargs):
+        data = hdf2saxs(self.fname, key=key, **kwargs)
         self.shape = data.shape
         return data
     
@@ -140,7 +140,7 @@ class FitsReader(FileReader):
         self.fname = fname
         self.shape = None
 
-    def get_scattering(self, index=2):
+    def get_scattering(self, index=2, **kwargs):
         with fits.open(self.fname) as f:
             data = np.array(f[index].data)
         self.shape = data.shape
