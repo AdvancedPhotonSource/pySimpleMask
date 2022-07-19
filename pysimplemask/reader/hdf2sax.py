@@ -3,7 +3,8 @@ import hdf5plugin
 import numpy as np
 
 
-def hdf2saxs(fname, beg_idx=0, num_frames=-1, key='/entry/data/data'):
+def hdf2saxs(fname, beg_idx=0, num_frames=-1, key='/entry/data/data',
+             max_ram=1.0):
     '''
     read a xpcs hdf file, collapse the time series to get a two dimensional
     small angle scattering pattern.
@@ -15,6 +16,7 @@ def hdf2saxs(fname, beg_idx=0, num_frames=-1, key='/entry/data/data'):
             the file has too many frames which takes too much time to load.
             default is -1, which means it will use all frames.
         key: the field name for the data stored in the HDF file
+        max_ram: the maximal ram usage for reading the data, uint is GB
     Return:
         a 2d numpy array for the saxs pattern.
     Example:
@@ -26,10 +28,15 @@ def hdf2saxs(fname, beg_idx=0, num_frames=-1, key='/entry/data/data'):
         if key not in f:
             raise IOError(f'key [{key}] does not exist.')
         x = f[key]
+
+        frame_mem_size = x.shape[1] * x.shape[2] * x[0, 0, 0].itemsize
+
         if num_frames < 0:
-            end_idx = x.shape[0]
-        else:
-            end_idx = min(x.shape[0], beg_idx + num_frames)
+            num_frames = x.shape[0] - beg_idx
+        # apply memory restriction
+        num_frames = min(num_frames, int(max_ram * 1024 ** 3 / frame_mem_size))
+
+        end_idx = min(x.shape[0], beg_idx + num_frames)
         y = x[beg_idx: end_idx].astype(np.float32)
         y = np.mean(y, axis=0)
 
