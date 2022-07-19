@@ -1,10 +1,8 @@
-import os
 import h5py
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
 from .area_mask import MaskAssemble
-
 from .find_center import find_center
 from .pyqtgraph_mod import LineROI
 from .file_reader import read_raw_file 
