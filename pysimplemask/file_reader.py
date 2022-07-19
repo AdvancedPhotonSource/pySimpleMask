@@ -79,7 +79,7 @@ class APS8IDIReader(FileReader):
                     if '/entry/data/data' in hf:
                         # correct h5 file, contains raw data
                         print("-----------.hdf/.h5 found.-----------")
-                        saxs = hdf2saxs(hdf_file, beg_idx=begin_idx,
+                        saxs = hdf2saxs(hdf_file, begin_idx=begin_idx,
                                         num_frames=num_frames)
         return saxs
 

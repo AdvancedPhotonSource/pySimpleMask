@@ -3,14 +3,14 @@ import hdf5plugin
 import numpy as np
 
 
-def hdf2saxs(fname, beg_idx=0, num_frames=-1, key='/entry/data/data',
-             max_ram=1.0):
+def hdf2saxs(fname, begin_idx=0, num_frames=-1, key='/entry/data/data',
+             max_ram=4.0):
     '''
     read a xpcs hdf file, collapse the time series to get a two dimensional
     small angle scattering pattern.
     Args:
         fname: string. filename of the hdf/h5 file;
-        beg_idx: integer: beginning index. It is used to skip the frames in
+        begin_idx: integer: beginning index. It is used to skip the frames in
             in the beginning in case the detector was not ready. default is 0.
         num_frames: integer: number of frames to average. This is useful if
             the file has too many frames which takes too much time to load.
@@ -32,12 +32,13 @@ def hdf2saxs(fname, beg_idx=0, num_frames=-1, key='/entry/data/data',
         frame_mem_size = x.shape[1] * x.shape[2] * x[0, 0, 0].itemsize
 
         if num_frames < 0:
-            num_frames = x.shape[0] - beg_idx
-        # apply memory restriction
-        num_frames = min(num_frames, int(max_ram * 1024 ** 3 / frame_mem_size))
+            num_frames = x.shape[0] - begin_idx
+            # apply memory restriction
+            num_frames = min(num_frames, 
+                             int(max_ram * 1024 ** 3 / frame_mem_size))
 
-        end_idx = min(x.shape[0], beg_idx + num_frames)
-        y = x[beg_idx: end_idx].astype(np.float32)
+        end_idx = min(x.shape[0], begin_idx + num_frames)
+        y = x[begin_idx: end_idx].astype(np.float32)
         y = np.mean(y, axis=0)
 
     return y
