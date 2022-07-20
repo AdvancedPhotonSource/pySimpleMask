@@ -107,6 +107,8 @@ class APS8IDIReader(FileReader):
 
         meta['bcx'] = meta['bcx0'] + (ccdx - ccdx0) / meta['pix_dim']
         meta['bcy'] = meta['bcy0'] + (ccdz - ccdz0) / meta['pix_dim']
+        meta.pop('bcx0', None)
+        meta.pop('bcy0', None)
 
         return meta
     
