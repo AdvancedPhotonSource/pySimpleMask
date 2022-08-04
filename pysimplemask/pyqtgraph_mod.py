@@ -70,6 +70,10 @@ class ImageViewROI(pg.ImageView):
         if label is None:
             label = f"roi_{self.roi_idx:06d}"
             self.roi_idx += 1
+
+        if label in self.roi:
+            self.remove_item(label)
+
         self.roi[label] = t
         self.addItem(t)
         return label

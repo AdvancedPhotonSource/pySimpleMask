@@ -2,6 +2,7 @@
 from .reader.imm_reader_with_plot import IMMReader8ID
 from .reader.rigaku_reader import RigakuReader
 from .reader.hdf2sax import hdf2saxs
+from .reader.timepix_reader import get_saxs_mp as timepix_get_saxs
 import os
 import numpy as np
 import h5py
@@ -107,6 +108,8 @@ class APS8IDIReader(FileReader):
 
         meta['bcx'] = meta['bcx0'] + (ccdx - ccdx0) / meta['pix_dim']
         meta['bcy'] = meta['bcy0'] + (ccdz - ccdz0) / meta['pix_dim']
+        meta.pop('bcx0', None)
+        meta.pop('bcy0', None)
 
         return meta
     
@@ -120,6 +123,18 @@ class TiffReader(FileReader):
 
     def get_scattering(self, **kwargs):
         data = imread(self.fname)
+        self.shape = data.shape
+        return data
+
+
+class TimePixRawReader(FileReader):
+
+    def __init__(self, fname) -> None:
+        self.fname = fname
+        self.shape = None
+
+    def get_scattering(self, **kwargs):
+        data = timepix_get_saxs(self.fname, 8)
         self.shape = data.shape
         return data
     
@@ -158,6 +173,8 @@ def read_raw_file(fname):
         return TiffReader(fname)
     elif ext_name in ('.fits'):
         return FitsReader(fname)
+    elif ext_name == '.raw':
+        return TimePixRawReader(fname)
 
 
 if __name__ == '__main__':
