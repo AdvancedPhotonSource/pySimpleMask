@@ -110,3 +110,5 @@ tests/data/*
 *.h5
 *.hdf
 *DS_Store
+*.tif
+*.png
