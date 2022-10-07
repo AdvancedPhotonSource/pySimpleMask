@@ -6,25 +6,28 @@ import matplotlib.pyplot as plt
 plt.style.use('science')
 
 
-def create_circular_roi(N=1024, phi_range_deg=30):
+def create_circular_roi(N=1024, phi_range_deg=30, radius_range=(0.7, 0.9)):
+    # create a circular ROI to test
     x = np.arange(N) - N // 2
     grid = np.zeros((N, N), dtype=bool)
     gx, gy = np.meshgrid(x, x)  
     radius = np.hypot(gx, gy)
     angle = np.arctan2(gx, gy)
     angle_roi = np.logical_and(angle > 0, angle < np.deg2rad(phi_range_deg))
-    radius_roi = np.logical_and(radius > 360, radius < 480)
+    radius_roi = np.logical_and(radius > N * radius_range[0] / 2, 
+                                radius < N * radius_range[1] / 2)
     roi = radius_roi * angle_roi
     skio.imsave('roi_%d_deg.tif' % phi_range_deg, roi)
-    plt.imshow(roi)
-    plt.show()
-    
+    # plt.imshow(roi)
+    # plt.show()
 
 
 def to_2d_img(shape, vh, crop=False):
+    # convert a list of non-zero indexs to a 2D image
+    # vh is a tuple of two index arrays , (row_index, column_index)
     roi = np.zeros(shape, dtype=np.uint8)
     for n in range(len(vh[0])):
-        roi[vh[0, n], vh[1, n]] += 1
+        roi[vh[0][n], vh[1][n]] += 1
 
     if crop:
         vmin, vmax = np.min(vh[0]), np.max(vh[0]) + 1
@@ -105,9 +108,11 @@ def rotate_without_alias(roi, center, angle, mask=None):
 
     angle_rel = np.deg2rad(angle_deg)
 
-    vh = np.array(np.nonzero(roi)).astype(np.float64)   # 2 x n
+    roi_a = np.array(np.nonzero(roi))   # 2 x n numpy array
+    vh = roi_a.astype(np.float64)   # 2 x n
 
     mean_val = np.mean(vh, axis=1)
+    # now the center of mass is zero
     vh = (vh.T - mean_val).T
 
     rot_mat0 = np.array([
@@ -136,11 +141,28 @@ def rotate_without_alias(roi, center, angle, mask=None):
 
     vh = (vh.T + new_center).T
     vh = vh.astype(np.int64)
-    # roi_rot = to_2d_img(None, vh[0], vh[1], True)
-    assert mask.shape == shape
-    
 
-    return vh
+    # convert to a list of rois, remove the pixels that are out of range 
+    # or are marked as dead pixels in mask
+
+    remove_idx = np.zeros_like(vh[0], dtype=bool)
+    remove_idx = np.logical_or(remove_idx, vh[0] < 0)
+    remove_idx = np.logical_or(remove_idx, vh[0] >= roi.shape[0])
+    remove_idx = np.logical_or(remove_idx, vh[1] < 0)
+    remove_idx = np.logical_or(remove_idx, vh[1] >= roi.shape[1])
+
+    if mask is not None:
+        assert mask.shape == roi.shape
+        for n in range(vh.shape[1]):
+            index = tuple(vh[:, n])
+            if not mask[index]:
+                remove_idx[n] = True
+    keep_idx = np.logical_not(remove_idx)
+
+    roi_a = tuple(roi_a[:, keep_idx])
+    roi_b = tuple(vh[:, keep_idx])
+
+    return roi_a, roi_b
 
 
 def rotate_and_correct(vh, rot_mat, direction='v'):
@@ -163,21 +185,22 @@ def main2(angle=2*np.pi/3.0, center=None, roi=None):
 
     shape = roi.shape
 
-    vh = rotate_without_alias(roi, center, angle)
+    roi_a, roi_b = rotate_without_alias(roi, center, angle)
 
-    roi_raw = to_2d_img(shape, vh, crop=False)
-    new_com = center_of_mass(roi_raw)
-    print('new_center_of_mass', new_com)
-    print('total_1', np.sum(roi > 0))
-    print('total_2', np.sum(roi_raw > 0))
+    img_org = to_2d_img(shape, roi_a, crop=False)
+    img_rot = to_2d_img(shape, roi_b, crop=False)
+    new_com = center_of_mass(img_rot)
 
-    roi_raw = roi + roi_raw
-    two_count = np.sum(roi_raw == 2)
-    plt.imshow(roi_raw, cmap=plt.cm.jet)
+    print('total_1', np.sum(img_org > 0))
+    print('total_2', np.sum(img_rot))
+
+    img_rot = img_org + img_rot
+    two_count = np.sum(img_rot==2)
+    plt.imshow(img_rot, cmap=plt.cm.jet)
     plt.colorbar()
     plt.title('rot_angle: %3d deg, twos = %d' % (np.rad2deg(angle), two_count))
-    plt.savefig('rot_angle_%03d_deg' % np.rad2deg(angle), dpi=600)
-    # plt.show()
+    # plt.savefig('rot_angle_%03d_deg' % np.rad2deg(angle), dpi=600)
+    plt.show()
     plt.close()
     return 0
 
@@ -213,10 +236,10 @@ def main(angle=2*np.pi/3.0, center=None, roi=None):
     # can be called multiple times
     vh = fix_double_pixels(shape, vh, 4)
 
-    roi_raw = to_2d_img(shape, vh, crop=False)
-    two_count = np.sum(roi_raw == 2)
+    img_rot = to_2d_img(shape, vh, crop=False)
+    two_count = np.sum(roi_rimg_rot)
     plt.figure(figsize=(8, 6))
-    plt.imshow(roi_raw, vmin=0, vmax=2)
+    plt.imshow(img_rot, vmin=0, vmax=2)
     plt.colorbar()
     plt.title('rot_angle: %3d deg, twos = %d' % (np.rad2deg(angle), two_count))
     plt.savefig('rot_angle_%03d_deg' % np.rad2deg(angle), dpi=600)
@@ -231,85 +254,13 @@ def main(angle=2*np.pi/3.0, center=None, roi=None):
     # plt.imshow(roi + roi2)
     # plt.imshow(roi2)
     # plt.show()
-    roi_raw = to_2d_img(shape, vf, hf, crop=True)
-    plt.imshow(roi_raw, vmin=0, vmax=2)
+    img_rot = to_2d_img(shape, vf, hf, crop=True)
+    plt.imshow(img_rot, vmin=0, vmax=2)
     plt.colorbar()
     plt.title('rot_angle: %3d deg' % np.rad2deg(angle))
     plt.savefig('rot_angle_2_%03d_deg' % np.rad2deg(angle), dpi=600)
     plt.close()
     # return
-
-# def plot_data():
-#     data = np.loadtxt('num_twos_as_function_of_phi.txt')
-#     fig, ax = plt.subplots(1, 1)
-#     ax.plot(data[:, 0], data[:, 1], '.-')
-#     ax.set_xlabel('$\\phi$ (degree)')
-#     ax.set_ylabel('Numer of Pixels Twos')
-#     plt.savefig('fig1.png', dpi=600)
-#     plt.show()
-
-
-# def plot_data_study2():
-#     data = np.loadtxt('num_twos_as_function_of_center.txt')
-#     fig, ax = plt.subplots(1, 1)
-
-#     x_range = (np.min(data[:, 1]), np.max(data[:, 1]))
-#     y_range = (np.min(data[:, 0]), np.max(data[:, 0]))
-#     # ax.plot(data[:, 0], data[:, 1], '.-')
-#     im = ax.imshow(data[:, 2].reshape(64, 64), extent=(*x_range, *y_range), cmap=plt.cm.jet)
-#     ax.set_ylabel('Vertical Center (pixel)')
-#     ax.set_xlabel('Horizontal Center (pixel)')
-#     plt.colorbar(im, ax=ax)
-#     plt.savefig('fig2.png', dpi=600)
-#     plt.show()
-
-
-# def study2():
-#     data = []
-#     angle = np.pi / 4.0
-#     xlist = np.linspace(-1.0, 1.0, 64)
-#     for v in xlist:
-#         print(v)
-#         for h in xlist:
-#             cen = (516 / 2 + v, 1556 / 2 + h)
-#             y = main(angle, center=cen)
-#             data.append([*cen, y])
-
-#     data = np.array(data) 
-#     np.savetxt('num_twos_as_function_of_center.txt', data)
-
-
-# def study3():
-#     roi = skio.imread('roi.tif')
-#     roi = roi.astype(bool)
-#     angle = np.pi / 4.0
-
-#     data = []
-#     while True:
-#         y = main(angle, roi=roi)
-#         total = np.sum(roi)
-#         ratio = y / total 
-#         print(total, ratio)
-#         data.append([total, ratio])
-
-#         roi = binary_erosion(roi)
-#         if np.sum(roi) <= 0:
-#             break
-
-#     data = np.array(data) 
-#     np.savetxt('num_twos_as_function_of_roi_size.txt', data)
-
-
-# def plot_data_study3():
-#     data = np.loadtxt('num_twos_as_function_of_roi_size.txt')
-#     fig, ax = plt.subplots(1, 1)
-#     ax.plot(data[:, 0], data[:, 1], '.-', ms=2.0)
-#     ax.set_xlabel('Original ROI size (pixels)')
-#     ax.set_ylabel('Numer of Pixels Twos')
-#     plt.savefig('fig3.png', dpi=600)
-#     plt.show()
-
-
 
 
 if __name__ == '__main__':
@@ -321,9 +272,9 @@ if __name__ == '__main__':
     # data = np.array(data)
     # data[:, 0] = np.rad2deg(data[:, 0])
     # np.savetxt('num_twos_as_function_of_phi.txt', data)
-    for n in range(0, 365, 5):
-        y = main2(np.deg2rad(n))
-    # y = main2(np.deg2rad(60))
+    # for n in range(0, 365, 5):
+    #     y = main2(np.deg2rad(n))
+    y = main2(np.deg2rad(60))
 
     # main()
     # create_circular_roi(N=1024, phi_range_deg=30)

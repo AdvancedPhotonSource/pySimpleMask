@@ -84,6 +84,7 @@ class SimpleMask(object):
         self.hdl.scene.sigMouseMoved.connect(self.show_location)
         self.bad_pixel_set = set()
         self.qrings = []
+        self.corr_roi = None
 
         self.idx_map = {
             0: "scattering",
@@ -651,15 +652,18 @@ class SimpleMask(object):
 
             # offset the nonzero dynamic qmap
             tdyn_map[tdyn_map > 0] += np.max(dyn_map)
-            dyn_map += tdyn_map
+            tdyn_idx = np.nonzero(tdyn_map)
+            dyn_map[tdyn_idx] = tdyn_map[tdyn_idx]
 
             # offset the nonzero static qmap
             t_sq_span_val, tsta_map = self.get_partition(
                 sq_num, sp_num, qmin, qmax, pmin, pmax, style)
             sq_record = combine_span_val(sq_record, t_sq_span_val)
-        
+
             tsta_map[tsta_map > 0] += np.max(sta_map)
             sta_map += tsta_map
+            tsta_idx = np.nonzero(tsta_map)
+            sta_map[tsta_idx] = tsta_map[tsta_idx]
         
         # (qspan, cqlist, pspan, cplist)
         dqspan = np.hstack(dq_record[0])
@@ -766,6 +770,87 @@ class SimpleMask(object):
         for key in ['bcx', 'bcy', 'energy', 'pix_dim', 'det_dist']:
             val.append(self.meta[key])
         return val
+    
+    def set_corr_roi(self, roi):
+        self.corr_roi = roi
+
+    def perform_correlation(self, angle):
+        if self.corr_roi is None:
+            return
+        roi = self.corr_roi
+        roi = roi * self.mask
+
+        import skimage.io as skio
+        skio.imsave('roi.tif', roi)
+
+        if np.sum(roi) == 0:
+            return
+
+        # center
+        v0, h0 = self.meta['bcy'], self.meta['bcx']
+
+        # returns (v, h)
+        vi, hi = np.nonzero(roi)
+        vi = vi.astype(np.float64) - v0
+        hi = hi.astype(np.float64) - h0
+        
+        vf_real = vi * np.cos(angle) - hi * np.sin(angle) + v0
+        hf_real = vi * np.sin(angle) + hi * np.cos(angle) + h0
+        # center index
+        vf = (vf_real + 0.5).astype(np.int32)
+        hf = (hf_real + 0.5).astype(np.int32)
+
+        dist = np.zeros((25, vf.shape[0]), dtype=np.float64)
+        dist_corr = np.zeros_like(dist, dtype=np.int64)
+
+        def to_1d(v, h):
+            return v * self.shape[1] + h
+
+        def to_2d(idx_1d):
+            return (idx_1d // self.shape[1], idx_1d % self.shape[1])
+
+        curr_idx = 0
+        for vc in [-1, 1, 0, -2, 2]:
+            vfc = vf + vc
+            for hc in [-1, 1, 0, -2, 2]:
+                hfc = hf + hc
+                dist[curr_idx] = np.hypot(vfc - vf_real, hfc - hf_real)
+                dist_corr[curr_idx] = to_1d(vfc, hfc)
+
+                curr_idx += 1
+        # 
+        # sort_ind = np.argsort(dist, axis=0)
+        # dist_corr = np.take_along_axis(dist_corr, sort_ind, axis=0)
+        dist = np.swapaxes(dist, 0, 1)
+        dist_corr = np.swapaxes(dist_corr, 0, 1)
+        for n in range(dist_corr.shape[0]):
+            sort_ind = np.argsort(dist[n])
+            dist_corr[n] = dist_corr[n][sort_ind]
+
+        record = set()
+        choice = np.zeros_like(vf_real, dtype=np.int64)
+        for n in range(dist.shape[0]):
+            for m in range(dist.shape[1]):
+                t = dist_corr[n, m]
+                if t not in record:
+                    record.add(t)
+                    choice[n] = t 
+                    break
+            if m == dist.shape[1]:
+                print('failed')
+
+        vf, hf = to_2d(choice)
+        roi2 = np.zeros_like(roi)
+        roi2[(vf, hf)] = 1
+        print(len(record), np.sum(roi2 > 0), np.sum(roi > 0))
+        import matplotlib.pyplot as plt
+        plt.imshow(roi + roi2)
+        plt.show()
+
+
+       
+        
+        
 
 
 def test01():
