@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>2702</width>
-    <height>1509</height>
+    <width>1613</width>
+    <height>861</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -533,7 +533,7 @@
               </sizepolicy>
              </property>
              <property name="currentIndex">
-              <number>5</number>
+              <number>6</number>
              </property>
              <widget class="QWidget" name="tab_6">
               <attribute name="title">
@@ -1721,6 +1721,203 @@
                </item>
               </layout>
              </widget>
+             <widget class="QWidget" name="tab_11">
+              <attribute name="title">
+               <string>Correlation</string>
+              </attribute>
+              <layout class="QGridLayout" name="gridLayout_37">
+               <item row="0" column="0">
+                <widget class="QGroupBox" name="groupBox_19">
+                 <property name="title">
+                  <string>Define the First ROI</string>
+                 </property>
+                 <layout class="QGridLayout" name="gridLayout_35">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_35">
+                    <property name="text">
+                     <string>shape:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QComboBox" name="cb_selector_type_corr">
+                    <item>
+                     <property name="text">
+                      <string>Polygon</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>Circle</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>Ellipse</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>Rectangle</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="label_40">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>color:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QComboBox" name="cb_selector_color_corr">
+                    <item>
+                     <property name="text">
+                      <string>green</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>yellow</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>blue</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>red</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>cyan</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>magenta</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>black</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>white</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <widget class="QLabel" name="label_41">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>linewidth:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="3">
+                   <widget class="QSpinBox" name="plot_width_corr">
+                    <property name="specialValueText">
+                     <string extracomment="linewidth"/>
+                    </property>
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="value">
+                     <number>3</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="0" colspan="2">
+                   <widget class="QPushButton" name="btn_mask_draw_add_corr">
+                    <property name="text">
+                     <string>Add</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="2" column="3">
+                   <widget class="QPushButton" name="btn_mask_draw_apply_corr">
+                    <property name="text">
+                     <string>Apply</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QGroupBox" name="groupBox_20">
+                 <property name="title">
+                  <string>Define the Second ROI</string>
+                 </property>
+                 <layout class="QGridLayout" name="gridLayout_36">
+                  <item row="0" column="1">
+                   <widget class="QSpinBox" name="angle_n_corr">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>360</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_42">
+                    <property name="text">
+                     <string>Angle (2π/n): n</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QLabel" name="angle_corr_text">
+                    <property name="text">
+                     <string>180 (degree)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <widget class="QPushButton" name="btn_corr">
+                    <property name="text">
+                     <string>Do Correlation</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0" colspan="2">
+                   <widget class="QComboBox" name="comboBox"/>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item row="1" column="0" colspan="2">
+                <widget class="PlotWidget" name="widget" native="true">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
             </widget>
            </item>
           </layout>
@@ -2167,8 +2364,8 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>156</x>
-     <y>688</y>
+     <x>243</x>
+     <y>663</y>
     </hint>
     <hint type="destinationlabel">
      <x>162</x>
@@ -2183,12 +2380,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>245</x>
-     <y>699</y>
+     <x>330</x>
+     <y>663</y>
     </hint>
     <hint type="destinationlabel">
-     <x>386</x>
-     <y>719</y>
+     <x>402</x>
+     <y>743</y>
     </hint>
    </hints>
   </connection>
