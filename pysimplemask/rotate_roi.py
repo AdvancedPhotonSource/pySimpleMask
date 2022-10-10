@@ -89,9 +89,11 @@ def fix_double_pixels(shape, vh, neighbour=8):
 
 
 def rotate_without_alias(roi, center, angle, mask=None):
+    shape = roi.shape
+
     # v0, h0 is the center of the x-ray beam
     if center is None:
-        center = (roi.shape[0] // 2, roi.shape[1] // 2)
+        center = (shape[0] // 2, shape[1] // 2)
 
     # original center of mass of the object
     com = center_of_mass(roi)
@@ -147,12 +149,12 @@ def rotate_without_alias(roi, center, angle, mask=None):
 
     remove_idx = np.zeros_like(vh[0], dtype=bool)
     remove_idx = np.logical_or(remove_idx, vh[0] < 0)
-    remove_idx = np.logical_or(remove_idx, vh[0] >= roi.shape[0])
+    remove_idx = np.logical_or(remove_idx, vh[0] >= shape[0])
     remove_idx = np.logical_or(remove_idx, vh[1] < 0)
-    remove_idx = np.logical_or(remove_idx, vh[1] >= roi.shape[1])
+    remove_idx = np.logical_or(remove_idx, vh[1] >= shape[1])
 
     if mask is not None:
-        assert mask.shape == roi.shape
+        assert mask.shape == shape
         for n in range(vh.shape[1]):
             index = tuple(vh[:, n])
             if not mask[index]:
