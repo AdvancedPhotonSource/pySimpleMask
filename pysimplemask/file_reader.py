@@ -34,19 +34,22 @@ def get_fake_metadata(shape):
     }
     return metadata
 
-class FileReader(object):
 
+class FileReader(object):
     def __init__(self, fname) -> None:
         self.fname = fname
         pass
 
     def get_scattering(self, *kargs, **kwargs):
         raise NotImplementedError
-    
+
+    def get_data(self, roi_list):
+        raise NotImplemented
+
     def load_meta(self):
         # implement the method that reads the real metadata; other wise it
         # will just return some fake metadata as the place holder
-        return get_fake_metadata(self.shape) 
+        return get_fake_metadata(self.shape)
 
 
 class APS8IDIReader(FileReader):
@@ -112,7 +115,7 @@ class APS8IDIReader(FileReader):
         meta.pop('bcy0', None)
 
         return meta
-    
+
 
 
 class TiffReader(FileReader):
@@ -137,7 +140,7 @@ class TimePixRawReader(FileReader):
         data = timepix_get_saxs(self.fname, 8)
         self.shape = data.shape
         return data
-    
+
 
 class NormalHDFReader(FileReader):
     def __init__(self, fname) -> None:
@@ -149,6 +152,18 @@ class NormalHDFReader(FileReader):
         self.shape = data.shape
         return data
     
+    def get_data(self, roi_list, key='/entry/data/data'):
+        with h5py.File(self.fname, 'r') as f:
+            dset = f[key]
+            data_list = [[] for _ in range(len(roi_list))]
+            for n in range(dset.shape[0]):
+                for m, roi in enumerate(roi_list):
+                    x = dset[n]
+                    data_list[m].append(x[roi])
+
+        for m in range(len(roi_list)):
+            data_list[m] = np.array(data_list[m])
+        return data_list
 
 class FitsReader(FileReader):
     def __init__(self, fname) -> None:
@@ -161,7 +176,7 @@ class FitsReader(FileReader):
         self.shape = data.shape
         return data
 
-    
+
 def read_raw_file(fname):
     ext_name = os.path.splitext(fname)[-1]
     if ext_name in ('.hdf', '.h5', '.hdf5'):
