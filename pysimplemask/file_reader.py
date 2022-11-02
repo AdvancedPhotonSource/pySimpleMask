@@ -1,17 +1,22 @@
 
-from .reader.imm_reader_with_plot import IMMReader8ID
-from .reader.rigaku_reader import RigakuReader
-from .reader.hdf2sax import hdf2saxs
-from .reader.timepix_reader import get_saxs_mp as timepix_get_saxs
 import os
-import numpy as np
+import glob
 import h5py
+import magic
+import numpy as np
 import hdf5plugin
-from skimage.io import imread
 from astropy.io import fits
+from skimage.io import imread
+from .reader.timepix_reader import get_saxs_mp as timepix_get_saxs
+from .reader.aps_reader import HdfDataset, RigakuDataset, ImmDataset
+# from .reader.hdf2sax import hdf2saxs
 
 
 def verify_metadata_hdf(fname):
+    file_format = magic.from_file(fname)
+    if 'Hierarchical Data Format' not in file_format:
+        return False
+
     try:
         with h5py.File(fname, 'r') as hf:
             if '/measurement/instrument/acquisition' in hf:
@@ -35,16 +40,59 @@ def get_fake_metadata(shape):
     return metadata
 
 
+def get_metadata(fname, shape):
+    files = glob.glob(os.path.dirname(os.path.realpath(fname)) + '/*.*')
+
+    meta_fname = None
+    for f in files:
+        if verify_metadata_hdf(f):
+            meta_fname = f
+            break
+
+    if meta_fname is None:
+        return get_fake_metadata(shape)
+
+    # read real metadata
+    keys = {
+        'ccdx': '/measurement/instrument/acquisition/stage_x',
+        'ccdx0': '/measurement/instrument/acquisition/stage_zero_x',
+        'ccdz': '/measurement/instrument/acquisition/stage_z',
+        'ccdz0': '/measurement/instrument/acquisition/stage_zero_z',
+        'datetime': '/measurement/instrument/source_begin/datetime',
+        'energy': '/measurement/instrument/source_begin/energy',
+        'det_dist': '/measurement/instrument/detector/distance',
+        'pix_dim': '/measurement/instrument/detector/x_pixel_size',
+        'bcx0': '/measurement/instrument/acquisition/beam_center_x',
+        'bcy0': '/measurement/instrument/acquisition/beam_center_y',
+    }
+
+    meta = {}
+    with h5py.File(meta_fname, 'r') as f:
+        for key, val in keys.items():
+            meta[key] = np.squeeze(f[val][()])
+        meta['data_name'] = os.path.basename(meta_fname).encode("ascii")
+
+    ccdx, ccdx0 = meta['ccdx'], meta['ccdx0']
+    ccdz, ccdz0 = meta['ccdz'], meta['ccdz0']
+
+    meta['bcx'] = meta['bcx0'] + (ccdx - ccdx0) / meta['pix_dim']
+    meta['bcy'] = meta['bcy0'] + (ccdz - ccdz0) / meta['pix_dim']
+    meta.pop('bcx0', None)
+    meta.pop('bcy0', None)
+    return meta
+
+
 class FileReader(object):
     def __init__(self, fname) -> None:
         self.fname = fname
+        self.ftype = 'Base Class'
         pass
 
     def get_scattering(self, *kargs, **kwargs):
         raise NotImplementedError
 
-    def get_data(self, roi_list):
-        raise NotImplemented
+    def get_data(self, *kargs, **kwargs):
+        return None
 
     def load_meta(self):
         # implement the method that reads the real metadata; other wise it
@@ -55,67 +103,30 @@ class FileReader(object):
 class APS8IDIReader(FileReader):
     def __init__(self, fname) -> None:
         super(APS8IDIReader, self).__init__(fname)
+        self.handler = None
+        self.ftype = 'Base Class'
 
-    def get_scattering(self, num_frames=-1, begin_idx=0, **kwargs):
-        # seeks directory of existing hdf program
-        dirname = os.path.dirname(os.path.realpath(self.fname))
-        files = os.listdir(os.path.dirname(os.path.realpath(self.fname)))
+        if fname.endswith('.bin'):
+            print("-----------.bin found.-----------")
+            self.handler = RigakuDataset(fname, batch_size=1000)
 
-        saxs = None
-        for fname in files:
-            if fname.endswith('.bin'):
-                print("-----------.bin found.-----------")
-                bin_file = os.path.join(dirname, fname)
-                reader = RigakuReader(bin_file)
-                saxs = reader.load()
+        elif fname.endswith('.imm'):
+            print("-----------.imm found.-----------")
+            self.handler = ImmDataset(fname, batch_size=100)
 
-            # seeks .imm file
-            elif fname.endswith('.imm'):
-                print("-----------.imm found.-----------")
-                imm_file = os.path.join(dirname, fname)
-                reader = IMMReader8ID(imm_file, no_of_frames=num_frames)
-                saxs = reader.calc_avg_pixel()
+        elif fname.endswith('.h5') or fname.endswith('.hdf'):
+            print("-----------h5/hdf found.-----------")
+            self.handler = HdfDataset(fname, batch_size=100)
+        self.shape = self.handler.det_size
 
-            # seeks .h5 file
-            elif fname.endswith('.h5') or fname.endswith('.hdf'):
-                hdf_file = os.path.join(dirname, fname)
-                with h5py.File(hdf_file, 'r') as hf:
-                    if '/entry/data/data' in hf:
-                        # correct h5 file, contains raw data
-                        print("-----------.hdf/.h5 found.-----------")
-                        saxs = hdf2saxs(hdf_file, begin_idx=begin_idx,
-                                        num_frames=num_frames)
-        return saxs
+    def get_scattering(self, **kwargs):
+        return self.handler.get_scattering(**kwargs)
+    
+    def get_data(self, roi_list):
+        return self.handler.get_data(roi_list)
 
     def load_meta(self):
-        keys = {
-            'ccdx': '/measurement/instrument/acquisition/stage_x',
-            'ccdx0': '/measurement/instrument/acquisition/stage_zero_x',
-            'ccdz': '/measurement/instrument/acquisition/stage_z',
-            'ccdz0': '/measurement/instrument/acquisition/stage_zero_z',
-            'datetime': '/measurement/instrument/source_begin/datetime',
-            'energy': '/measurement/instrument/source_begin/energy',
-            'det_dist': '/measurement/instrument/detector/distance',
-            'pix_dim': '/measurement/instrument/detector/x_pixel_size',
-            'bcx0': '/measurement/instrument/acquisition/beam_center_x',
-            'bcy0': '/measurement/instrument/acquisition/beam_center_y',
-        }
-        meta = {}
-        with h5py.File(self.fname, 'r') as f:
-            for key, val in keys.items():
-                meta[key] = np.squeeze(f[val][()])
-            meta['data_name'] = os.path.basename(self.fname).encode("ascii")
-
-        ccdx, ccdx0 = meta['ccdx'], meta['ccdx0']
-        ccdz, ccdz0 = meta['ccdz'], meta['ccdz0']
-
-        meta['bcx'] = meta['bcx0'] + (ccdx - ccdx0) / meta['pix_dim']
-        meta['bcy'] = meta['bcy0'] + (ccdz - ccdz0) / meta['pix_dim']
-        meta.pop('bcx0', None)
-        meta.pop('bcy0', None)
-
-        return meta
-
+        return get_metadata(self.fname, self.shape)
 
 
 class TiffReader(FileReader):
@@ -142,28 +153,6 @@ class TimePixRawReader(FileReader):
         return data
 
 
-class NormalHDFReader(FileReader):
-    def __init__(self, fname) -> None:
-        self.fname = fname
-        self.shape = None
-
-    def get_scattering(self, key='/entry/data/data', **kwargs):
-        data = hdf2saxs(self.fname, key=key, **kwargs)
-        self.shape = data.shape
-        return data
-    
-    def get_data(self, roi_list, key='/entry/data/data'):
-        with h5py.File(self.fname, 'r') as f:
-            dset = f[key]
-            data_list = [[] for _ in range(len(roi_list))]
-            for n in range(dset.shape[0]):
-                for m, roi in enumerate(roi_list):
-                    x = dset[n]
-                    data_list[m].append(x[roi])
-
-        for m in range(len(roi_list)):
-            data_list[m] = np.array(data_list[m])
-        return data_list
 
 class FitsReader(FileReader):
     def __init__(self, fname) -> None:
@@ -179,11 +168,13 @@ class FitsReader(FileReader):
 
 def read_raw_file(fname):
     ext_name = os.path.splitext(fname)[-1]
-    if ext_name in ('.hdf', '.h5', '.hdf5'):
+    if ext_name in ('.hdf', '.h5', '.hdf5', '.imm', '.bin'):
+        # exclude the hdf meta file; 
         if verify_metadata_hdf(fname):
-            return APS8IDIReader(fname)
+            print('please select the raw file not the meta file.')
+            return None 
         else:
-            return NormalHDFReader(fname)
+            return APS8IDIReader(fname)
     elif ext_name in ('.tif', '.tiff'):
         return TiffReader(fname)
     elif ext_name in ('.fits'):
