@@ -68,8 +68,7 @@ class RigakuDataset(XpcsDataset):
 
 
 def test():
-    fname = ("/home/beams/MQICHU/ramdisk/O018_Silica_D100_att0_Rq0_00001/"
-             "O018_Silica_D100_att0_Rq0_00001.bin")
+    fname = "../../../tests/data/verify_circular_correlation/F091_D100_Capillary_Post_att00_Lq0_Rq0_00001/F091_D100_Capillary_Post_att00_Lq0_Rq0_00001.bin"
     ds = RigakuDataset(fname)
     # for n in range(len(ds)):
     #     print(n, ds[n].shape)
