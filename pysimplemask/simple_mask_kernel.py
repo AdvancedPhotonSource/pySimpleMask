@@ -5,7 +5,8 @@ from pyqtgraph.Qt import QtCore
 from .area_mask import MaskAssemble
 from .find_center import find_center
 from .pyqtgraph_mod import LineROI
-from .file_reader import read_raw_file 
+from .file_reader import read_raw_file
+import skimage.io as skio
 
 pg.setConfigOptions(imageAxisOrder='row-major')
 
@@ -37,26 +38,26 @@ def create_xy_mesh(mask, qmap, x_num, y_num):
 
     idx_map = idx_map * mask
 
-    xcorr =  np.linspace(hrange[0], hrange[1], x_num + 1) + 0.5
+    xcorr = np.linspace(hrange[0], hrange[1], x_num + 1) + 0.5
     # qxspan = qmap['qx'][0][xcorr.astype(np.int64)]
     qxspan = xcorr
 
     xcorr2 = (xcorr[:-1] + xcorr[1:]) / 2.0
     # qxlist = qmap['qx'][0][xcorr2.astype(np.int64)]
-    qxlist = xcorr2 # qmap['qx'][0][xcorr2.astype(np.int64)]
+    qxlist = xcorr2  # qmap['qx'][0][xcorr2.astype(np.int64)]
 
     qxlist = np.tile(qxlist, y_num).reshape(y_num, x_num)
     qxlist = np.swapaxes(qxlist, 0, 1)
     qxlist = qxlist.reshape(1, -1)
 
-    ycorr =  np.linspace(vrange[0], vrange[1], y_num + 1) + 0.5
+    ycorr = np.linspace(vrange[0], vrange[1], y_num + 1) + 0.5
     # qyspan = qmap['qy'][:, 0][xcorr.astype(np.int64)]
     qyspan = ycorr
 
     ycorr2 = (ycorr[:-1] + ycorr[1:]) / 2.0
     # qylist = qmap['qx'][:, 0][ycorr2.astype(np.int64)]
     qylist = ycorr2
-    
+
     qylist = np.tile(qylist, x_num).reshape(x_num, y_num)
     qylist = qylist.reshape(1, -1)
 
@@ -100,7 +101,7 @@ class SimpleMask(object):
             return False
         else:
             return True
-    
+
     def find_center(self):
         if self.saxs_lin is None:
             return
@@ -198,12 +199,15 @@ class SimpleMask(object):
     # generate 2d saxs
     def read_data(self, fname=None, **kwargs):
         reader = read_raw_file(fname)
+        if reader is None:
+            return
 
         saxs = reader.get_scattering(**kwargs)
         if saxs is None:
             print('cannot read the scattering data from raw data file.')
             return
 
+        self.reader = reader
         self.meta = reader.load_meta()
 
         # keep same
@@ -331,9 +335,9 @@ class SimpleMask(object):
 
         self.plot_log = log
         if not log:
-            self.data_raw[0] = self.saxs_lin 
+            self.data_raw[0] = self.saxs_lin
         else:
-            self.data_raw[0] = self.saxs_log 
+            self.data_raw[0] = self.saxs_log
 
         # if invert:
         #     temp = np.max(self.data[0]) - self.data[0]
@@ -436,7 +440,7 @@ class SimpleMask(object):
 
         elif sl_type == 'Circle':
             if second_point is not None:
-                radius = np.sqrt((second_point[1] - cen[1]) ** 2 + 
+                radius = np.sqrt((second_point[1] - cen[1]) ** 2 +
                                  (second_point[0] - cen[0]) ** 2)
             new_roi = pg.CircleROI(pos=[cen[0] - radius, cen[1] - radius],
                                    radius=radius,
@@ -459,7 +463,7 @@ class SimpleMask(object):
             new_roi = pg.RectROI(cen, [30, 150], **kwargs)
             new_roi.addScaleHandle([0, 0], [1, 1])
             # new_roi.addRotateHandle([0, 1], [0.5, 0.5])
-        
+
         elif sl_type == 'Line':
             if second_point is None:
                 return
@@ -473,7 +477,7 @@ class SimpleMask(object):
         roi_key = self.hdl.add_item(new_roi, label)
         new_roi.sigRemoveRequested.connect(lambda: self.remove_roi(roi_key))
         return new_roi
-    
+
     def get_qring_values(self):
         result = {}
         cen = (self.meta['bcx'], self.meta['bcy'])
@@ -498,11 +502,11 @@ class SimpleMask(object):
 
     def remove_roi(self, roi_key):
         self.hdl.remove_item(roi_key)
-    
-    def get_partition(self, qnum, pnum, qmin=None, qmax=None, pmin=None, 
-                       pmax=None, style='linear'):
 
-        mask = self.mask 
+    def get_partition(self, qnum, pnum, qmin=None, qmax=None, pmin=None,
+                      pmax=None, style='linear'):
+
+        mask = self.mask
         qmap = self.qmap['q'] * mask
         pmap_org = self.qmap['phi'] * mask
 
@@ -528,7 +532,7 @@ class SimpleMask(object):
         if pmax < pmin:
             pmax += 360.0
             pmap[pmap < pmin] += 360.0
-        
+
         pspan = np.linspace(pmin, pmax, pnum + 1)
         plist = (pspan[1:] + pspan[:-1]) / 2.0
 
@@ -550,7 +554,7 @@ class SimpleMask(object):
             qroi = (qmap >= qspan[m]) * (qmap < qspan[m + 1])
             for n in range(pnum):
                 proi = (pmap >= pspan[n]) * (pmap < pspan[n + 1])
-                comb_roi = qroi * proi 
+                comb_roi = qroi * proi
                 if np.sum(comb_roi) == 0:
                     cqlist[m, n] = np.nan
                     cplist[m, n] = np.nan
@@ -561,8 +565,8 @@ class SimpleMask(object):
         return (qspan, cqlist, pspan, cplist), partition
 
     def compute_saxs1d(self, cutoff=3.0, episilon=1e-16, num=180):
-        t_dq_span_val, partition = self.get_partition(num, 1, 
-            None, None, 0, 360, 'linear')
+        t_dq_span_val, partition = self.get_partition(num, 1,
+                                                      None, None, 0, 360, 'linear')
         qlist = t_dq_span_val[1].flatten()
 
         self.data_raw[5] = partition
@@ -612,19 +616,19 @@ class SimpleMask(object):
         zero_loc = np.vstack([rows, cols])
 
         return saxs1d, zero_loc
-    
+
     def compute_partition(self, mode='q-phi', **kwargs):
         if mode == 'q-phi':
             return self.compute_partition_qphi(**kwargs)
         elif mode == 'xy-mesh':
             return self.compute_partition_xymesh(**kwargs)
-    
+
     def compute_partition_qphi(self,
-                          dq_num=10, sq_num=100, style='linear',
-                          dp_num=36, sp_num=360):
+                               dq_num=10, sq_num=100, style='linear',
+                               dp_num=36, sp_num=360):
         if self.meta is None or self.data_raw is None:
             return
-        
+
         qrings = self.qrings
 
         if qrings is None or len(qrings) == 0:
@@ -639,7 +643,7 @@ class SimpleMask(object):
             for n in range(4):
                 record[n].append(new_item[n])
             return record
-        
+
         dq_record = [[] for n in range(4)]
         sq_record = [[] for n in range(4)]
 
@@ -664,7 +668,7 @@ class SimpleMask(object):
             sta_map += tsta_map
             tsta_idx = np.nonzero(tsta_map)
             sta_map[tsta_idx] = tsta_map[tsta_idx]
-        
+
         # (qspan, cqlist, pspan, cplist)
         dqspan = np.hstack(dq_record[0])
         sqspan = np.hstack(sq_record[0])
@@ -677,7 +681,7 @@ class SimpleMask(object):
 
         dphival = np.hstack(dq_record[3]).reshape(1, -1)
         sphival = np.hstack(sq_record[3]).reshape(1, -1)
-        
+
         # dump result to file;
         self.data_raw[3] = dyn_map
         self.data_raw[4] = sta_map
@@ -710,7 +714,7 @@ class SimpleMask(object):
 
         self.new_partition = partition
         return partition
-    
+
     def compute_partition_xymesh(self, sx_num=8, sy_num=8, dx_num=1, dy_num=1):
         if self.meta is None or self.data_raw is None:
             return
@@ -770,87 +774,12 @@ class SimpleMask(object):
         for key in ['bcx', 'bcy', 'energy', 'pix_dim', 'det_dist']:
             val.append(self.meta[key])
         return val
-    
+
     def set_corr_roi(self, roi):
         self.corr_roi = roi
 
-    def perform_correlation(self, angle):
-        if self.corr_roi is None:
-            return
-        roi = self.corr_roi
-        roi = roi * self.mask
-
-        import skimage.io as skio
-        skio.imsave('roi.tif', roi)
-
-        if np.sum(roi) == 0:
-            return
-
-        # center
-        v0, h0 = self.meta['bcy'], self.meta['bcx']
-
-        # returns (v, h)
-        vi, hi = np.nonzero(roi)
-        vi = vi.astype(np.float64) - v0
-        hi = hi.astype(np.float64) - h0
-        
-        vf_real = vi * np.cos(angle) - hi * np.sin(angle) + v0
-        hf_real = vi * np.sin(angle) + hi * np.cos(angle) + h0
-        # center index
-        vf = (vf_real + 0.5).astype(np.int32)
-        hf = (hf_real + 0.5).astype(np.int32)
-
-        dist = np.zeros((25, vf.shape[0]), dtype=np.float64)
-        dist_corr = np.zeros_like(dist, dtype=np.int64)
-
-        def to_1d(v, h):
-            return v * self.shape[1] + h
-
-        def to_2d(idx_1d):
-            return (idx_1d // self.shape[1], idx_1d % self.shape[1])
-
-        curr_idx = 0
-        for vc in [-1, 1, 0, -2, 2]:
-            vfc = vf + vc
-            for hc in [-1, 1, 0, -2, 2]:
-                hfc = hf + hc
-                dist[curr_idx] = np.hypot(vfc - vf_real, hfc - hf_real)
-                dist_corr[curr_idx] = to_1d(vfc, hfc)
-
-                curr_idx += 1
-        # 
-        # sort_ind = np.argsort(dist, axis=0)
-        # dist_corr = np.take_along_axis(dist_corr, sort_ind, axis=0)
-        dist = np.swapaxes(dist, 0, 1)
-        dist_corr = np.swapaxes(dist_corr, 0, 1)
-        for n in range(dist_corr.shape[0]):
-            sort_ind = np.argsort(dist[n])
-            dist_corr[n] = dist_corr[n][sort_ind]
-
-        record = set()
-        choice = np.zeros_like(vf_real, dtype=np.int64)
-        for n in range(dist.shape[0]):
-            for m in range(dist.shape[1]):
-                t = dist_corr[n, m]
-                if t not in record:
-                    record.add(t)
-                    choice[n] = t 
-                    break
-            if m == dist.shape[1]:
-                print('failed')
-
-        vf, hf = to_2d(choice)
-        roi2 = np.zeros_like(roi)
-        roi2[(vf, hf)] = 1
-        print(len(record), np.sum(roi2 > 0), np.sum(roi > 0))
-        import matplotlib.pyplot as plt
-        plt.imshow(roi + roi2)
-        plt.show()
-
-
-       
-        
-        
+    def perform_correlation(self, angle_list):
+        pass
 
 
 def test01():
