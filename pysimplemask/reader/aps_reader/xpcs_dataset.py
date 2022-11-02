@@ -47,6 +47,19 @@ class XpcsDataset(object):
         self.dataset_type = None
         self.dtype_raw = None
     
+    def get_data(self, roi_list):
+        data_list = [[] for _ in range(len(roi_list))]
+
+        for n in range(self.batch_num):
+            x = self.__getbatch__(n).reshape(-1, *self.det_size)
+            for m, roi in enumerate(roi_list):
+                data_list[m].append(x[:, roi[0], roi[1]])
+
+        for m in range(len(roi_list)):
+            data_list[m] = np.vstack(data_list[m])
+
+        return data_list
+    
     def get_scattering(self, num_frames=-1, begin_idx=0):
         size = self.det_size[0] * self.det_size[1]
         saxs = np.zeros(shape=size, dtype=np.float32)
