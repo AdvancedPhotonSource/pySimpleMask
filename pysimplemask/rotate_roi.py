@@ -103,18 +103,21 @@ def rotate_without_alias(roi, center, angle, mask=None):
     # make it positive, in the range of [0, 360) deg
     angle_deg = angle_deg - np.floor(angle_deg / 360) * 360
 
+    # roi_a, original roi; roi_b: rotated ROI
+    roi_a = np.array(np.nonzero(roi))   # 2 x n numpy array
+    roi_b = np.copy(roi_a)   # 2 x n numpy array
     # angle_deg is in [-45, 45) now;
     while angle_deg > 45:
-        angle_deg -= 90 
-        roi = np.rot90(roi)
-
+        rot_90 = np.array([
+            [np.cos(np.pi / 2), -np.sin(np.pi / 2)],
+            [np.sin(np.pi / 2), np.cos(np.pi / 2)]])
+        roi_b = np.matmul(rot_90, roi_b).astype(np.int64)
+        angle_deg -= 90
     angle_rel = np.deg2rad(angle_deg)
 
-    roi_a = np.array(np.nonzero(roi))   # 2 x n numpy array
-    vh = roi_a.astype(np.float64)   # 2 x n
-
-    mean_val = np.mean(vh, axis=1)
     # now the center of mass is zero
+    vh = roi_b.astype(np.float64)   # 2 x n
+    mean_val = np.mean(vh, axis=1)
     vh = (vh.T - mean_val).T
 
     rot_mat0 = np.array([
@@ -182,12 +185,15 @@ def rotate_and_correct(vh, rot_mat, direction='v'):
 
 def main2(angle=2*np.pi/3.0, center=None, roi=None):
     if roi is None:
-        roi = skio.imread('roi_30_deg.tif')
+        roi = skio.imread('roi.tif')
         roi = roi.astype(bool)
 
     shape = roi.shape
 
     roi_a, roi_b = rotate_without_alias(roi, center, angle)
+    print(roi_a)
+    print(roi_b)
+    print(np.all(np.array(roi_a) == np.array(roi_b)))
 
     img_org = to_2d_img(shape, roi_a, crop=False)
     img_rot = to_2d_img(shape, roi_b, crop=False)
@@ -201,8 +207,8 @@ def main2(angle=2*np.pi/3.0, center=None, roi=None):
     plt.imshow(img_rot, cmap=plt.cm.jet)
     plt.colorbar()
     plt.title('rot_angle: %3d deg, twos = %d' % (np.rad2deg(angle), two_count))
-    # plt.savefig('rot_angle_%03d_deg' % np.rad2deg(angle), dpi=600)
-    plt.show()
+    plt.savefig('rot_angle_%03d_deg' % np.rad2deg(angle), dpi=600)
+    # plt.show()
     plt.close()
     return 0
 
@@ -276,7 +282,8 @@ if __name__ == '__main__':
     # np.savetxt('num_twos_as_function_of_phi.txt', data)
     # for n in range(0, 365, 5):
     #     y = main2(np.deg2rad(n))
-    y = main2(np.deg2rad(60))
+    y = main2(np.deg2rad(0))
+    # y = main2(np.deg2rad(60))
 
     # main()
     # create_circular_roi(N=1024, phi_range_deg=30)
