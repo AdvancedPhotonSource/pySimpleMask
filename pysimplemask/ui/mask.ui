@@ -142,7 +142,7 @@
               </sizepolicy>
              </property>
              <property name="currentIndex">
-              <number>0</number>
+              <number>2</number>
              </property>
              <widget class="QWidget" name="tab">
               <attribute name="title">
@@ -158,7 +158,7 @@
                   </sizepolicy>
                  </property>
                  <property name="text">
-                  <string>detor distance (mm):</string>
+                  <string>detector distance (mm):</string>
                  </property>
                 </widget>
                </item>
@@ -366,6 +366,214 @@
               <attribute name="title">
                <string>Grazing Incidence</string>
               </attribute>
+              <layout class="QGridLayout" name="gridLayout_39">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_51">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>center x:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QDoubleSpinBox" name="db_cenx_3">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="decimals">
+                  <number>4</number>
+                 </property>
+                 <property name="minimum">
+                  <double>-9999.000000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>9999.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <widget class="QPushButton" name="btn_swapxy_3">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>&lt;&gt;</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="3">
+                <widget class="QLabel" name="label_53">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>center y:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="4">
+                <widget class="QDoubleSpinBox" name="db_ceny_3">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="decimals">
+                  <number>4</number>
+                 </property>
+                 <property name="minimum">
+                  <double>-9999.000000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>9999.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_52">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>energy (keV):</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QDoubleSpinBox" name="db_energy_3">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="decimals">
+                  <number>4</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="3">
+                <widget class="QLabel" name="label_55">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>detector distance (mm):</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="4">
+                <widget class="QDoubleSpinBox" name="db_det_dist_3">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="decimals">
+                  <number>4</number>
+                 </property>
+                 <property name="maximum">
+                  <double>99999.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_49">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>pixel size (mm):</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QDoubleSpinBox" name="db_pix_dim_3">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="decimals">
+                  <number>4</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="3">
+                <widget class="QLabel" name="label_50">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>detector shape:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="4">
+                <widget class="QLineEdit" name="le_shape_3">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="label_54">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>incident angle (deg):</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QDoubleSpinBox" name="det_yaw_3">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="decimals">
+                  <number>4</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="3">
+                <widget class="QPushButton" name="btn_find_center_3">
+                 <property name="text">
+                  <string>Find Center</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="4">
+                <widget class="QPushButton" name="btn_update_parameters_3">
+                 <property name="text">
+                  <string>Update Parameters</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </widget>
             </widget>
            </item>
