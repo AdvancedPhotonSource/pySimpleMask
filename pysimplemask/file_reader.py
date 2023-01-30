@@ -8,7 +8,8 @@ import hdf5plugin
 from astropy.io import fits
 from skimage.io import imread
 from .reader.timepix_reader import get_saxs_mp as timepix_get_saxs
-from .reader.aps_reader import HdfDataset, RigakuDataset, ImmDataset
+from .reader.aps_reader import (HdfDataset, RigakuDataset, ImmDataset, 
+                                EsrfHdfDataset)
 # from .reader.hdf2sax import hdf2saxs
 
 
@@ -20,7 +21,9 @@ def verify_metadata_hdf(fname):
     try:
         with h5py.File(fname, 'r') as hf:
             if '/measurement/instrument/acquisition' in hf:
-                return True
+                return 'aps_hdf' 
+            elif '/entry_0000/instrument/id02-eiger500k-saxs' in hf:
+                return 'esrf_hdf' 
             else:
                 return False
     except Exception:
@@ -129,8 +132,51 @@ class APS8IDIReader(FileReader):
         return get_metadata(self.fname, self.shape)
 
 
-class TiffReader(FileReader):
+class EsrfReader(FileReader):
+    def __init__(self, fname) -> None:
+        super(EsrfReader, self).__init__(fname)
+        self.handler = None
+        self.ftype = 'ESRF HDF file'
+        self.handler = EsrfHdfDataset(fname)
+        self.shape = self.handler.det_size
 
+    def get_scattering(self, **kwargs):
+        return self.handler.get_scattering(**kwargs)
+    
+    def get_data(self, roi_list):
+        return self.handler.get_data(roi_list)
+
+    def load_meta(self):
+        keys = {
+        # 'ccdx': '/measurement/instrument/acquisition/stage_x',
+        # 'ccdx0': '/measurement/instrument/acquisition/stage_zero_x',
+        # 'ccdz': '/measurement/instrument/acquisition/stage_z',
+        # 'ccdz0': '/measurement/instrument/acquisition/stage_zero_z',
+        'datetime': '/entry_0000/start_time',
+        'energy': '/entry_0000/instrument/id02-eiger500k-saxs/header/WaveLength',
+        'det_dist': '/entry_0000/instrument/id02-eiger500k-saxs/header/SampleDistance',
+        'pix_dim': '/entry_0000/instrument/id02-eiger500k-saxs/header/PSize_1',
+        'bcx': '/entry_0000/instrument/id02-eiger500k-saxs/header/Center_1',
+        'bcy': '/entry_0000/instrument/id02-eiger500k-saxs/header/Center_2',
+        }
+
+        meta = {}
+        with h5py.File(self.fname, 'r') as f:
+            for key, val in keys.items():
+                val = f[val][()]
+                if isinstance(val, bytes) and key != 'datetime':
+                    val = float(val.decode())
+                if key == 'energy':
+                    val = 12.398e-10 / val
+                if key in ['det_dist', 'pix_dim']:
+                    val = val * 1000
+                meta[key] = val
+            meta['data_name'] = os.path.basename(self.fname).encode("ascii")
+
+        return meta
+
+
+class TiffReader(FileReader):
     def __init__(self, fname) -> None:
         self.fname = fname
         self.shape = None
@@ -170,11 +216,14 @@ def read_raw_file(fname):
     ext_name = os.path.splitext(fname)[-1]
     if ext_name in ('.hdf', '.h5', '.hdf5', '.imm', '.bin'):
         # exclude the hdf meta file; 
-        if verify_metadata_hdf(fname):
+        flag = verify_metadata_hdf(fname)
+        if flag is False:
             print('please select the raw file not the meta file.')
             return None 
-        else:
+        elif flag == 'aps_hdf':
             return APS8IDIReader(fname)
+        elif flag == 'esrf_hdf':
+            return EsrfReader(fname)
     elif ext_name in ('.tif', '.tiff'):
         return TiffReader(fname)
     elif ext_name in ('.fits'):
