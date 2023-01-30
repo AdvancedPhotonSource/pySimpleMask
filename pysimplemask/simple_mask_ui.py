@@ -1174,7 +1174,7 @@ class Ui_SimpleMask(object):
         self.label_9.setText(_translate("SimpleMask", "begin index:"))
         self.label_28.setText(_translate("SimpleMask", "num_frames"))
         self.btn_load.setText(_translate("SimpleMask", "load data"))
-        self.label_5.setText(_translate("SimpleMask", "detor distance (mm):"))
+        self.label_5.setText(_translate("SimpleMask", "detector distance (mm):"))
         self.label_6.setText(_translate("SimpleMask", "pixel size (mm):"))
         self.label_7.setText(_translate("SimpleMask", "detector shape:"))
         self.label_21.setText(_translate("SimpleMask", "detector pitch (deg):"))
