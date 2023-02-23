@@ -544,7 +544,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def add_drawing(self):
         if not self.is_ready():
             return
-        if self.MaskWidget.currentIndex() == 0:
+        if self.MaskWidget.currentIndex() == 1:
             color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
                 self.cb_selector_color.currentIndex()]
             kwargs = {
@@ -553,17 +553,17 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 'sl_mode': self.cb_selector_mode.currentText(),
                 'width': self.plot_width.value()
             }
-        if self.MaskWidget.currentIndex() == 6:
-            color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
-                self.cb_selector_color_corr.currentIndex()]
-            kwargs = {
-                'color': color,
-                'sl_type': self.cb_selector_type_corr.currentText(),
-                'sl_mode': 'inclusive',
-                'width': self.plot_width_corr.value()
-            }
-        else:
-            return
+        # elif self.MaskWidget.currentIndex() == 6:
+        #     color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
+        #         self.cb_selector_color_corr.currentIndex()]
+        #     kwargs = {
+        #         'color': color,
+        #         'sl_type': self.cb_selector_type_corr.currentText(),
+        #         'sl_mode': 'inclusive',
+        #         'width': self.plot_width_corr.value()
+        #     }
+        # else:
+        #     return
         self.sm.add_drawing(**kwargs)
         return
     
