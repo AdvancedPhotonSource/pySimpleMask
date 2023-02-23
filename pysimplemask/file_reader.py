@@ -13,21 +13,26 @@ from .reader.aps_reader import (HdfDataset, RigakuDataset, ImmDataset,
 # from .reader.hdf2sax import hdf2saxs
 
 
-def verify_metadata_hdf(fname):
+def get_file_type(fname):
+    extname = os.path.splitext(fname)[-1]
+    if extname not in ('.hdf', '.h5', '.hdf5', '.imm', '.bin'):
+        return 'unknown_type'
+
     file_format = magic.from_file(fname)
     if 'Hierarchical Data Format' not in file_format:
-        return False
-
+        # legacy file
+        return 'aps_legacy'
     try:
         with h5py.File(fname, 'r') as hf:
             if '/measurement/instrument/acquisition' in hf:
-                return 'aps_hdf' 
+                return 'aps_metadata'
             elif '/entry_0000/instrument/id02-eiger500k-saxs' in hf:
                 return 'esrf_hdf' 
-            else:
-                return False
+            elif '/entry/data/data' in hf:
+                return 'aps_hdf'
     except Exception:
-        return False
+        pass
+    return 'unknow_hdf'
 
 
 def get_fake_metadata(shape):
@@ -48,7 +53,7 @@ def get_metadata(fname, shape):
 
     meta_fname = None
     for f in files:
-        if verify_metadata_hdf(f):
+        if get_file_type(f) == 'aps_metadata':
             meta_fname = f
             break
 
@@ -216,13 +221,13 @@ def read_raw_file(fname):
     ext_name = os.path.splitext(fname)[-1]
     if ext_name in ('.hdf', '.h5', '.hdf5', '.imm', '.bin'):
         # exclude the hdf meta file; 
-        flag = verify_metadata_hdf(fname)
-        if flag is False:
+        ftype = get_file_type(fname)
+        if ftype == 'aps_metadata':
             print('please select the raw file not the meta file.')
             return None 
-        elif flag == 'aps_hdf':
+        elif ftype in ['aps_hdf', 'aps_legacy']:
             return APS8IDIReader(fname)
-        elif flag == 'esrf_hdf':
+        elif ftype == 'esrf_hdf':
             return EsrfReader(fname)
     elif ext_name in ('.tif', '.tiff'):
         return TiffReader(fname)
