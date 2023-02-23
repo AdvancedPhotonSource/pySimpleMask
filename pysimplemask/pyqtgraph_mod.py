@@ -1,6 +1,4 @@
 import pyqtgraph as pg
-from .mpl_cmaps_in_ImageItem import pg_get_cmap
-import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -44,7 +42,8 @@ class ImageViewROI(pg.ImageView):
                                      }
 
     def set_colormap(self, cmap):
-        pg_cmap = pg_get_cmap(plt.get_cmap(cmap))
+        pg_cmap = pg.colormap.getFromMatplotlib(cmap)
+        # pg_cmap = pg_get_cmap(plt.get_cmap(cmap))
         self.setColorMap(pg_cmap)
     
     def remove_rois(self, filter_str=None):

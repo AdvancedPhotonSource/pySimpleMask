@@ -133,6 +133,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
             lambda: self.mask_qring_list_add('file'))
         self.btn_mask_qring_clear.clicked.connect(self.clear_qring_list)
 
+        # tab correlation
+        self.btn_mask_draw_add_corr.clicked.connect(self.add_drawing)
+        self.btn_corr.clicked.connect(self.perform_correlation)
+        self.btn_mask_draw_apply_corr.clicked.connect(self.corr_add_roi)
+        self.angle_n_corr.valueChanged.connect(self.update_corr_angle)
 
         self.mask_outlier_hdl.setBackground((255, 255, 255))
         self.mp1.scene.sigMouseClicked.connect(self.mouse_clicked)
@@ -460,13 +465,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def select_raw(self):
         fname = QFileDialog.getOpenFileName(self,
                     caption='Select raw file hdf',
-                    filter='HDF File(*.hdf *h5 *hdf5);;Tiff File(*.tif *.tiff);;Fits File(*.fits);;Timepix Raw(*.raw);;All file(*.*)',
+                    filter='Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.tif *.tiff *.fits *.raw)',
                     directory=self.work_dir)[0]
-
-        # fname = (
-        #     "/Users/mqichu/Documents/local_dev/pysimplemask/tests/data/"
-        #     "E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_"
-        #     "att04_Rq0_00001_0001-100000.hdf")
 
         if fname not in [None, '']:
             self.fname.setText(fname)
@@ -544,16 +544,42 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def add_drawing(self):
         if not self.is_ready():
             return
-        color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
-            self.cb_selector_color.currentIndex()]
-        kwargs = {
-            'color': color,
-            'sl_type': self.cb_selector_type.currentText(),
-            'sl_mode': self.cb_selector_mode.currentText(),
-            'width': self.plot_width.value()
-        }
+        if self.MaskWidget.currentIndex() == 1:
+            color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
+                self.cb_selector_color.currentIndex()]
+            kwargs = {
+                'color': color,
+                'sl_type': self.cb_selector_type.currentText(),
+                'sl_mode': self.cb_selector_mode.currentText(),
+                'width': self.plot_width.value()
+            }
+        # elif self.MaskWidget.currentIndex() == 6:
+        #     color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
+        #         self.cb_selector_color_corr.currentIndex()]
+        #     kwargs = {
+        #         'color': color,
+        #         'sl_type': self.cb_selector_type_corr.currentText(),
+        #         'sl_mode': 'inclusive',
+        #         'width': self.plot_width_corr.value()
+        #     }
+        # else:
+        #     return
         self.sm.add_drawing(**kwargs)
         return
+    
+    # self.btn_mask_draw_apply_corr.clicked.connect(self.corr_add_roi)
+    def corr_add_roi(self):
+        roi = self.sm.apply_drawing()
+        self.sm.set_corr_roi(roi)
+        return
+    
+    def update_corr_angle(self):
+        angle_deg = 360.0 / self.angle_n_corr.value()
+        self.angle_corr_text.setText(f"{angle_deg:.2f} (deg)")
+    
+    def perform_correlation(self):
+        angle = 2 * np.pi / self.angle_n_corr.value()
+        self.sm.perform_correlation(angle)
 
     def compute_partition(self):
         if not self.is_ready():
