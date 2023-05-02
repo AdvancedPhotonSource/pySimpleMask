@@ -40,6 +40,10 @@ Step 4. install it::
     
     cd pySimpleMask
     pip install .
+    
+You may also need to install magic-bin on windows systems,
+    
+    pip install python-magic-bin
 
 Step 5. run simplemask, open a terminal and activate your virtual environment, ::
     
