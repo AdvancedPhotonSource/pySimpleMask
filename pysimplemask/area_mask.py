@@ -29,11 +29,7 @@ class MaskBase():
         self.shape = shape
         self.zero_loc = None
         self.mtype = 'base'
-        self.enabled = True
         self.qrings = []
-
-    def set_enabled(self, flag=True):
-        self.enabled = flag
 
     def describe(self):
         if self.zero_loc is None:
@@ -51,7 +47,7 @@ class MaskBase():
         return mask
 
     def combine_mask(self, mask):
-        if self.zero_loc is not None and self.enabled:
+        if self.zero_loc is not None:
             if mask is None:
                 mask = self.get_mask()
             else:
@@ -187,13 +183,27 @@ class MaskAssemble():
         self.saxs_log = saxs_log
         self.qmap = qmap
         self.pmap = pmap
+        self.mask_record = [np.ones_like(qmap, dtype=bool)]
+        self.mask_ptr = 0 
     
     def update_qmap(self, qmap_all):
         self.qmap = qmap_all['q']
         self.pmap = qmap_all['phi']
 
-    def enable(self, target, flag=True):
-        self.workers[target].set_enabled(flag)
+    def apply(self, target):
+        if target is None:
+            return self.get_mask()
+
+        mask = self.get_one_mask(target)
+        mask = np.logical_and(self.get_mask(), mask)
+        if not np.allclose(self.mask_record[-1], mask):
+            while len(self.mask_record) > self.mask_ptr + 1:
+                self.mask_record.pop()
+            # len(self.mask_record) == self.mask_ptr + 1
+            self.mask_record.append(mask)
+            self.mask_ptr += 1
+
+        return mask
 
     def evaluate(self, target, **kwargs):
         if target == 'mask_threshold':
@@ -204,14 +214,25 @@ class MaskAssemble():
             self.workers[target].evaluate(**kwargs)
 
         return self.workers[target].describe()
-
+    
+    def redo_undo(self, action='redo'):
+        if action == 'undo':
+            if self.mask_ptr > 0:
+                self.mask_ptr -= 1
+        elif action == 'redo': 
+            if self.mask_ptr < len(self.mask_record) - 1:
+                self.mask_ptr += 1
+        elif action == 'reset':
+            while len(self.mask_record) > 1:
+                self.mask_record.pop()
+            self.mask_ptr = 0 
+        
     def get_one_mask(self, target):
         return self.workers[target].get_mask()
 
     def get_mask(self):
-        mask = None
-        for key in self.workers.keys():
-            mask = self.workers[key].combine_mask(mask)
+        # get the current combined mask
+        mask = self.mask_record[self.mask_ptr]
         return mask
 
     def show_mask(self):

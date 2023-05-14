@@ -72,6 +72,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         self.plot_index.currentIndexChanged.connect(self.mp1.setCurrentIndex)
 
+        # reset, redo, undo botton for mask
+        self.btn_mask_reset.clicked.connect(lambda: self.mask_action('reset'))
+        self.btn_mask_redo.clicked.connect(lambda: self.mask_action('redo'))
+        self.btn_mask_undo.clicked.connect(lambda: self.mask_action('undo'))
+
         # simple mask kernep
         self.sm = SimpleMask(self.mp1, self.infobar)
         self.mp1.sigTimeChanged.connect(self.update_index)
@@ -254,6 +259,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         for k, v in new_state.items():
             if v is not None:
                 self.__dict__['mask_' + k].setValue(v)
+    
+    def mask_action(self, action):
+        self.sm.mask_action(action)
+        self.plot_index.setCurrentIndex(0)
+        self.plot_index.setCurrentIndex(1)
 
     def find_center(self):
         if not self.is_ready():
@@ -476,7 +486,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     def select_blemish(self):
         fname = QFileDialog.getOpenFileName(self, 'Select blemish file',
-                    filter='Supported format (*.tiff *.tif *.h5 *.hdf *.hdf5')[0]
+                    filter='Supported Formats(*.tiff *.tif *.h5 *.hdf *.hdf5)')[0]
         if fname not in [None, '']:
             self.blemish_fname.setText(fname)
 
@@ -489,7 +499,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     def select_maskfile(self):
         fname = QFileDialog.getOpenFileName(self, 'Select mask file',
-                    filter='Supported format (*.tiff *.tif *.h5 *.hdf *.hdf5')[0]
+                    filter='Supported Formats(*.tiff *.tif *.h5 *.hdf *.hdf5)')[0]
         # fname = "../tests/data/triangle_mask/mask_lambda_test.h5"
         if fname not in [None, '']:
             self.maskfile_fname.setText(fname)
