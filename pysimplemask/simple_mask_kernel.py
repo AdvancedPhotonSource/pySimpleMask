@@ -118,10 +118,13 @@ class SimpleMask(object):
         self.data_raw[5][:, :] = mask
         return msg
 
-    def mask_apply(self, target):
-        mask = self.mask_kernel.get_one_mask(target)
-        self.mask_kernel.enable(target)
-        self.mask = np.logical_and(self.mask, mask)
+    def mask_action(self, action='undo'):
+        self.mask_kernel.redo_undo(action=action)
+        self.mask_apply()
+
+    def mask_apply(self, target=None):
+        # if target is None, apply will return the current mask
+        self.mask = self.mask_kernel.apply(target)
 
         self.data_raw[1] = self.saxs_log * self.mask
         self.data_raw[2] = self.mask
