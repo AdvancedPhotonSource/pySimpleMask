@@ -261,6 +261,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 self.__dict__['mask_' + k].setValue(v)
     
     def mask_action(self, action):
+        if not self.is_ready():
+            return
         self.sm.mask_action(action)
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(1)
