@@ -733,6 +733,27 @@
           </property>
           <layout class="QGridLayout" name="gridLayout_4">
            <item row="0" column="0">
+            <widget class="QPushButton" name="btn_mask_reset">
+             <property name="text">
+              <string>Reset</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QPushButton" name="btn_mask_undo">
+             <property name="text">
+              <string>Undo</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <widget class="QPushButton" name="btn_mask_redo">
+             <property name="text">
+              <string>Redo</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0" colspan="3">
             <widget class="QTabWidget" name="MaskWidget">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
@@ -741,7 +762,7 @@
               </sizepolicy>
              </property>
              <property name="currentIndex">
-              <number>6</number>
+              <number>0</number>
              </property>
              <widget class="QWidget" name="tab_6">
               <attribute name="title">
