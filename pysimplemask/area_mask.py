@@ -29,11 +29,7 @@ class MaskBase():
         self.shape = shape
         self.zero_loc = None
         self.mtype = 'base'
-        self.enabled = True
         self.qrings = []
-
-    def set_enabled(self, flag=True):
-        self.enabled = flag
 
     def describe(self):
         if self.zero_loc is None:
@@ -51,7 +47,7 @@ class MaskBase():
         return mask
 
     def combine_mask(self, mask):
-        if self.zero_loc is not None and self.enabled:
+        if self.zero_loc is not None:
             if mask is None:
                 mask = self.get_mask()
             else:
@@ -194,11 +190,10 @@ class MaskAssemble():
         self.qmap = qmap_all['q']
         self.pmap = qmap_all['phi']
 
-    def apply(self, target, flag=True):
+    def apply(self, target):
         if target is None:
             return self.get_mask()
 
-        self.workers[target].set_enabled(flag)
         mask = self.get_one_mask(target)
         mask = np.logical_and(self.get_mask(), mask)
         if not np.allclose(self.mask_record[-1], mask):
