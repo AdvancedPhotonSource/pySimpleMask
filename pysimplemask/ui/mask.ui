@@ -96,7 +96,11 @@
               </widget>
              </item>
              <item>
-              <widget class="QSpinBox" name="spinBox_3"/>
+              <widget class="QSpinBox" name="spinBox_3">
+               <property name="maximum">
+                <number>99999</number>
+               </property>
+              </widget>
              </item>
              <item>
               <widget class="QLabel" name="label_28">
@@ -142,7 +146,7 @@
               </sizepolicy>
              </property>
              <property name="currentIndex">
-              <number>2</number>
+              <number>0</number>
              </property>
              <widget class="QWidget" name="tab">
               <attribute name="title">

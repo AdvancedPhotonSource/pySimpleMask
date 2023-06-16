@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.sparse import coo_matrix
 import logging
 from .xpcs_dataset import XpcsDataset
 
@@ -30,6 +31,23 @@ class RigakuDataset(XpcsDataset):
         self.is_sparse = True
         self.dtype = np.uint8
         self.ifc, self.mem_addr = self.read_data()
+        self.det_size = (512, 1024)
+    
+    def get_scattering(self, num_frames=-1, begin_idx=0):
+        total_frames = self.ifc[1][-1] + 1
+        smat = coo_matrix((self.ifc[2], (self.ifc[1], self.ifc[0])),
+                          dtype=np.uint32, 
+                          shape=(total_frames, 
+                                 self.det_size[0] * self.det_size[1]))
+        smat = smat.tocsr()
+        if num_frames > 0:
+            end_idx = min(begin_idx + num_frames, total_frames)
+        else:
+            end_idx = total_frames 
+
+        saxs = np.array(smat[begin_idx:end_idx].sum(axis=0))
+        saxs = saxs.reshape(self.det_size)
+        return saxs
 
     def read_data(self):
         with open(self.fname, 'r') as f:
