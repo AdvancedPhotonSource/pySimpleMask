@@ -109,7 +109,7 @@ def find_center(img, mask=None, iter_bad_pixel=0, iter_median_filter=2,
                 scale='log', iter_center=3, center_guess=None):
 
     if mask is None:
-        mask = np.ones_like(img, dtype=np.bool)
+        mask = np.ones_like(img, dtype=bool)
     img[mask == 0] = 0
 
     # remove bad pixels using percentile filter

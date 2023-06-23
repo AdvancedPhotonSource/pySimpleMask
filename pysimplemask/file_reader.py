@@ -9,7 +9,7 @@ from astropy.io import fits
 from skimage.io import imread
 from .reader.timepix_reader import get_saxs_mp as timepix_get_saxs
 from .reader.aps_reader import (HdfDataset, RigakuDataset, ImmDataset, 
-                                EsrfHdfDataset)
+                                EsrfHdfDataset, RigakuSixDataset)
 # from .reader.hdf2sax import hdf2saxs
 
 
@@ -115,8 +115,12 @@ class APS8IDIReader(FileReader):
         self.ftype = 'Base Class'
 
         if fname.endswith('.bin'):
-            print("-----------.bin found.-----------")
-            self.handler = RigakuDataset(fname, batch_size=1000)
+            if fname[-9:-5] == 'part':
+                print("-----------.bin rigaku six------------")
+                self.handler = RigakuSixDataset(fname, batch_size=1000)
+            else:
+                print("-----------.bin rigaku one-----------")
+                self.handler = RigakuDataset(fname, batch_size=1000)
 
         elif fname.endswith('.imm'):
             print("-----------.imm found.-----------")
