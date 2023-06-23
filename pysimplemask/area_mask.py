@@ -41,7 +41,7 @@ class MaskBase():
         return msg
 
     def get_mask(self):
-        mask = np.ones(self.shape, dtype=np.bool)
+        mask = np.ones(self.shape, dtype=bool)
         if self.zero_loc is not None:
             mask[tuple(self.zero_loc)] = 0
         return mask
@@ -131,7 +131,7 @@ class MaskQring(MaskBase):
         self.qrings = []
 
     def evaluate(self, qmap, pmap, qrings=None):
-        mask = np.zeros_like(qmap, dtype=np.bool)
+        mask = np.zeros_like(qmap, dtype=bool)
         if qrings is None:
             return
 

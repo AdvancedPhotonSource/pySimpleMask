@@ -215,7 +215,7 @@ class SimpleMask(object):
 
         # keep same
         self.data_raw = np.zeros(shape=(6, *saxs.shape))
-        self.mask = np.ones(saxs.shape, dtype=np.bool)
+        self.mask = np.ones(saxs.shape, dtype=bool)
 
         saxs_nonzero = saxs[saxs > 0]
         # use percentile instead of min to be robust
@@ -364,10 +364,9 @@ class SimpleMask(object):
         if self.meta is None or self.data_raw is None:
             return
 
-        # ones = np.ones(self.data_raw[0].shape, dtype=np.bool)
         shape = self.data_raw[0].shape
-        ones = np.ones((shape[0] + 1, shape[1] + 1), dtype=np.bool)
-        mask_n = np.zeros_like(ones, dtype=np.bool)
+        ones = np.ones((shape[0] + 1, shape[1] + 1), dtype=bool)
+        mask_n = np.zeros_like(ones, dtype=bool)
         mask_e = np.zeros_like(mask_n)
         mask_i = np.zeros_like(mask_n)
 
@@ -375,7 +374,7 @@ class SimpleMask(object):
             if not k.startswith('roi_'):
                 continue
 
-            mask_temp = np.zeros_like(ones, dtype=np.bool)
+            mask_temp = np.zeros_like(ones, dtype=bool)
             # return slice and transfrom
             sl, _ = x.getArraySlice(self.data_raw[1], self.hdl.imageItem)
             y = x.getArrayRegion(ones, self.hdl.imageItem)
