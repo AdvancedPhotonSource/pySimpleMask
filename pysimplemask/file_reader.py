@@ -10,7 +10,10 @@ from skimage.io import imread
 from .reader.timepix_reader import get_saxs_mp as timepix_get_saxs
 from .reader.aps_reader import (HdfDataset, RigakuDataset, ImmDataset, 
                                 EsrfHdfDataset, RigakuSixDataset)
+import logging
 # from .reader.hdf2sax import hdf2saxs
+
+logger = logging.getLogger(__name__)
 
 
 def get_file_type(fname):
@@ -37,6 +40,7 @@ def get_file_type(fname):
 
 def get_fake_metadata(shape):
     # fake metadata
+    logger.warn('failed to get the raw metadata, using default values instead')
     metadata = {
         'datetime': "2022-05-08 14:00:51,799",
         'energy': 11.0,         # keV
