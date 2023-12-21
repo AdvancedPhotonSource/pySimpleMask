@@ -477,7 +477,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def select_raw(self):
         fname = QFileDialog.getOpenFileName(self,
                     caption='Select raw file hdf',
-                    filter='Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.tif *.tiff *.fits *.raw)',
+                    filter='Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.tif *.tiff *.fits *.raw, *.bin.*)',
                     directory=self.work_dir)[0]
 
         if fname not in [None, '']:
@@ -528,7 +528,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
             'begin_idx': self.spinBox_3.value(),
             'num_frames': self.spinBox_4.value()
         }
-        self.sm.read_data(fname, **kwargs)
+        if not self.sm.read_data(fname, **kwargs):
+            return
 
         self.db_cenx.setValue(self.sm.meta['bcx'])
         self.db_ceny.setValue(self.sm.meta['bcy'])
