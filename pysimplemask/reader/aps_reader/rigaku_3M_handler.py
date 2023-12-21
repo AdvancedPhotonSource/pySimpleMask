@@ -30,22 +30,22 @@ class Rigaku3MDataset(XpcsDataset):
     """
     def __init__(self, *args, dtype=np.uint8, gap=(71, 50), layout=(3, 2),
                  **kwargs):
-        print(*args)
         super(Rigaku3MDataset, self).__init__(*args, dtype=dtype, **kwargs)
         self.dataset_type = "Rigaku 64bit Binary"
         self.is_sparse = True
         self.dtype = np.uint8
-        flist = self.get_filelist()
-        self.container = [RigakuDataset(f, dtype=dtype, **kwargs) for f in flist]
+        self.container = self.get_modules(dtype, **kwargs)
         self.gap = gap
         self.layout = layout
         self.update_info()
     
-    def get_filelist(self):
-        flist = [self.fname[:-3] + f'00{n}' for n in range(6)]
+    def get_modules(self, dtype, **kwargs):
+        # this is the order for the 6 modules
+        index_list = (5, 0, 4, 1, 3, 2)
+        flist = [self.fname[:-3] + f'00{n}' for n in index_list]
         for f in flist:
             assert os.path.isfile(f)
-        return flist
+        return [RigakuDataset(f, dtype=dtype, **kwargs) for f in flist]
     
     def update_info(self):
         frame_num = [x.frame_num for x in self.container]
