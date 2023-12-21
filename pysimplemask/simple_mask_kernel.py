@@ -7,8 +7,12 @@ from .find_center import find_center
 from .pyqtgraph_mod import LineROI
 from .file_reader import read_raw_file
 import skimage.io as skio
+import logging
 
 pg.setConfigOptions(imageAxisOrder='row-major')
+
+
+logger = logging.getLogger(__name__)
 
 
 def create_xy_mesh(mask, qmap, x_num, y_num):
@@ -203,12 +207,13 @@ class SimpleMask(object):
     def read_data(self, fname=None, **kwargs):
         reader = read_raw_file(fname)
         if reader is None:
-            return
+            logger.error(f'failed to create a dataset handler for {fname}')
+            return False
 
         saxs = reader.get_scattering(**kwargs)
         if saxs is None:
-            print('cannot read the scattering data from raw data file.')
-            return
+            logger.error('failed to read scattering signal from the dataset.')
+            return False
 
         self.reader = reader
         self.meta = reader.load_meta()
@@ -239,6 +244,8 @@ class SimpleMask(object):
         self.data_raw[0] = self.saxs_log
         self.data_raw[1] = self.saxs_log * self.mask
         self.data_raw[2] = self.mask
+
+        return True 
 
     def compute_qmap(self):
         k0 = 2 * np.pi / (12.398 / self.meta['energy'])
@@ -364,6 +371,7 @@ class SimpleMask(object):
         if self.meta is None or self.data_raw is None:
             return
 
+        # ones = np.ones(self.data_raw[0].shape, dtype=np.bool)
         shape = self.data_raw[0].shape
         ones = np.ones((shape[0] + 1, shape[1] + 1), dtype=bool)
         mask_n = np.zeros_like(ones, dtype=bool)

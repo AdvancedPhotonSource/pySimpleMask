@@ -1,4 +1,3 @@
-
 import os
 import glob
 import h5py
@@ -9,16 +8,17 @@ from astropy.io import fits
 from skimage.io import imread
 from .reader.timepix_reader import get_saxs_mp as timepix_get_saxs
 from .reader.aps_reader import (HdfDataset, RigakuDataset, ImmDataset, 
-                                EsrfHdfDataset, RigakuSixDataset)
-import logging
+                                EsrfHdfDataset, Rigaku3MDataset)
 # from .reader.hdf2sax import hdf2saxs
+import logging
+
 
 logger = logging.getLogger(__name__)
 
 
 def get_file_type(fname):
     extname = os.path.splitext(fname)[-1]
-    if extname not in ('.hdf', '.h5', '.hdf5', '.imm', '.bin'):
+    if extname not in ('.hdf', '.h5', '.hdf5', '.imm', '.bin', '.000'):
         return 'unknown_type'
 
     file_format = magic.from_file(fname)
@@ -119,20 +119,24 @@ class APS8IDIReader(FileReader):
         self.ftype = 'Base Class'
 
         if fname.endswith('.bin'):
-            if fname[-9:-5] == 'part':
-                print("-----------.bin rigaku six------------")
-                self.handler = RigakuSixDataset(fname, batch_size=1000)
-            else:
-                print("-----------.bin rigaku one-----------")
-                self.handler = RigakuDataset(fname, batch_size=1000)
+            logger.info('Rigaku 500k dataset')
+            self.handler = RigakuDataset(fname, batch_size=1000)
+        elif fname.endswith('.bin.000'):
+            logger.info('Rigaku 3M (6 x 500K) dataset')
+            self.handler = Rigaku3MDataset(fname, batch_size=1000)
 
         elif fname.endswith('.imm'):
-            print("-----------.imm found.-----------")
+            logger.info('IMM dataset')
             self.handler = ImmDataset(fname, batch_size=100)
 
         elif fname.endswith('.h5') or fname.endswith('.hdf'):
-            print("-----------h5/hdf found.-----------")
+            logger.info('APS HDF dataset')
             self.handler = HdfDataset(fname, batch_size=100)
+        
+        else:
+            logger.error('Unsupported APS dataset')
+            return None
+
         self.shape = self.handler.det_size
 
     def get_scattering(self, **kwargs):
@@ -227,11 +231,12 @@ class FitsReader(FileReader):
 
 def read_raw_file(fname):
     ext_name = os.path.splitext(fname)[-1]
-    if ext_name in ('.hdf', '.h5', '.hdf5', '.imm', '.bin'):
+    logger.info(f'using file extension {ext_name}')
+    if ext_name in ('.hdf', '.h5', '.hdf5', '.imm', '.bin', '.000'):
         # exclude the hdf meta file; 
         ftype = get_file_type(fname)
         if ftype == 'aps_metadata':
-            print('please select the raw file not the meta file.')
+            logger.info('please select the raw file not the meta file.')
             return None 
         elif ftype in ['aps_hdf', 'aps_legacy']:
             return APS8IDIReader(fname)
@@ -243,6 +248,9 @@ def read_raw_file(fname):
         return FitsReader(fname)
     elif ext_name == '.raw':
         return TimePixRawReader(fname)
+    else:
+        logger.info(f'file format with {ext_name} is not supported')
+        return None
 
 
 if __name__ == '__main__':

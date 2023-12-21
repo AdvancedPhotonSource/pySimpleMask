@@ -45,7 +45,7 @@ class RigakuDataset(XpcsDataset):
         else:
             end_idx = total_frames 
 
-        saxs = np.array(smat[begin_idx:end_idx].sum(axis=0))
+        saxs = np.array(smat[begin_idx:end_idx].sum(axis=0)).astype(np.float32)
         saxs = saxs.reshape(self.det_size)
         return saxs
 
@@ -55,6 +55,10 @@ class RigakuDataset(XpcsDataset):
             d = convert_sparse(a)
             index, frame, count = d[0], d[1], d[2]
             frame_num = frame[-1] + 1
+
+        # fix Rigaku3m module index offset
+        if np.min(index) >= 1024 * 1024:
+            index -= 1024 * 1024
 
         # update frame_num and batch_num
         self.update_batch_info(frame_num)
