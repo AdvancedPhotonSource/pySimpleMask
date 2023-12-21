@@ -92,7 +92,7 @@ class MaskFile(MaskBase):
             except Exception:
                 print('cannot read the hdf file, check path')
         elif ext in ['.tiff', '.tif']:
-            mask = skio.imread(fname).astype(np.int)
+            mask = skio.imread(fname).astype(np.int64)
         else:
             print('only support tif and hdf file.')
 
