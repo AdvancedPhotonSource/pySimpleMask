@@ -79,7 +79,6 @@ class Rigaku3MDataset(XpcsDataset):
             scat_list.append(module.get_scattering(num_frames=num_frames,
                                                    begin_idx=begin_idx))
         saxs = self.patch_data(scat_list)
-        print('saxs min, max', np.nanmin(saxs), np.nanmax(saxs))
         return saxs
 
     def __getbatch__(self, idx):
