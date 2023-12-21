@@ -4,6 +4,10 @@ import hdf5plugin
 import numpy as np
 import skimage.io as skio
 import matplotlib.pyplot as plt
+import logging
+
+
+logger = logging.getLevelName(__name__)
 
 
 def create_qring(qmin, qmax, pmin, pmax, qnum=1, flag_const_width=True):
@@ -66,7 +70,6 @@ class MaskList(MaskBase):
         self.xylist = None
 
     def append_zero_pt(self, row, col):
-        print(self.zero_loc.shape)
         self.zero_loc = np.append(self.zero_loc,
                                   np.array([row, col]).reshape(2, 1), axis=1)
 
@@ -90,11 +93,11 @@ class MaskFile(MaskBase):
                 with h5py.File(fname, 'r') as f:
                     mask = f[key][()]
             except Exception:
-                print('cannot read the hdf file, check path')
+                logger.error('cannot read the hdf file, check path')
         elif ext in ['.tiff', '.tif']:
             mask = skio.imread(fname).astype(np.int64)
         else:
-            print('only support tif and hdf file.')
+            logger.error('only support tif and hdf file.')
 
         if mask is None:
             self.zero_loc = None

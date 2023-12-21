@@ -413,7 +413,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
                     x = json.load(f)
                 xy = []
                 for _, v in x.items():
-                    print(fname, v)
                     xy.append(v)
                 xy = np.array(xy)
 
