@@ -6,8 +6,8 @@ import traceback
 import numpy as np
 import pyqtgraph as pg
 
-from .simple_mask_ui import Ui_SimpleMask as Ui
-from .simple_mask_kernel import SimpleMask
+from .simplemask_ui import Ui_SimpleMask as Ui
+from .simplemask_kernel import SimpleMask
 from PyQt5.QtWidgets import QFileDialog, QApplication, QMainWindow, QHeaderView
 from .area_mask import create_qring
 from .table_model import QringTableModel
