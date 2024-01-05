@@ -1,4 +1,3 @@
-from select import select
 from PyQt5 import QtCore
 from PyQt5.QtCore import QModelIndex, Qt
 
