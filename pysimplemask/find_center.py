@@ -5,7 +5,6 @@ from skimage.filters import median
 from skimage.registration import phase_cross_correlation
 from scipy.interpolate import NearestNDInterpolator
 from scipy.ndimage import binary_dilation
-# import matplotlib.pyplot as plt
 
 
 def percentile_filter(img0, mask, percentile_range=(2.0, 98.0)):

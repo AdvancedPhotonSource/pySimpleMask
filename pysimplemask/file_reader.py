@@ -7,9 +7,8 @@ import hdf5plugin
 from astropy.io import fits
 from skimage.io import imread
 from .reader.timepix_reader import get_saxs_mp as timepix_get_saxs
-from .reader.aps_reader import (HdfDataset, RigakuDataset, ImmDataset, 
-                                EsrfHdfDataset, Rigaku3MDataset)
-# from .reader.hdf2sax import hdf2saxs
+from .reader.aps_reader import (HdfDataset, RigakuDataset, ImmDataset,
+                                Rigaku3MDataset)
 import logging
 
 
@@ -149,48 +148,48 @@ class APS8IDIReader(FileReader):
         return get_metadata(self.fname, self.shape)
 
 
-class EsrfReader(FileReader):
-    def __init__(self, fname) -> None:
-        super(EsrfReader, self).__init__(fname)
-        self.handler = None
-        self.ftype = 'ESRF HDF file'
-        self.handler = EsrfHdfDataset(fname)
-        self.shape = self.handler.det_size
-
-    def get_scattering(self, **kwargs):
-        return self.handler.get_scattering(**kwargs)
-    
-    def get_data(self, roi_list):
-        return self.handler.get_data(roi_list)
-
-    def load_meta(self):
-        keys = {
-        # 'ccdx': '/measurement/instrument/acquisition/stage_x',
-        # 'ccdx0': '/measurement/instrument/acquisition/stage_zero_x',
-        # 'ccdz': '/measurement/instrument/acquisition/stage_z',
-        # 'ccdz0': '/measurement/instrument/acquisition/stage_zero_z',
-        'datetime': '/entry_0000/start_time',
-        'energy': '/entry_0000/instrument/id02-eiger500k-saxs/header/WaveLength',
-        'det_dist': '/entry_0000/instrument/id02-eiger500k-saxs/header/SampleDistance',
-        'pix_dim': '/entry_0000/instrument/id02-eiger500k-saxs/header/PSize_1',
-        'bcx': '/entry_0000/instrument/id02-eiger500k-saxs/header/Center_1',
-        'bcy': '/entry_0000/instrument/id02-eiger500k-saxs/header/Center_2',
-        }
-
-        meta = {}
-        with h5py.File(self.fname, 'r') as f:
-            for key, val in keys.items():
-                val = f[val][()]
-                if isinstance(val, bytes) and key != 'datetime':
-                    val = float(val.decode())
-                if key == 'energy':
-                    val = 12.398e-10 / val
-                if key in ['det_dist', 'pix_dim']:
-                    val = val * 1000
-                meta[key] = val
-            meta['data_name'] = os.path.basename(self.fname).encode("ascii")
-
-        return meta
+# class EsrfReader(FileReader):
+#     def __init__(self, fname) -> None:
+#         super(EsrfReader, self).__init__(fname)
+#         self.handler = None
+#         self.ftype = 'ESRF HDF file'
+#         self.handler = EsrfHdfDataset(fname)
+#         self.shape = self.handler.det_size
+# 
+#     def get_scattering(self, **kwargs):
+#         return self.handler.get_scattering(**kwargs)
+#     
+#     def get_data(self, roi_list):
+#         return self.handler.get_data(roi_list)
+# 
+#     def load_meta(self):
+#         keys = {
+#         # 'ccdx': '/measurement/instrument/acquisition/stage_x',
+#         # 'ccdx0': '/measurement/instrument/acquisition/stage_zero_x',
+#         # 'ccdz': '/measurement/instrument/acquisition/stage_z',
+#         # 'ccdz0': '/measurement/instrument/acquisition/stage_zero_z',
+#         'datetime': '/entry_0000/start_time',
+#         'energy': '/entry_0000/instrument/id02-eiger500k-saxs/header/WaveLength',
+#         'det_dist': '/entry_0000/instrument/id02-eiger500k-saxs/header/SampleDistance',
+#         'pix_dim': '/entry_0000/instrument/id02-eiger500k-saxs/header/PSize_1',
+#         'bcx': '/entry_0000/instrument/id02-eiger500k-saxs/header/Center_1',
+#         'bcy': '/entry_0000/instrument/id02-eiger500k-saxs/header/Center_2',
+#         }
+# 
+#         meta = {}
+#         with h5py.File(self.fname, 'r') as f:
+#             for key, val in keys.items():
+#                 val = f[val][()]
+#                 if isinstance(val, bytes) and key != 'datetime':
+#                     val = float(val.decode())
+#                 if key == 'energy':
+#                     val = 12.398e-10 / val
+#                 if key in ['det_dist', 'pix_dim']:
+#                     val = val * 1000
+#                 meta[key] = val
+#             meta['data_name'] = os.path.basename(self.fname).encode("ascii")
+# 
+#         return meta
 
 
 class TiffReader(FileReader):
