@@ -33,6 +33,15 @@ class RigakuDataset(XpcsDataset):
         self.ifc, self.mem_addr = self.read_data()
         self.det_size = (512, 1024)
     
+    def get_scattering_bincount(self, num_frames=-1, begin_idx=0):
+        # import time
+        # print('using bincount')
+        # t0 = time.perf_counter()
+        saxs_1d = np.bincount(self.ifc[0], weights=self.ifc[2].astype(np.int64))
+        saxs = saxs_1d.reshape(self.det_size)
+        # print('time: ', time.perf_counter() - t0)
+        return saxs
+    
     def get_scattering(self, num_frames=-1, begin_idx=0):
         total_frames = self.ifc[1][-1] + 1
         smat = coo_matrix((self.ifc[2], (self.ifc[1], self.ifc[0])),
