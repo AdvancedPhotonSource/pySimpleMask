@@ -557,8 +557,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
         if self.MaskWidget.currentIndex() == 1:
-            color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
-                self.cb_selector_color.currentIndex()]
+            color = self.cb_selector_color.currentText()
             kwargs = {
                 'color': color,
                 'sl_type': self.cb_selector_type.currentText(),
