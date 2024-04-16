@@ -51,8 +51,8 @@ def compute_qmaps_reflection(meta):
     v = np.arange(meta['shape'][0], dtype=np.uint32) - meta['bcy']
     h = np.arange(meta['shape'][1], dtype=np.uint32) - meta['bcx']
 
-    v *= meta['pixel_size'] * (-1)
-    h *= meta['pixel_size']
+    v *= meta['pix_dim'] * (-1)
+    h *= meta['pix_dim']
 
     vg, hg = np.meshgrid(v, h, indexing='ij')
 
@@ -60,7 +60,7 @@ def compute_qmaps_reflection(meta):
     phi[phi < 0] = phi[phi < 0] + np.pi * 2.0
     phi = np.max(phi) - phi     # make it clockwise
 
-    alpha_i = np.deg2rad(meta['alpha_i_deg'])
+    alpha_i = np.deg2rad(meta['alpha_i'])
     alpha_f = np.arctan(vg / meta['det_dist'])
     tth = np.arctan(hg/ meta['det_dist'])
 
