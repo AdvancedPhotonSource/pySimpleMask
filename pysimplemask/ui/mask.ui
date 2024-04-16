@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1348</width>
-    <height>1027</height>
+    <height>905</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -88,6 +88,25 @@
            </item>
            <item row="1" column="0">
             <layout class="QHBoxLayout" name="horizontalLayout">
+             <item>
+              <widget class="QComboBox" name="beamline">
+               <item>
+                <property name="text">
+                 <string>APS-8ID-I</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>APS-9ID</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>APS-12ID</string>
+                </property>
+               </item>
+              </widget>
+             </item>
              <item>
               <widget class="QLabel" name="label_9">
                <property name="text">
@@ -766,7 +785,7 @@
               </sizepolicy>
              </property>
              <property name="currentIndex">
-              <number>1</number>
+              <number>2</number>
              </property>
              <widget class="QWidget" name="tab_6">
               <attribute name="title">
@@ -1260,6 +1279,9 @@
                  <layout class="QGridLayout" name="gridLayout_15">
                   <item row="0" column="3">
                    <widget class="QDoubleSpinBox" name="binary_threshold_high">
+                    <property name="decimals">
+                     <number>3</number>
+                    </property>
                     <property name="maximum">
                      <double>9999.000000000000000</double>
                     </property>
@@ -1280,6 +1302,12 @@
                   </item>
                   <item row="0" column="1">
                    <widget class="QDoubleSpinBox" name="binary_threshold_low">
+                    <property name="decimals">
+                     <number>3</number>
+                    </property>
+                    <property name="minimum">
+                     <double>-10000.000000000000000</double>
+                    </property>
                     <property name="maximum">
                      <double>10000.000000000000000</double>
                     </property>

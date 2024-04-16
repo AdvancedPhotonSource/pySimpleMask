@@ -8,6 +8,7 @@ from .pyqtgraph_mod import LineROI
 from .file_reader import read_raw_file
 import skimage.io as skio
 import logging
+from scattering_geometry import get_scattering_geometry
 
 pg.setConfigOptions(imageAxisOrder='row-major')
 
@@ -248,36 +249,8 @@ class SimpleMask(object):
         return True 
 
     def compute_qmap(self):
-        k0 = 2 * np.pi / (12.398 / self.meta['energy'])
-        v = np.arange(self.shape[0], dtype=np.uint32) - self.meta['bcy']
-        h = np.arange(self.shape[1], dtype=np.uint32) - self.meta['bcx']
-        vg, hg = np.meshgrid(v, h, indexing='ij')
-
-        r = np.sqrt(vg * vg + hg * hg) * self.meta['pix_dim']
-        # phi = np.arctan2(vg, hg)
-        # to be compatible with matlab xpcs-gui; phi = 0 starts at 6 clock
-        # and it goes clockwise;
-        phi = np.arctan2(hg, vg)
-        phi[phi < 0] = phi[phi < 0] + np.pi * 2.0
-        phi = np.max(phi) - phi     # make it clockwise
-
-        alpha = np.arctan(r / self.meta['det_dist'])
-        qr = np.sin(alpha) * k0
-        qr = 2 * np.sin(alpha / 2) * k0
-        qx = qr * np.cos(phi)
-        qy = qr * np.sin(phi)
-
-        phi = np.rad2deg(phi)
-
-        # keep phi and q as np.float64 to keep the precision.
-        qmap = {
-            'phi': phi,
-            'alpha': alpha.astype(np.float32),
-            'q': qr,
-            'qx': qx.astype(np.float32),
-            'qy': qy.astype(np.float32)
-        }
-
+        sg_type = self.meta['sg_type']
+        qmap = get_scattering_geometry(sg_type, self.meta)
         return qmap
 
     def get_qp_value(self, x, y):
