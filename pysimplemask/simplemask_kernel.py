@@ -5,10 +5,10 @@ from pyqtgraph.Qt import QtCore
 from .area_mask import MaskAssemble
 from .find_center import find_center
 from .pyqtgraph_mod import LineROI
-from .file_reader import read_raw_file
+from .reader import APS9IDCReader, APS8IDIReader 
 import skimage.io as skio
 import logging
-from scattering_geometry import get_scattering_geometry
+from .scattering_geometry import get_scattering_geometry
 
 pg.setConfigOptions(imageAxisOrder='row-major')
 
@@ -198,17 +198,27 @@ class SimpleMask(object):
                 if key in ['datetime', 'energy', 'det_dist', 'pix_dim', 'bcx',
                            'bcy', 'saxs']:
                     continue
-                val = np.array(val)
-                if val.size == 1:
-                    val = val.reshape(1, 1)
+
+                if isinstance(val, str):
+                    val = val.encode("ascii")
+                else:
+                    val = np.array(val)
+                    if val.size == 1:
+                        val = val.reshape(1, 1)
+
                 data.create_dataset(key, data=val)
-        print('partition map is saved')
+        logger.info('partition map is saved')
 
     # generate 2d saxs
-    def read_data(self, fname=None, **kwargs):
-        reader = read_raw_file(fname)
-        if reader is None:
+    def read_data(self, fname=None, beamline='APS-8ID-I', plot_index_hdl=None,
+                  **kwargs):
+        if beamline == 'APS-8ID-I':
+            reader = APS8IDIReader(fname)
+        elif beamline == 'APS-9ID-C':
+            reader = APS9IDCReader(fname)
+        else:
             logger.error(f'failed to create a dataset handler for {fname}')
+            # raise ValueError(f'beamline [{beamline}] not supported')
             return False
 
         saxs = reader.get_scattering(**kwargs)
@@ -216,11 +226,11 @@ class SimpleMask(object):
             logger.error('failed to read scattering signal from the dataset.')
             return False
 
-        self.reader = reader
         self.meta = reader.load_meta()
 
         # keep same
-        self.data_raw = np.zeros(shape=(6, *saxs.shape))
+        # self.data_raw = np.zeros(shape=(6, *saxs.shape))
+        self.data_raw = np.zeros(shape=(16, *saxs.shape))
         self.mask = np.ones(saxs.shape, dtype=bool)
 
         saxs_nonzero = saxs[saxs > 0]
@@ -237,6 +247,12 @@ class SimpleMask(object):
         # reset the qrings after data loading
         self.qrings = []
         self.qmap = self.compute_qmap()
+
+        for n, (key, val) in enumerate(self.qmap.items()):
+            self.data_raw[n + 6] = val
+            if plot_index_hdl is not None:
+                plot_index_hdl.addItem(f'qmap: {key}')
+
         self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
         self.mask_kernel.update_qmap(self.qmap)
         self.extent = self.compute_extent()
