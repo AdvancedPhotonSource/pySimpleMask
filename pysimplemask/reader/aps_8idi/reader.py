@@ -43,8 +43,11 @@ def get_fake_metadata(shape):
         'det_dist': 7800,       # mm
         'pix_dim': 55e-3,       # mm
         'bcx': shape[1] // 2.0,
-        'bcy': shape[0] // 2.0
+        'bcy': shape[0] // 2.0,
+        'sg_type': 'transmission',
+        'shape': shape
     }
+
     return metadata
 
 
@@ -87,6 +90,11 @@ def get_metadata(fname, shape):
     meta['bcy'] = meta['bcy0'] + (ccdz - ccdz0) / meta['pix_dim']
     meta.pop('bcx0', None)
     meta.pop('bcy0', None)
+
+    # scattering geometry
+    meta['sg_type'] = 'transmission'
+    meta['shape'] = shape
+
     return meta
 
 

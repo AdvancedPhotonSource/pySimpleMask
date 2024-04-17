@@ -2,6 +2,7 @@ import numpy as np
 import h5py
 import hdf5plugin
 import logging
+import datetime
 from ..file_reader import FileReader
 
 
@@ -19,6 +20,7 @@ def get_fake_metadata(shape):
         'bcx': shape[1] // 2.0,
         'bcy': shape[0] // 2.0
     }
+    meta['datetime'] = str(datetime.datetime.now())
     return metadata
 
 
@@ -48,6 +50,13 @@ def get_metadata(fname):
     meta['bcy'] = meta['bc'][1] + (ccdz - ccdz0) / meta['pix_dim']
     meta.pop('bc', None)
 
+    # scattering geometry
+    meta['sg_type'] = 'reflection'
+    meta['datetime'] = str(datetime.datetime.now())
+    
+    for key in ['det_dist', 'pix_dim']:
+        meta[key] *= 1000
+
     return meta
 
 
@@ -57,12 +66,12 @@ class APS9IDCReader(FileReader):
         self.handler = None
         self.ftype = 'Base Class'
 
-    def get_scattering(self, start=0, count=-1):
+    def get_scattering(self, begin_idx=0, num_frames=-1):
         with h5py.File(self.fname, 'r') as f:
             dset = f['/entry/data/data']
-            if count <= 0:
-                count= dset.shape[0]
-            sl = slice(start, min(start + count, dset.shape[0]))
+            if num_frames <= 0:
+                num_frames= dset.shape[0]
+            sl = slice(begin_idx, min(begin_idx + num_frames, dset.shape[0]))
             data = dset[sl].sum(axis=0).astype(np.float32)
         return data
     
