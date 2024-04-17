@@ -1,6 +1,14 @@
 import numpy as np
 
 
+def to_single_precision(qmap):
+    for k, v in qmap.items():
+        if v.dtype == np.float64:
+            qmap[k] = v.astype(np.float32)
+        elif v.dtype in [np.int64, np.uint64]:
+            qmap[k] = v.astype(np.uint32)
+    return qmap
+
 
 def get_scattering_geometry(sg_type='transmission', metadata=None):
     if sg_type == 'transmission':
@@ -31,19 +39,18 @@ def compute_qmaps_transmission(meta):
     qx = qr * np.cos(phi)
     qy = qr * np.sin(phi)
 
-    phi = np.rad2deg(phi)
-
     # keep phi and q as np.float64 to keep the precision.
     qmap = {
-        'phi': phi,
-        'alpha': alpha.astype(np.float32),
         'q': qr,
-        'qx': qx.astype(np.float32),
-        'qy': qy.astype(np.float32)
+        'phi': np.rad2deg(phi),
+        'qx': qx,
+        'qy': qy,
+        'alpha': np.rad2deg(alpha),
+        'x': hg,
+        'y': vg
     }
-
+    qmap = to_single_precision(qmap)
     return qmap
-
 
 
 def compute_qmaps_reflection(meta):
@@ -51,18 +58,16 @@ def compute_qmaps_reflection(meta):
     v = np.arange(meta['shape'][0], dtype=np.uint32) - meta['bcy']
     h = np.arange(meta['shape'][1], dtype=np.uint32) - meta['bcx']
 
-    v *= meta['pix_dim'] * (-1)
-    h *= meta['pix_dim']
-
+    v = v * (-1)
     vg, hg = np.meshgrid(v, h, indexing='ij')
 
     phi = np.arctan2(hg, vg)
-    phi[phi < 0] = phi[phi < 0] + np.pi * 2.0
-    phi = np.max(phi) - phi     # make it clockwise
+    # phi[phi < 0] = phi[phi < 0] + np.pi * 2.0
+    phi = np.pi / 2.0 - phi     # make it clockwise
 
     alpha_i = np.deg2rad(meta['alpha_i'])
-    alpha_f = np.arctan(vg / meta['det_dist'])
-    tth = np.arctan(hg/ meta['det_dist'])
+    alpha_f = np.arctan(vg * meta['pix_dim'] / meta['det_dist'])
+    tth = np.arctan(hg * meta['pix_dim'] / meta['det_dist'])
 
     qx = k0 * (np.cos(alpha_f) * np.cos(tth) - np.cos(alpha_i))
     qy = k0 * (np.cos(alpha_f) * np.sin(tth))
@@ -70,19 +75,21 @@ def compute_qmaps_reflection(meta):
 
     qr = np.hypot(qx, qy)
     q = np.hypot(qr, qz)
-    phi = np.rad2deg(phi)
-    chi = np.rad2deg(np.arccos(qz / q))
+    chi = np.arccos(qz / q)
 
     # keep phi and q as np.float64 to keep the precision.
     qmap = {
         'q': q,
-        'phi': phi,
-        'qx': qx.astype(np.float32),
-        'qy': qy.astype(np.float32),
-        'qz': qz.astype(np.float32),
-        'tth': tth.astype(np.float32),
-        'alpha_f': alpha_f.astype(np.float32),
-        'chi': chi
+        'phi': np.rad2deg(phi),
+        'qx': qx,
+        'qy': qy,
+        'qz': qz,
+        'tth': tth,
+        'alpha_f': np.rad2deg(alpha_f),
+        'chi': np.rad2deg(chi),
+        'x': hg,
+        'y': vg
     }
+    qmap = to_single_precision(qmap)
 
     return qmap
