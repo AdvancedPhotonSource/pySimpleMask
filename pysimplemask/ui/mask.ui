@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1348</width>
+    <width>1490</width>
     <height>905</height>
    </rect>
   </property>
@@ -89,7 +89,7 @@
            <item row="1" column="0">
             <layout class="QHBoxLayout" name="horizontalLayout">
              <item>
-              <widget class="QComboBox" name="beamline">
+              <widget class="QComboBox" name="cb_beamline">
                <item>
                 <property name="text">
                  <string>APS-8ID-I</string>
@@ -97,12 +97,17 @@
                </item>
                <item>
                 <property name="text">
-                 <string>APS-9ID</string>
+                 <string>APS-9ID-C</string>
                 </property>
                </item>
                <item>
                 <property name="text">
-                 <string>APS-12ID</string>
+                 <string>APS-12ID-B</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>NativeTypes</string>
                 </property>
                </item>
               </widget>
@@ -154,7 +159,7 @@
             </layout>
            </item>
            <item row="2" column="0">
-            <widget class="QTabWidget" name="tabWidget_2">
+            <widget class="QTabWidget" name="metaTab">
              <property name="enabled">
               <bool>true</bool>
              </property>
@@ -165,7 +170,7 @@
               </sizepolicy>
              </property>
              <property name="currentIndex">
-              <number>0</number>
+              <number>1</number>
              </property>
              <widget class="QWidget" name="tab">
               <attribute name="title">
@@ -301,7 +306,7 @@
                 </widget>
                </item>
                <item row="0" column="1">
-                <widget class="QDoubleSpinBox" name="db_cenx">
+                <widget class="QDoubleSpinBox" name="db_bcx">
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
@@ -330,7 +335,7 @@
                 </widget>
                </item>
                <item row="0" column="4">
-                <widget class="QDoubleSpinBox" name="db_ceny">
+                <widget class="QDoubleSpinBox" name="db_bcy">
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
@@ -380,11 +385,6 @@
                </item>
               </layout>
              </widget>
-             <widget class="QWidget" name="tab_7">
-              <attribute name="title">
-               <string>Wide Angle</string>
-              </attribute>
-             </widget>
              <widget class="QWidget" name="tab_8">
               <attribute name="title">
                <string>Grazing Incidence</string>
@@ -404,7 +404,7 @@
                 </widget>
                </item>
                <item row="0" column="1">
-                <widget class="QDoubleSpinBox" name="db_cenx_3">
+                <widget class="QDoubleSpinBox" name="db_bcx_1">
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
@@ -446,7 +446,7 @@
                 </widget>
                </item>
                <item row="0" column="4">
-                <widget class="QDoubleSpinBox" name="db_ceny_3">
+                <widget class="QDoubleSpinBox" name="db_bcy_1">
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
@@ -475,7 +475,7 @@
                 </widget>
                </item>
                <item row="1" column="1">
-                <widget class="QDoubleSpinBox" name="db_energy_3">
+                <widget class="QDoubleSpinBox" name="db_energy_1">
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
@@ -498,7 +498,7 @@
                 </widget>
                </item>
                <item row="1" column="4">
-                <widget class="QDoubleSpinBox" name="db_det_dist_3">
+                <widget class="QDoubleSpinBox" name="db_det_dist_1">
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
@@ -524,7 +524,7 @@
                 </widget>
                </item>
                <item row="2" column="1">
-                <widget class="QDoubleSpinBox" name="db_pix_dim_3">
+                <widget class="QDoubleSpinBox" name="db_pix_dim_1">
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
@@ -547,7 +547,7 @@
                 </widget>
                </item>
                <item row="2" column="4">
-                <widget class="QLineEdit" name="le_shape_3">
+                <widget class="QLineEdit" name="le_shape_1">
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
@@ -573,7 +573,7 @@
                 </widget>
                </item>
                <item row="3" column="1">
-                <widget class="QDoubleSpinBox" name="det_yaw_3">
+                <widget class="QDoubleSpinBox" name="alpha_i_1">
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
@@ -597,6 +597,11 @@
                 </widget>
                </item>
               </layout>
+             </widget>
+             <widget class="QWidget" name="tab_7">
+              <attribute name="title">
+               <string>Wide Angle</string>
+              </attribute>
              </widget>
             </widget>
            </item>
@@ -785,7 +790,7 @@
               </sizepolicy>
              </property>
              <property name="currentIndex">
-              <number>2</number>
+              <number>6</number>
              </property>
              <widget class="QWidget" name="tab_6">
               <attribute name="title">
@@ -1042,21 +1047,21 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="2" column="0">
-                   <spacer name="verticalSpacer_2">
-                    <property name="orientation">
-                     <enum>Qt::Vertical</enum>
-                    </property>
-                    <property name="sizeHint" stdset="0">
-                     <size>
-                      <width>20</width>
-                      <height>50</height>
-                     </size>
-                    </property>
-                   </spacer>
-                  </item>
                  </layout>
                 </widget>
+               </item>
+               <item row="2" column="0">
+                <spacer name="verticalSpacer_2">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>50</height>
+                  </size>
+                 </property>
+                </spacer>
                </item>
               </layout>
              </widget>
@@ -2260,7 +2265,13 @@
             </widget>
            </item>
            <item row="0" column="2">
-            <widget class="QLineEdit" name="infobar"/>
+            <widget class="QLineEdit" name="infobar">
+             <property name="font">
+              <font>
+               <family>Courier New</family>
+              </font>
+             </property>
+            </widget>
            </item>
            <item row="1" column="0" colspan="3">
             <widget class="ImageViewROI" name="mp1" native="true">
@@ -2308,21 +2319,31 @@
               <layout class="QGridLayout" name="gridLayout_32">
                <item row="0" column="0">
                 <layout class="QGridLayout" name="gridLayout_6">
+                 <item row="2" column="1" rowspan="2">
+                  <widget class="QLineEdit" name="le_qmap_range1">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                  </widget>
+                 </item>
                  <item row="0" column="1">
-                  <widget class="QLabel" name="label">
+                  <widget class="QLabel" name="label_44">
                    <property name="text">
-                    <string>static q partition:</string>
+                    <string>Value Range: [min, max]</string>
                    </property>
                   </widget>
                  </item>
-                 <item row="2" column="1">
-                  <widget class="QLabel" name="label_20">
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="label_39">
                    <property name="text">
-                    <string>Style:</string>
+                    <string>qmap</string>
                    </property>
                   </widget>
                  </item>
-                 <item row="0" column="4">
+                 <item row="2" column="0" rowspan="2">
+                  <widget class="QComboBox" name="cb_qmap_axis1"/>
+                 </item>
+                 <item row="1" column="3">
                   <widget class="QSpinBox" name="sb_dqnum">
                    <property name="minimum">
                     <number>1</number>
@@ -2335,14 +2356,21 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="1" column="3">
-                  <widget class="QLabel" name="label_13">
+                 <item row="0" column="3">
+                  <widget class="QLabel" name="label_10">
                    <property name="text">
-                    <string>dynamic phi partition:</string>
+                    <string>dynamic bins</string>
                    </property>
                   </widget>
                  </item>
-                 <item row="1" column="2">
+                 <item row="1" column="1">
+                  <widget class="QLineEdit" name="le_qmap_range0">
+                   <property name="enabled">
+                    <bool>false</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="2" rowspan="2">
                   <widget class="QSpinBox" name="sb_spnum">
                    <property name="minimum">
                     <number>1</number>
@@ -2355,40 +2383,28 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="0" column="3">
-                  <widget class="QLabel" name="label_10">
+                 <item row="2" column="4" rowspan="2">
+                  <widget class="QComboBox" name="partition_style1">
+                   <item>
+                    <property name="text">
+                     <string>linear</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>logarithmic</string>
+                    </property>
+                   </item>
+                  </widget>
+                 </item>
+                 <item row="0" column="4">
+                  <widget class="QLabel" name="label_20">
                    <property name="text">
-                    <string>dynamic q partition:</string>
+                    <string>Style</string>
                    </property>
                   </widget>
                  </item>
                  <item row="1" column="4">
-                  <widget class="QSpinBox" name="sb_dpnum">
-                   <property name="minimum">
-                    <number>1</number>
-                   </property>
-                   <property name="maximum">
-                    <number>999</number>
-                   </property>
-                   <property name="value">
-                    <number>1</number>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="2">
-                  <widget class="QSpinBox" name="sb_sqnum">
-                   <property name="minimum">
-                    <number>2</number>
-                   </property>
-                   <property name="maximum">
-                    <number>9999</number>
-                   </property>
-                   <property name="value">
-                    <number>360</number>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="2">
                   <widget class="QComboBox" name="partition_style">
                    <item>
                     <property name="text">
@@ -2402,12 +2418,41 @@
                    </item>
                   </widget>
                  </item>
-                 <item row="1" column="1">
-                  <widget class="QLabel" name="label_12">
-                   <property name="text">
-                    <string>static phi partition:</string>
+                 <item row="1" column="2">
+                  <widget class="QSpinBox" name="sb_sqnum">
+                   <property name="minimum">
+                    <number>2</number>
+                   </property>
+                   <property name="maximum">
+                    <number>9999</number>
+                   </property>
+                   <property name="value">
+                    <number>360</number>
                    </property>
                   </widget>
+                 </item>
+                 <item row="0" column="2">
+                  <widget class="QLabel" name="label">
+                   <property name="text">
+                    <string>static bins</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="3" rowspan="2">
+                  <widget class="QSpinBox" name="sb_dpnum">
+                   <property name="minimum">
+                    <number>1</number>
+                   </property>
+                   <property name="maximum">
+                    <number>999</number>
+                   </property>
+                   <property name="value">
+                    <number>1</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QComboBox" name="cb_qmap_axis0"/>
                  </item>
                 </layout>
                </item>
@@ -2506,13 +2551,6 @@
              </widget>
             </widget>
            </item>
-           <item row="1" column="1">
-            <widget class="QPushButton" name="btn_compute_qpartition">
-             <property name="text">
-              <string>compute</string>
-             </property>
-            </widget>
-           </item>
           </layout>
          </widget>
         </item>
@@ -2528,27 +2566,7 @@
            <string>Output</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_7">
-           <item row="0" column="3">
-            <spacer name="horizontalSpacer_4">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>171</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
            <item row="0" column="2">
-            <widget class="QPushButton" name="pushButton">
-             <property name="text">
-              <string>save</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
             <widget class="QComboBox" name="comboBox_2">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -2573,6 +2591,13 @@
              </item>
             </widget>
            </item>
+           <item row="0" column="3">
+            <widget class="QPushButton" name="pushButton">
+             <property name="text">
+              <string>save</string>
+             </property>
+            </widget>
+           </item>
            <item row="0" column="0">
             <spacer name="horizontalSpacer_5">
              <property name="orientation">
@@ -2585,6 +2610,26 @@
               </size>
              </property>
             </spacer>
+           </item>
+           <item row="0" column="4">
+            <spacer name="horizontalSpacer_4">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>171</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="0" column="1">
+            <widget class="QPushButton" name="btn_compute_qpartition">
+             <property name="text">
+              <string>compute</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -2625,12 +2670,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>243</x>
-     <y>663</y>
+     <x>342</x>
+     <y>688</y>
     </hint>
     <hint type="destinationlabel">
-     <x>162</x>
-     <y>721</y>
+     <x>188</x>
+     <y>767</y>
     </hint>
    </hints>
   </connection>
@@ -2641,14 +2686,17 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>330</x>
-     <y>663</y>
+     <x>342</x>
+     <y>688</y>
     </hint>
     <hint type="destinationlabel">
-     <x>402</x>
-     <y>743</y>
+     <x>399</x>
+     <y>767</y>
     </hint>
    </hints>
   </connection>
  </connections>
+ <slots>
+  <signal>update_axis_vrange()</signal>
+ </slots>
 </ui>
