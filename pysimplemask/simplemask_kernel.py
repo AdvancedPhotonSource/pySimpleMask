@@ -210,8 +210,7 @@ class SimpleMask(object):
         logger.info('partition map is saved')
 
     # generate 2d saxs
-    def read_data(self, fname=None, beamline='APS-8ID-I', plot_index_hdl=None,
-                  **kwargs):
+    def read_data(self, fname=None, beamline='APS-8ID-I', **kwargs):
         if beamline == 'APS-8ID-I':
             reader = APS8IDIReader(fname)
         elif beamline == 'APS-9ID-C':
@@ -248,11 +247,6 @@ class SimpleMask(object):
         self.qrings = []
         self.qmap = self.compute_qmap()
 
-        for n, (key, val) in enumerate(self.qmap.items()):
-            self.data_raw[n + 6] = val
-            if plot_index_hdl is not None:
-                plot_index_hdl.addItem(f'qmap: {key}')
-
         self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
         self.mask_kernel.update_qmap(self.qmap)
         self.extent = self.compute_extent()
@@ -267,7 +261,16 @@ class SimpleMask(object):
     def compute_qmap(self):
         sg_type = self.meta['sg_type']
         qmap = get_scattering_geometry(sg_type, self.meta)
+        for n, (_, val) in enumerate(qmap.items()):
+            self.data_raw[n + 6] = val
         return qmap
+    
+    def get_qmap_vrange(self, target='q'):
+        if self.qmap is None or target not in self.qmap.keys():
+            return None
+        else:
+            xmap = self.qmap[target]
+            return np.nanmin(xmap), np.nanmax(xmap)
 
     def get_qp_value(self, x, y):
         x = int(x)
@@ -760,11 +763,8 @@ class SimpleMask(object):
         self.new_partition = partition
         return partition
 
-    def update_parameters(self, val):
-        assert(len(val) == 5)
-        for idx, key in enumerate(
-                ['bcx', 'bcy', 'energy', 'pix_dim', 'det_dist']):
-            self.meta[key] = val[idx]
+    def update_parameters(self, val_dict):
+        self.meta.update(val_dict)
         self.qmap = self.compute_qmap()
         self.mask_kernel.update_qmap(self.qmap)
 

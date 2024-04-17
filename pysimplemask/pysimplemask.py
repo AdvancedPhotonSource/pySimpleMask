@@ -137,6 +137,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_qring_add3.clicked.connect(
             lambda: self.mask_qring_list_add('file'))
         self.btn_mask_qring_clear.clicked.connect(self.clear_qring_list)
+        self.cb_qmap_axis0.currentTextChanged.connect(
+            lambda: self.update_axis_vrange(0))
+        self.cb_qmap_axis1.currentTextChanged.connect(
+            lambda: self.update_axis_vrange(1))
 
         # tab correlation
         self.btn_mask_draw_add_corr.clicked.connect(self.add_drawing)
@@ -487,6 +491,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         if direction == 'gui->file':
             values = {} 
+            pv.pop('shape', None)
             for k, v in pv.items():
                 values[k] = v.value()
             if swapxy:
@@ -505,6 +510,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 else:
                     pv[k].setValue(v)
 
+        self.update_qmap_info()
         self.groupBox.repaint()
         self.plot()
 
@@ -557,10 +563,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.statusbar.showMessage('loading data...', 120000)
         self.centralwidget.repaint()
 
-        # resize plot-index
-        while self.plot_index.count() > 6:
-            self.plot_index.removeItem(6)
-        
         fname = self.fname.text()
         kwargs = {
             'begin_idx': self.spinBox_3.value(),
@@ -573,8 +575,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         self.metaTab.setCurrentIndex(default_sg_idx)
 
-        if not self.sm.read_data(fname, plot_index_hdl=self.plot_index,
-                                 **kwargs):
+        if not self.sm.read_data(fname, **kwargs):
             return
 
         self.update_metadata(direction='file->gui')
@@ -631,6 +632,35 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def perform_correlation(self):
         angle = 2 * np.pi / self.angle_n_corr.value()
         self.sm.perform_correlation(angle)
+
+    def update_axis_vrange(self, index=0):
+        if index == 0:
+            target = self.cb_qmap_axis0.currentText()
+            vrange = self.sm.get_qmap_vrange(target)
+            if vrange is not None:
+                self.le_qmap_range0.setText(f'{vrange[0]:.4e}, {vrange[1]:.4e}')
+        elif index == 1:
+            target = self.cb_qmap_axis1.currentText()
+            vrange = self.sm.get_qmap_vrange(target)
+            if vrange is not None:
+                self.le_qmap_range1.setText(f'{vrange[0]:.4e}, {vrange[1]:.4e}')
+    
+    def update_qmap_info(self, default_qmap=('q', 'phi')):
+        axis_list = (self.cb_qmap_axis0, self.cb_qmap_axis1)
+        for hdl in axis_list:
+            while hdl.count() > 0:
+                hdl.removeItem(0)
+
+        while self.plot_index.count() > 6:
+            self.plot_index.removeItem(6)
+
+        for n, (key, val) in enumerate(self.sm.qmap.items()):
+            self.sm.data_raw[n + 6] = val
+            self.plot_index.addItem(f'qmap: {key}')
+            for hdl in axis_list:
+                hdl.addItem(f'{key}')
+        for axis, name in zip(axis_list, default_qmap):
+            axis.setCurrentText(name)
 
     def compute_partition(self):
         if not self.is_ready():
