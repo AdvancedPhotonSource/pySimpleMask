@@ -61,9 +61,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_compute_qpartition.clicked.connect(self.compute_partition)
         self.btn_select_raw.clicked.connect(self.select_raw)
         # self.btn_select_txt.clicked.connect(self.select_txt)
-        self.btn_update_parameters.clicked.connect(self.update_parameters)
+        self.btn_update_parameters.clicked.connect(self.update_metadata)
         self.btn_swapxy.clicked.connect(
-            lambda: self.update_parameters(swapxy=True))
+            lambda: self.update_metadata(swapxy=True))
 
         self.btn_find_center.clicked.connect(self.find_center)
 
@@ -170,6 +170,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.load_default_settings()
         self.load_last_config()
         self.show()
+        # self.plot_index.addItem('helloworld')
 
     def load_default_settings(self):
         # copy the default values
@@ -279,11 +280,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.statusbar.showMessage('Failed to find center. Abort', 2000)
         else:
             cen_old = (
-                self.db_cenx.value(), self.db_ceny.value()
+                self.db_bcx.value(), self.db_bcy.value()
             )
-            self.db_cenx.setValue(center[1])
-            self.db_ceny.setValue(center[0])
-            self.update_parameters()
+            self.db_bcx.setValue(center[1])
+            self.db_bcy.setValue(center[0])
+            self.update_metadata(direction='gui->file')
             cen_new = (round(center[1], 4), round(center[0], 4))
             logger.info(f'found center: {cen_old} --> {cen_new}')
         finally:
@@ -455,21 +456,55 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return False
         return True
 
-    def update_parameters(self, swapxy=False):
+    def update_metadata(self, swapxy=False, direction='gui->file'):
         if not self.is_ready():
             return
+        
+        sg_idx = self.metaTab.currentIndex()
 
-        pvs = (self.db_cenx, self.db_ceny, self.db_energy, self.db_pix_dim,
-               self.db_det_dist)
-        values = []
-        for pv in pvs:
-            values.append(pv.value())
-        if swapxy:
-            y, x = values[0], values[1]
-            values[0], values[1] = x, y
-            self.db_cenx.setValue(x)
-            self.db_ceny.setValue(y)
-        self.sm.update_parameters(values)
+        if sg_idx == 0:
+            pv = {
+                'energy': self.db_energy, 
+                'det_dist': self.db_det_dist, 
+                'pix_dim': self.db_pix_dim,
+                'bcx': self.db_bcx, 
+                'bcy': self.db_bcy,
+                'shape': self.le_shape,
+                }
+        elif sg_idx == 1:
+            pv = {
+                'energy': self.db_energy_1, 
+                'det_dist': self.db_det_dist_1, 
+                'pix_dim': self.db_pix_dim_1,
+                'bcx': self.db_bcx_1, 
+                'bcy': self.db_bcy_1,
+                'shape': self.le_shape_1,
+                'alpha_i': self.alpha_i_1,
+                }
+        else:
+            logger.error(f'{sg_idx=} not implemented')
+            return
+
+        if direction == 'gui->file':
+            values = {} 
+            for k, v in pv.items():
+                values[k] = v.value()
+            if swapxy:
+                x, y = values['bcx'], values['bcy']
+                values['bcx'], values['bcy'] = y, x 
+                pv['bcx'].setValue(y)
+                pv['bcy'].setValue(x)
+            self.sm.update_parameters(values)
+
+        elif direction == 'file->gui':
+            for k, v in self.sm.meta.items():
+                if k not in pv.keys():
+                    continue
+                if k == 'shape':
+                    pv[k].setText(str(v))
+                else:
+                    pv[k].setValue(v)
+
         self.groupBox.repaint()
         self.plot()
 
@@ -521,23 +556,28 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_load.setText('loading...')
         self.statusbar.showMessage('loading data...', 120000)
         self.centralwidget.repaint()
+
+        # resize plot-index
+        while self.plot_index.count() > 6:
+            self.plot_index.removeItem(6)
         
         fname = self.fname.text()
         kwargs = {
             'begin_idx': self.spinBox_3.value(),
-            'num_frames': self.spinBox_4.value()
+            'num_frames': self.spinBox_4.value(),
+            'beamline': str(self.cb_beamline.currentText())
         }
-        if not self.sm.read_data(fname, **kwargs):
+        default_sg_idx = {'APS-8ID-I': 0,
+                          'APS-9ID-C': 1,
+                          'APS-12ID-B': 2}[kwargs['beamline']]
+
+        self.metaTab.setCurrentIndex(default_sg_idx)
+
+        if not self.sm.read_data(fname, plot_index_hdl=self.plot_index,
+                                 **kwargs):
             return
 
-        self.db_cenx.setValue(self.sm.meta['bcx'])
-        self.db_ceny.setValue(self.sm.meta['bcy'])
-        self.db_energy.setValue(self.sm.meta['energy'])
-        self.db_pix_dim.setValue(self.sm.meta['pix_dim'])
-        self.db_det_dist.setValue(self.sm.meta['det_dist'])
-        self.le_shape.setText(str(self.sm.shape))
-        self.groupBox.repaint()
-        self.plot()
+        self.update_metadata(direction='file->gui')
         self.statusbar.showMessage('data is loaded', 500)
         self.btn_load.setText('load data')
         self.btn_load.repaint()
