@@ -8,9 +8,8 @@ import pyqtgraph as pg
 
 from .simplemask_ui import Ui_SimpleMask as Ui
 from .simplemask_kernel import SimpleMask
-from PyQt5.QtWidgets import QFileDialog, QApplication, QMainWindow, QHeaderView
-from .area_mask import create_qring
-from .table_model import QringTableModel
+from PyQt5.QtWidgets import QFileDialog, QApplication, QMainWindow
+from PyQt5 import QtWidgets
 
 
 home_dir = os.path.join(os.path.expanduser('~'), '.simple-mask')
@@ -48,6 +47,41 @@ def text_to_array(pts, dtype=np.int64):
     pts = np.array(pts).astype(dtype)
 
     return pts
+
+
+def get_widget_value(widget, index=False):
+    if isinstance(widget, QtWidgets.QComboBox):
+        if index:
+            return widget.currentIndex()
+        else:
+            return widget.currentText()
+    elif isinstance(widget, (QtWidgets.QSpinBox, QtWidgets.QDoubleSpinBox)):
+        return widget.value()
+    elif isinstance(widget, (QtWidgets.QLineEdit, QtWidgets.QLabel)):
+        return widget.text()
+    elif isinstance(widget, (QtWidgets.QCheckBox, QtWidgets.QRadioButton)):
+        return widget.isChecked()
+    else:
+        raise TypeError(str(type(widget)) + ' not supported')
+    
+
+def put_widget_value(widget, value):
+    if isinstance(widget, QtWidgets.QComboBox):
+        if isinstance(value, int):
+            widget.setCurrentIndex(value)
+        else:
+            if not isinstance(value, list):
+                value = [value]
+            widget.addItems(value)
+    elif isinstance(widget, (QtWidgets.QSpinBox, QtWidgets.QDoubleSpinBox)):
+        widget.setValue(value)
+    elif isinstance(widget, (QtWidgets.QLineEdit, QtWidgets.QLabel)):
+        widget.setText(str(value))
+    elif isinstance(widget, (QtWidgets.QCheckBox, QtWidgets.QRadioButton)):
+        widget.setEnabled(value)
+    else:
+        raise TypeError(str(type(widget)) + ' not supported')
+
 
 
 class SimpleMaskGUI(QMainWindow, Ui):
@@ -89,64 +123,51 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         self.btn_mask_list_evaluate.clicked.connect(
             lambda: self.mask_evaluate('mask_list'))
-        self.btn_mask_list_apply.clicked.connect(
-            lambda: self.mask_apply('mask_list'))
+        self.btn_mask_apply.clicked.connect(self.mask_apply)
 
         # blemish
         self.btn_select_blemish.clicked.connect(self.select_blemish)
         self.btn_apply_blemish.clicked.connect(
             lambda: self.mask_evaluate('mask_blemish'))
-        self.btn_mask_blemish_apply.clicked.connect(
-            lambda: self.mask_apply('mask_blemish'))
 
         # mask_file
         self.btn_select_maskfile.clicked.connect(self.select_maskfile)
         self.btn_apply_maskfile.clicked.connect(
             lambda: self.mask_evaluate('mask_file'))
-        self.btn_mask_file_apply.clicked.connect(
-            lambda: self.mask_apply('mask_file'))
 
         # draw method / array
         self.btn_mask_draw_add.clicked.connect(self.add_drawing)
         self.btn_mask_draw_evaluate.clicked.connect(
             lambda: self.mask_evaluate('mask_draw'))
-        self.btn_mask_draw_apply.clicked.connect(
-            lambda: self.mask_apply('mask_draw'))
 
         # binary threshold
         self.btn_mask_threshold_evaluate.clicked.connect(
             lambda: self.mask_evaluate('mask_threshold'))
-        self.btn_mask_threshold_apply.clicked.connect(
-            lambda: self.mask_apply('mask_threshold'))
 
         # btn_mask_outlier_evaluate
         self.btn_mask_outlier_evaluate.clicked.connect(
             lambda: self.mask_evaluate('mask_outlier'))
-        self.btn_mask_outlier_apply.clicked.connect(
-            lambda: self.mask_apply('mask_outlier'))
 
         # btn_mask_qring
-        self.btn_mask_qring_evaluate.clicked.connect(
-            lambda: self.mask_evaluate('mask_qring'))
-        self.btn_mask_qring_apply.clicked.connect(
-            lambda: self.mask_apply('mask_qring'))
-        self.btn_mask_qring_add1.clicked.connect(
-            lambda: self.mask_qring_list_add('mouse_click'))
-        self.btn_mask_qring_add2.clicked.connect(
-            lambda: self.mask_qring_list_add('manual'))
-        self.btn_mask_qring_add3.clicked.connect(
-            lambda: self.mask_qring_list_add('file'))
-        self.btn_mask_qring_clear.clicked.connect(self.clear_qring_list)
+        # self.btn_mask_qring_evaluate.clicked.connect(
+        #     lambda: self.mask_evaluate('mask_qring'))
+        # self.btn_mask_qring_add1.clicked.connect(
+        #     lambda: self.mask_qring_list_add('mouse_click'))
+        # self.btn_mask_qring_add2.clicked.connect(
+        #     lambda: self.mask_qring_list_add('manual'))
+        # self.btn_mask_qring_add3.clicked.connect(
+        #     lambda: self.mask_qring_list_add('file'))
+        # self.btn_mask_qring_clear.clicked.connect(self.clear_qring_list)
         self.cb_qmap_axis0.currentTextChanged.connect(
             lambda: self.update_axis_vrange(0))
         self.cb_qmap_axis1.currentTextChanged.connect(
             lambda: self.update_axis_vrange(1))
 
         # tab correlation
-        self.btn_mask_draw_add_corr.clicked.connect(self.add_drawing)
-        self.btn_corr.clicked.connect(self.perform_correlation)
-        self.btn_mask_draw_apply_corr.clicked.connect(self.corr_add_roi)
-        self.angle_n_corr.valueChanged.connect(self.update_corr_angle)
+        # self.btn_mask_draw_add_corr.clicked.connect(self.add_drawing)
+        # self.btn_corr.clicked.connect(self.perform_correlation)
+        # self.btn_mask_draw_apply_corr.clicked.connect(self.corr_add_roi)
+        # self.angle_n_corr.valueChanged.connect(self.update_corr_angle)
 
         self.mask_outlier_hdl.setBackground((255, 255, 255))
         self.mp1.scene.sigMouseClicked.connect(self.mouse_clicked)
@@ -163,14 +184,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.work_dir = os.path.expanduser('~')
 
         self.MaskWidget.setCurrentIndex(0)
-        self.qring_model = QringTableModel(data=[[]])
-        self.tableView.setModel(self.qring_model)
-        header = self.tableView.horizontalHeader()
-        header.setSectionResizeMode(QHeaderView.Stretch)  
+        # self.qring_model = QringTableModel(data=[[]])
+        # self.tableView.setModel(self.qring_model)
+        # header = self.tableView.horizontalHeader()
+        # header.setSectionResizeMode(QHeaderView.Stretch)  
         self.setting_fname = os.path.join(home_dir, 'default_setting.json')
         self.lastconfig_fname = os.path.join(home_dir, 'last_config.json')
 
-        self.tabWidget.setCurrentIndex(0)
+        # self.tabWidget.setCurrentIndex(0)
         self.load_default_settings()
         self.load_last_config()
         self.show()
@@ -365,81 +386,82 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.plot_index.setCurrentIndex(5)
         return
 
-    def mask_apply(self, target):
+    def mask_apply(self):
+        idx = self.MaskWidget.currentIndex()
+        target = str(self.MaskWidget.tabText(idx))
         if not self.is_ready():
             return
 
         self.sm.mask_apply(target)
-
         # perform evaluate again so the saxs1d shows the new results;
-        if target == 'mask_outlier':
+        if target == 'Threshold':
             self.mask_evaluate(target=target)
-        elif target == 'mask_list':
+        elif target == 'Manual':
             self.mask_list_clear()
-        elif target == 'mask_qring':
+        elif target == 'qring':
             self.clear_qring_list()
 
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(1)
 
-    def mask_qring_list_add(self, method='manual'):
-        if method == 'mouse_click':
-            tmp_kwargs = {
-                "qmin": self.mask_qring_qmin.value(),
-                "qmax": self.mask_qring_qmax.value(),
-                "pmin": self.mask_qring_pmin.value(),
-                "pmax": self.mask_qring_pmax.value(),
-                "qnum": self.mask_qring_num.value(),
-                "flag_const_width": self.mask_qring_constwidth.isChecked(),
-            }
-            qrings = create_qring(**tmp_kwargs)
-        elif method == 'manual':
-            pts = self.mask_qring_input.text()
-            self.mask_qring_input.clear()
-            if len(pts) < 1:
-                self.statusbar.showMessage('Input list is invalid.', 500)
-                return
-            try:
-                xy = text_to_array(pts, dtype=np.float64)
-                # to a 2d list
-                qrings = xy[0: xy.size // 4 * 4].reshape(-1, 4).tolist()
-            except Exception:
-                self.statusbar.showMessage('Input list is invalid.', 500)
-                return
+    # def mask_qring_list_add(self, method='manual'):
+    #     if method == 'mouse_click':
+    #         tmp_kwargs = {
+    #             "qmin": self.mask_qring_qmin.value(),
+    #             "qmax": self.mask_qring_qmax.value(),
+    #             "pmin": self.mask_qring_pmin.value(),
+    #             "pmax": self.mask_qring_pmax.value(),
+    #             "qnum": self.mask_qring_num.value(),
+    #             "flag_const_width": self.mask_qring_constwidth.isChecked(),
+    #         }
+    #         qrings = create_qring(**tmp_kwargs)
+    #     elif method == 'manual':
+    #         pts = self.mask_qring_input.text()
+    #         self.mask_qring_input.clear()
+    #         if len(pts) < 1:
+    #             self.statusbar.showMessage('Input list is invalid.', 500)
+    #             return
+    #         try:
+    #             xy = text_to_array(pts, dtype=np.float64)
+    #             # to a 2d list
+    #             qrings = xy[0: xy.size // 4 * 4].reshape(-1, 4).tolist()
+    #         except Exception:
+    #             self.statusbar.showMessage('Input list is invalid.', 500)
+    #             return
 
-        elif method == 'file':
-            fname = QFileDialog.getOpenFileName(self, 'Select qring file',
-                    filter='Text/Json (*.txt *.csv *.json);;All files(*.*)')[0]
-            if fname in ['', None]:
-                return
-        
-            if fname.endswith('.json'):
-                with open(fname, 'r') as f:
-                    x = json.load(f)
-                xy = []
-                for _, v in x.items():
-                    xy.append(v)
-                xy = np.array(xy)
+    #     elif method == 'file':
+    #         fname = QFileDialog.getOpenFileName(self, 'Select qring file',
+    #                 filter='Text/Json (*.txt *.csv *.json);;All files(*.*)')[0]
+    #         if fname in ['', None]:
+    #             return
+    #     
+    #         if fname.endswith('.json'):
+    #             with open(fname, 'r') as f:
+    #                 x = json.load(f)
+    #             xy = []
+    #             for _, v in x.items():
+    #                 xy.append(v)
+    #             xy = np.array(xy)
 
-            elif fname.endswith('.txt') or fname.endswith('.csv'):
-                try:
-                    xy = np.loadtxt(fname, delimiter=',')
-                except ValueError:
-                    xy = np.loadtxt(fname)
-                except Exception:
-                    self.statusbar.showMessage(
-                        'only support csv and space separated file', 500)
-                    return
-            qrings = xy[0: xy.size // 4 * 4].reshape(-1, 4).tolist()
+    #         elif fname.endswith('.txt') or fname.endswith('.csv'):
+    #             try:
+    #                 xy = np.loadtxt(fname, delimiter=',')
+    #             except ValueError:
+    #                 xy = np.loadtxt(fname)
+    #             except Exception:
+    #                 self.statusbar.showMessage(
+    #                     'only support csv and space separated file', 500)
+    #                 return
+    #         qrings = xy[0: xy.size // 4 * 4].reshape(-1, 4).tolist()
 
-        if self.qring_model.data == [[]]:
-            self.qring_model.data = qrings
-        else:
-            self.qring_model.data.extend(qrings)
-        # update tableview
-        self.tableView.setModel(None)
-        self.tableView.setModel(self.qring_model)
-        return
+    #     if self.qring_model.data == [[]]:
+    #         self.qring_model.data = qrings
+    #     else:
+    #         self.qring_model.data.extend(qrings)
+    #     # update tableview
+    #     self.tableView.setModel(None)
+    #     self.tableView.setModel(self.qring_model)
+    #     return
     
     def clear_qring_list(self):
         self.tableView.setModel(None)
@@ -636,20 +658,27 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def update_axis_vrange(self, index=0):
         if index == 0:
             target = self.cb_qmap_axis0.currentText()
-            vrange = self.sm.get_qmap_vrange(target)
-            if vrange is not None:
-                self.le_qmap_range0.setText(f'{vrange[0]:.4e}, {vrange[1]:.4e}')
+            display = [self.vbeg_axis0, self.vend_axis0, self.unit_axis0,
+                       self.partition_style_axis0]
         elif index == 1:
             target = self.cb_qmap_axis1.currentText()
-            vrange = self.sm.get_qmap_vrange(target)
-            if vrange is not None:
-                self.le_qmap_range1.setText(f'{vrange[0]:.4e}, {vrange[1]:.4e}')
+            display = [self.vbeg_axis1, self.vend_axis1, self.unit_axis1,
+                       self.partition_style_axis1]
+
+        display[-1].clear()
+        vrange, unit = self.sm.get_qmap_vrange(target)
+        options = ['linear']
+        if vrange[0] > 0:
+            options.append('logarithmic')
+        for widget, value in zip(display, (*vrange, unit, options)):
+            print(value)
+            put_widget_value(widget, value)
     
     def update_qmap_info(self, default_qmap=('q', 'phi')):
         axis_list = (self.cb_qmap_axis0, self.cb_qmap_axis1)
         for hdl in axis_list:
-            while hdl.count() > 0:
-                hdl.removeItem(0)
+            hdl.clear()
+            hdl.addItem('none')
 
         while self.plot_index.count() > 6:
             self.plot_index.removeItem(6)
@@ -666,23 +695,20 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
 
-        if self.tabWidget.currentIndex() == 0:
-            kwargs = {
-                'mode': 'q-phi',
-                'sq_num': self.sb_sqnum.value(),
-                'dq_num': self.sb_dqnum.value(),
-                'sp_num': self.sb_spnum.value(),
-                'dp_num': self.sb_dpnum.value(),
-                'style': self.partition_style.currentText(),
-            }
-        elif self.tabWidget.currentIndex() == 1:
-            kwargs = {
-                'mode': 'xy-mesh',
-                'sx_num': self.sb_sxnum.value(),
-                'sy_num': self.sb_synum.value(),
-                'dx_num': self.sb_dxnum.value(),
-                'dy_num': self.sb_dynum.value(),
-            }
+        keys = ('map', 'vbeg', 'vend', 'sn', 'dn', 'style')
+        axis0 = (self.cb_qmap_axis0, self.vbeg_axis0, self.vend_axis0,
+                 self.sn_axis0, self.dn_axis0, self.partition_style_axis0)
+
+        axis1 = (self.cb_qmap_axis1, self.vbeg_axis1, self.vend_axis1,
+                 self.sn_axis1, self.dn_axis1, self.partition_style_axis1)
+
+        values0 = [get_widget_value(w) for w in axis0]
+        values1 = [get_widget_value(w) for w in axis1]
+        kwargs0 = {k:v for k, v in zip(keys, values0)}
+        kwargs1 = {k:v for k, v in zip(keys, values1)}
+        print(kwargs0)
+        print(kwargs1)
+
         self.btn_compute_qpartition.setDisabled(True)
         self.statusbar.showMessage('Computing partition ... ', 10000)
         self.centralwidget.repaint()
@@ -776,7 +802,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 logger.info('load the last configure.')
                 config = json.load(fhdl)
                 for key, val in config.items():
-                    self.__dict__[key].setText(val)
+                    put_widget_value(self.__dict__[key], val)
         except Exception:
             os.remove(self.lastconfig_fname)
             logger.info('configuration file damaged. delete it now')
@@ -784,10 +810,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     def closeEvent(self, e) -> None:
         keys = ['blemish_fname', 'blemish_path', 'maskfile_fname',
-                'maskfile_path']
+                'maskfile_path', 'cb_beamline']
         config = {}
         for key in keys:
-            config[key] = self.__dict__[key].text()
+            config[key] = get_widget_value(self.__dict__[key], index=True)
 
         with open(self.lastconfig_fname, 'w') as fhdl:
             json.dump(config, fhdl)
