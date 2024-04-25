@@ -188,15 +188,18 @@ class MaskAssemble():
         self.pmap = pmap
         self.mask_record = [np.ones_like(qmap, dtype=bool)]
         self.mask_ptr = 0 
+        self.selected_target = None
     
     def update_qmap(self, qmap_all):
         self.qmap = qmap_all['q']
         self.pmap = qmap_all['phi']
 
-    def apply(self, target):
+    def apply(self, target=None):
+        # print('target: ', target, self.selected_target)
+        target = self.selected_target
         if target is None:
             return self.get_mask()
-
+        
         mask = self.get_one_mask(target)
         mask = np.logical_and(self.get_mask(), mask)
         if not np.allclose(self.mask_record[-1], mask):
@@ -205,7 +208,7 @@ class MaskAssemble():
             # len(self.mask_record) == self.mask_ptr + 1
             self.mask_record.append(mask)
             self.mask_ptr += 1
-
+        target = None 
         return mask
 
     def evaluate(self, target, **kwargs):
@@ -215,7 +218,7 @@ class MaskAssemble():
             self.workers[target].evaluate(self.qmap, self.pmap, **kwargs)
         else:
             self.workers[target].evaluate(**kwargs)
-
+        self.selected_target = target
         return self.workers[target].describe()
     
     def redo_undo(self, action='redo'):
