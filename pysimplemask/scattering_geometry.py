@@ -49,8 +49,18 @@ def compute_qmaps_transmission(meta):
         'x': hg,
         'y': vg
     }
+
+    qmap_unit = {
+        'q': '1/Å',
+        'phi': 'deg',
+        'qx': '1/Å',
+        'qy': '1/Å',
+        'alpha': 'deg',
+        'x': 'pixel',
+        'y': 'pixel' 
+    }
     qmap = to_single_precision(qmap)
-    return qmap
+    return qmap, qmap_unit
 
 
 def compute_qmaps_reflection(meta):
@@ -90,6 +100,19 @@ def compute_qmaps_reflection(meta):
         'x': hg,
         'y': vg
     }
+
+    qmap_unit = {
+        'q': '1/Å',
+        'phi': 'deg',
+        'qx': '1/Å',
+        'qy': '1/Å',
+        'qz': '1/Å',
+        'tth': 'deg',
+        'alpha_f': 'deg',
+        'chi': 'deg',
+        'x': 'pixel',
+        'y': 'pixel'
+    }
     qmap = to_single_precision(qmap)
 
-    return qmap
+    return qmap, qmap_unit
