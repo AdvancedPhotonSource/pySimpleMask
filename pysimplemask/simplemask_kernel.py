@@ -129,13 +129,13 @@ class SimpleMask(object):
 
     def mask_apply(self, target=None):
         # if target is None, apply will return the current mask
-        self.mask = self.mask_kernel.apply(target)
+        self.mask = self.mask_kernel.apply()
 
         self.data_raw[1] = self.saxs_log * self.mask
         self.data_raw[2] = self.mask
 
-        if target == "mask_qring":
-            self.qrings = self.mask_kernel.workers[target].get_qrings()
+        # if target == "mask_qring":
+        #     self.qrings = self.mask_kernel.workers[target].get_qrings()
 
         if self.plot_log:
             log_min = np.min(self.saxs_log[self.mask > 0])
@@ -245,7 +245,7 @@ class SimpleMask(object):
 
         # reset the qrings after data loading
         self.qrings = []
-        self.qmap = self.compute_qmap()
+        self.qmap, self.qmap_unit = self.compute_qmap()
 
         self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
         self.mask_kernel.update_qmap(self.qmap)
@@ -260,17 +260,17 @@ class SimpleMask(object):
 
     def compute_qmap(self):
         sg_type = self.meta['sg_type']
-        qmap = get_scattering_geometry(sg_type, self.meta)
+        qmap, qmap_unit = get_scattering_geometry(sg_type, self.meta)
         for n, (_, val) in enumerate(qmap.items()):
             self.data_raw[n + 6] = val
-        return qmap
+        return qmap, qmap_unit
     
     def get_qmap_vrange(self, target='q'):
         if self.qmap is None or target not in self.qmap.keys():
-            return None
+            return (0, 1), 'unit'
         else:
             xmap = self.qmap[target]
-            return np.nanmin(xmap), np.nanmax(xmap)
+            return (np.nanmin(xmap), np.nanmax(xmap)), self.qmap_unit[target]
 
     def get_qp_value(self, x, y):
         x = int(x)
@@ -480,27 +480,27 @@ class SimpleMask(object):
         new_roi.sigRemoveRequested.connect(lambda: self.remove_roi(roi_key))
         return new_roi
 
-    def get_qring_values(self):
-        result = {}
-        cen = (self.meta['bcx'], self.meta['bcy'])
+    # def get_qring_values(self):
+    #     result = {}
+    #     cen = (self.meta['bcx'], self.meta['bcy'])
 
-        for key in ['qring_qmin', 'qring_qmax']:
-            if key in self.hdl.roi:
-                x = tuple(self.hdl.roi[key].state['size'])[0] / 2.0 + cen[0]
-                value, _ = self.get_qp_value(x, cen[1])
-            else:
-                value = None
-            result[key] = value
+    #     for key in ['qring_qmin', 'qring_qmax']:
+    #         if key in self.hdl.roi:
+    #             x = tuple(self.hdl.roi[key].state['size'])[0] / 2.0 + cen[0]
+    #             value, _ = self.get_qp_value(x, cen[1])
+    #         else:
+    #             value = None
+    #         result[key] = value
 
-        for key in ['qring_pmin', 'qring_pmax']:
-            if key in self.hdl.roi:
-                value = self.hdl.roi[key].state['angle']
-                value = value - 90
-                value = value - np.floor(value / 360.0) * 360.0
-            else:
-                value = None
-            result[key] = value
-        return result
+    #     for key in ['qring_pmin', 'qring_pmax']:
+    #         if key in self.hdl.roi:
+    #             value = self.hdl.roi[key].state['angle']
+    #             value = value - 90
+    #             value = value - np.floor(value / 360.0) * 360.0
+    #         else:
+    #             value = None
+    #         result[key] = value
+    #     return result
 
     def remove_roi(self, roi_key):
         self.hdl.remove_item(roi_key)
@@ -621,9 +621,13 @@ class SimpleMask(object):
 
     def compute_partition(self, mode='q-phi', **kwargs):
         if mode == 'q-phi':
-            return self.compute_partition_qphi(**kwargs)
-        elif mode == 'xy-mesh':
-            return self.compute_partition_xymesh(**kwargs)
+            return self.compute_partition_one(**kwargs)
+        # elif mode == 'xy-mesh':
+        #     return self.compute_partition_xymesh(**kwargs)
+
+    def compute_partition_one(self, dn=10, sn=100, style='linear'):
+        if self.meta is None or self.data_raw is None:
+            return
 
     def compute_partition_qphi(self,
                                dq_num=10, sq_num=100, style='linear',
@@ -765,7 +769,7 @@ class SimpleMask(object):
 
     def update_parameters(self, val_dict):
         self.meta.update(val_dict)
-        self.qmap = self.compute_qmap()
+        self.qmap, self.qmap_unit = self.compute_qmap()
         self.mask_kernel.update_qmap(self.qmap)
 
     def get_parameters(self):
