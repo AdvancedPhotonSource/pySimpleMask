@@ -148,16 +148,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_outlier_evaluate.clicked.connect(
             lambda: self.mask_evaluate('mask_outlier'))
 
-        # btn_mask_qring
-        # self.btn_mask_qring_evaluate.clicked.connect(
-        #     lambda: self.mask_evaluate('mask_qring'))
-        # self.btn_mask_qring_add1.clicked.connect(
-        #     lambda: self.mask_qring_list_add('mouse_click'))
-        # self.btn_mask_qring_add2.clicked.connect(
-        #     lambda: self.mask_qring_list_add('manual'))
-        # self.btn_mask_qring_add3.clicked.connect(
-        #     lambda: self.mask_qring_list_add('file'))
-        # self.btn_mask_qring_clear.clicked.connect(self.clear_qring_list)
         self.cb_qmap_axis0.currentTextChanged.connect(
             lambda: self.update_axis_vrange(0))
         self.cb_qmap_axis1.currentTextChanged.connect(
@@ -184,10 +174,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.work_dir = os.path.expanduser('~')
 
         self.MaskWidget.setCurrentIndex(0)
-        # self.qring_model = QringTableModel(data=[[]])
-        # self.tableView.setModel(self.qring_model)
-        # header = self.tableView.horizontalHeader()
-        # header.setSectionResizeMode(QHeaderView.Stretch)  
         self.setting_fname = os.path.join(home_dir, 'default_setting.json')
         self.lastconfig_fname = os.path.join(home_dir, 'last_config.json')
 
@@ -216,76 +202,66 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 self.resize(*new_size)
 
         return
+    
+    def handle_manual_mask_with_mouse_click(self, col, row):
+        if not self.mask_list_include.isChecked():
+            self.mask_list_add_pts([np.array([col, row])])
+        else:
+            kwargs = {
+                'radius': self.mask_list_radius.value(),
+                'variation': self.mask_list_variation.value(),
+                'cen': (row, col)
+            }
+            pos = self.sm.get_pts_with_similar_intensity(**kwargs)
+            self.mask_list_add_pts(pos)
+    
+    def handle_manual_partition_with_mouse_click(self, col, row):
+        widgets = (self.rb_beg_axis0, self.rb_end_axis0,
+                   self.rb_beg_axis1, self.rb_end_axis1) 
+        selected_map_idx = 0
+        for w in widgets:
+            if get_widget_value(w) == True:
+                break
+            selected_map_idx += 1
+        if selected_map_idx == len(widgets):   # none is selected
+            return
+
+        vtarget, axis = (('vbeg', 0), ('vend', 0),
+                         ('vbeg', 1), ('vend', 1),
+                        )[selected_map_idx]
+
+        kwargs0, kwargs1 = self.compute_partition(kwargs_only=True)
+        val = self.sm.set_partition_range(col, row, axis, vtarget,
+                                          [kwargs0, kwargs1])
+        if val is None:
+            return
+
+        widget_disp = (self.vbeg_axis0, self.vend_axis0,
+                        self.vbeg_axis1, self.vend_axis1)[selected_map_idx]
+
+        put_widget_value(widget_disp, val)
+        self.plot_index.setCurrentIndex(0)
+        # self.mp1.setLevels(None, None)
+        self.plot_index.setCurrentIndex(5)
 
     def mouse_clicked(self, event):
         if not event.double():
             return
-
         # make sure the maskwidget is at manual mode or qring mode;
-        current_idx = self.MaskWidget.currentIndex()
-        if current_idx not in [3, 5]:
-            return
-
-        if not self.mp1.scene.itemsBoundingRect().contains(event.pos()):
-            return
-
+        current_mask_index = self.MaskWidget.currentIndex()
         mouse_point = self.mp1.getView().mapSceneToView(event.pos())
         col = int(mouse_point.x())
         row = int(mouse_point.y())
-        if current_idx == 3:
-            # manual mode; select the dead pixel with mouse click
-            if not self.mask_list_include.isChecked():
-                self.mask_list_add_pts([np.array([col, row])])
-            else:
-                kwargs = {
-                    'radius': self.mask_list_radius.value(),
-                    'variation': self.mask_list_variation.value(),
-                    'cen': (row, col)
-                }
-                pos = self.sm.get_pts_with_similar_intensity(**kwargs)
-                self.mask_list_add_pts(pos)
+        if not self.mp1.scene.itemsBoundingRect().contains(event.pos()):
+            return 
+
+        if current_mask_index == 3:
+            self.handle_manual_mask_mouse_click(col, row)
+            return
         else:
-            # qring mode, select qbegin and qend with mouse
-            q, p = self.sm.get_qp_value(col, row)
-            if q is None or p is None:
-                return
-            if self.box_qring_qmin.isChecked():
-                self.mask_qring_qmin.setValue(q)
-                label = 'qring_qmin'
-                color = 'k'
-            elif self.box_qring_qmax.isChecked():
-                self.mask_qring_qmax.setValue(q)
-                label = 'qring_qmax'
-                color = 'r'
-            elif self.box_qring_pmin.isChecked():
-                self.mask_qring_pmin.setValue(p)
-                label = 'qring_pmin'
-                color = 'k'
-            elif self.box_qring_pmax.isChecked():
-                self.mask_qring_pmax.setValue(p)
-                label = 'qring_pmax'
-                color = 'r'
-            if label.startswith('qring_q'):
-                new_roi = self.sm.add_drawing(sl_type='Circle',
-                                          second_point=(col, row),
-                                          width=1.0,
-                                          color=color,
-                                          label=label,
-                                          movable=False)
-            else:
-                new_roi = self.sm.add_drawing(sl_type='Line',
-                                          second_point=(col, row),
-                                          width=0.5,
-                                          color=color,
-                                          label=label)
-            new_roi.sigRegionChanged.connect(self.update_qring_values)
-    
-    def update_qring_values(self):
-        new_state = self.sm.get_qring_values()
-        for k, v in new_state.items():
-            if v is not None:
-                self.__dict__['mask_' + k].setValue(v)
-    
+            self.handle_manual_partition_with_mouse_click(col, row)
+            return
+       
     def mask_action(self, action):
         if not self.is_ready():
             return
@@ -372,13 +348,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
             p.setLabel('left', 'Intensity (a.u.)')
             p.setLogMode(y=True)
             kwargs = {'zero_loc': zero_loc}
-        elif target == 'mask_qring':
-            if self.qring_model.data == [[]]:
-                return
-            else:
-                data = self.qring_model.data.copy()
-                # self.qring_model.data = [[]]
-            kwargs = {'qrings': data}
 
         msg = self.sm.mask_evaluate(target, **kwargs)
         self.statusbar.showMessage(msg, 10000)
@@ -398,82 +367,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.mask_evaluate(target=target)
         elif target == 'Manual':
             self.mask_list_clear()
-        elif target == 'qring':
-            self.clear_qring_list()
 
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(1)
-
-    # def mask_qring_list_add(self, method='manual'):
-    #     if method == 'mouse_click':
-    #         tmp_kwargs = {
-    #             "qmin": self.mask_qring_qmin.value(),
-    #             "qmax": self.mask_qring_qmax.value(),
-    #             "pmin": self.mask_qring_pmin.value(),
-    #             "pmax": self.mask_qring_pmax.value(),
-    #             "qnum": self.mask_qring_num.value(),
-    #             "flag_const_width": self.mask_qring_constwidth.isChecked(),
-    #         }
-    #         qrings = create_qring(**tmp_kwargs)
-    #     elif method == 'manual':
-    #         pts = self.mask_qring_input.text()
-    #         self.mask_qring_input.clear()
-    #         if len(pts) < 1:
-    #             self.statusbar.showMessage('Input list is invalid.', 500)
-    #             return
-    #         try:
-    #             xy = text_to_array(pts, dtype=np.float64)
-    #             # to a 2d list
-    #             qrings = xy[0: xy.size // 4 * 4].reshape(-1, 4).tolist()
-    #         except Exception:
-    #             self.statusbar.showMessage('Input list is invalid.', 500)
-    #             return
-
-    #     elif method == 'file':
-    #         fname = QFileDialog.getOpenFileName(self, 'Select qring file',
-    #                 filter='Text/Json (*.txt *.csv *.json);;All files(*.*)')[0]
-    #         if fname in ['', None]:
-    #             return
-    #     
-    #         if fname.endswith('.json'):
-    #             with open(fname, 'r') as f:
-    #                 x = json.load(f)
-    #             xy = []
-    #             for _, v in x.items():
-    #                 xy.append(v)
-    #             xy = np.array(xy)
-
-    #         elif fname.endswith('.txt') or fname.endswith('.csv'):
-    #             try:
-    #                 xy = np.loadtxt(fname, delimiter=',')
-    #             except ValueError:
-    #                 xy = np.loadtxt(fname)
-    #             except Exception:
-    #                 self.statusbar.showMessage(
-    #                     'only support csv and space separated file', 500)
-    #                 return
-    #         qrings = xy[0: xy.size // 4 * 4].reshape(-1, 4).tolist()
-
-    #     if self.qring_model.data == [[]]:
-    #         self.qring_model.data = qrings
-    #     else:
-    #         self.qring_model.data.extend(qrings)
-    #     # update tableview
-    #     self.tableView.setModel(None)
-    #     self.tableView.setModel(self.qring_model)
-    #     return
-    
-    def clear_qring_list(self):
-        self.tableView.setModel(None)
-        self.qring_model.data = [[]]
-        self.tableView.setModel(self.qring_model)
-        self.sm.hdl.remove_rois(filter_str='qring_')
 
     def update_index(self):
         idx = self.mp1.currentIndex
         self.plot_index.setCurrentIndex(idx)
         # make the mask and preview binary
-        if idx in [2, 5]:
+        if idx == 2:
             self.mp1.setLevels(0, 1)
 
     def is_ready(self):
@@ -671,7 +573,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if vrange[0] > 0:
             options.append('logarithmic')
         for widget, value in zip(display, (*vrange, unit, options)):
-            print(value)
             put_widget_value(widget, value)
     
     def update_qmap_info(self, default_qmap=('q', 'phi')):
@@ -691,7 +592,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         for axis, name in zip(axis_list, default_qmap):
             axis.setCurrentText(name)
 
-    def compute_partition(self):
+    def compute_partition(self, kwargs_only=False):
         if not self.is_ready():
             return
 
@@ -706,6 +607,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         values1 = [get_widget_value(w) for w in axis1]
         kwargs0 = {k:v for k, v in zip(keys, values0)}
         kwargs1 = {k:v for k, v in zip(keys, values1)}
+
+        if kwargs_only:
+            return kwargs0, kwargs1
 
         self.btn_compute_qpartition.setDisabled(True)
         self.statusbar.showMessage('Computing partition ... ', 10000)

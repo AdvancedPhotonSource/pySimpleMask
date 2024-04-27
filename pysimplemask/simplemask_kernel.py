@@ -35,7 +35,6 @@ class SimpleMask(object):
         self.extent = None
         self.hdl.scene.sigMouseMoved.connect(self.show_location)
         self.bad_pixel_set = set()
-        self.qrings = []
         self.corr_roi = None
 
         self.idx_map = {
@@ -79,9 +78,6 @@ class SimpleMask(object):
 
         self.data_raw[1] = self.saxs_log * self.mask
         self.data_raw[2] = self.mask
-
-        # if target == "mask_qring":
-        #     self.qrings = self.mask_kernel.workers[target].get_qrings()
 
         if self.plot_log:
             log_min = np.min(self.saxs_log[self.mask > 0])
@@ -189,8 +185,6 @@ class SimpleMask(object):
 
         self.shape = self.data_raw[0].shape
 
-        # reset the qrings after data loading
-        self.qrings = []
         self.qmap, self.qmap_unit = self.compute_qmap()
 
         self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
@@ -218,14 +212,29 @@ class SimpleMask(object):
             xmap = self.qmap[target][self.mask == 1]
             return (np.nanmin(xmap), np.nanmax(xmap)), self.qmap_unit[target]
 
-    def get_qp_value(self, x, y):
-        x = int(x)
-        y = int(y)
-        shape = self.qmap['q'].shape
-        if 0 <= x < shape[1] and 0 <= y < shape[0]:
-            return self.qmap['q'][y, x], self.qmap['phi'][y, x]
-        else:
-            return None, None
+    def set_partition_range(self, x, y, axis, vtarget, pkwargs_list):
+        xmap_name = pkwargs_list[axis]['xmap']
+        val = self.qmap[xmap_name][int(y), int(x)]
+        new_val_dict = {vtarget: val}
+        pkwargs_list[axis].update(new_val_dict)
+
+        mask = np.copy(self.mask)
+        for kwargs in pkwargs_list:
+            mask_t = self.get_mask_with_partition(**kwargs)
+            mask *= mask_t
+        saxs2 = np.copy(self.saxs_lin)
+        saxs2[mask != 1] = 0
+        self.data_raw[5] = np.log10(saxs2 + self.saxs_lin_min)
+        return val
+
+    def get_mask_with_partition(self, xmap='q', vbeg=None, vend=None, **kwargs):
+        if xmap == 'none':
+            return 1
+        vmap = self.qmap[xmap]
+        vbeg = np.nanmin(vmap[self.mask == 1]) if vbeg is None else vbeg
+        vend = np.nanmax(vmap[self.mask == 1]) if vend is None else vend
+        mask = (vmap >= vbeg) * (vmap <= vend)
+        return mask
 
     def compute_extent(self):
         k0 = 2 * np.pi / (12.3980 / self.meta['energy'])
