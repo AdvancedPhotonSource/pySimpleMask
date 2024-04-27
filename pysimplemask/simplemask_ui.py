@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_SimpleMask(object):
     def setupUi(self, SimpleMask):
         SimpleMask.setObjectName("SimpleMask")
-        SimpleMask.resize(1876, 1027)
+        SimpleMask.resize(1348, 905)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -613,7 +613,7 @@ class Ui_SimpleMask(object):
         self.cb_selector_color.addItem("")
         self.gridLayout_8.addWidget(self.cb_selector_color, 1, 1, 1, 1)
         self.gridLayout_13.addWidget(self.groupBox_21, 0, 0, 1, 1)
-        spacerItem3 = QtWidgets.QSpacerItem(20, 314, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem3 = QtWidgets.QSpacerItem(20, 193, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.gridLayout_13.addItem(spacerItem3, 1, 0, 1, 1)
         self.MaskWidget.addTab(self.tab_2, "")
         self.tab_5 = QtWidgets.QWidget()
@@ -947,6 +947,7 @@ class Ui_SimpleMask(object):
         self.partition_style_axis1.addItem("")
         self.gridLayout_6.addWidget(self.partition_style_axis1, 3, 8, 2, 1)
         self.vbeg_axis0 = QtWidgets.QDoubleSpinBox(self.groupBox_3)
+        self.vbeg_axis0.setEnabled(False)
         self.vbeg_axis0.setMinimumSize(QtCore.QSize(0, 20))
         self.vbeg_axis0.setDecimals(6)
         self.vbeg_axis0.setMinimum(-10000.0)
@@ -965,6 +966,7 @@ class Ui_SimpleMask(object):
         self.rb_beg_axis0 = QtWidgets.QRadioButton(self.groupBox_3)
         self.rb_beg_axis0.setMaximumSize(QtCore.QSize(20, 16777215))
         self.rb_beg_axis0.setText("")
+        self.rb_beg_axis0.setCheckable(True)
         self.rb_beg_axis0.setObjectName("rb_beg_axis0")
         self.gridLayout_6.addWidget(self.rb_beg_axis0, 1, 2, 2, 1)
         self.label_20 = QtWidgets.QLabel(self.groupBox_3)
@@ -979,6 +981,7 @@ class Ui_SimpleMask(object):
         self.rb_beg_axis1.setObjectName("rb_beg_axis1")
         self.gridLayout_6.addWidget(self.rb_beg_axis1, 3, 2, 2, 1)
         self.vend_axis1 = QtWidgets.QDoubleSpinBox(self.groupBox_3)
+        self.vend_axis1.setEnabled(False)
         self.vend_axis1.setMinimumSize(QtCore.QSize(0, 20))
         self.vend_axis1.setDecimals(6)
         self.vend_axis1.setMinimum(-10000.0)
@@ -996,6 +999,7 @@ class Ui_SimpleMask(object):
         self.label_12.setObjectName("label_12")
         self.gridLayout_6.addWidget(self.label_12, 0, 3, 1, 1)
         self.vbeg_axis1 = QtWidgets.QDoubleSpinBox(self.groupBox_3)
+        self.vbeg_axis1.setEnabled(False)
         self.vbeg_axis1.setMinimumSize(QtCore.QSize(0, 20))
         self.vbeg_axis1.setDecimals(6)
         self.vbeg_axis1.setMinimum(-10000.0)
@@ -1010,6 +1014,7 @@ class Ui_SimpleMask(object):
         self.label_39.setObjectName("label_39")
         self.gridLayout_6.addWidget(self.label_39, 0, 0, 1, 1)
         self.vend_axis0 = QtWidgets.QDoubleSpinBox(self.groupBox_3)
+        self.vend_axis0.setEnabled(False)
         self.vend_axis0.setMinimumSize(QtCore.QSize(0, 20))
         self.vend_axis0.setDecimals(6)
         self.vend_axis0.setMinimum(-10000.0)
@@ -1026,11 +1031,11 @@ class Ui_SimpleMask(object):
         self.label = QtWidgets.QLabel(self.groupBox_3)
         self.label.setObjectName("label")
         self.gridLayout_6.addWidget(self.label, 0, 6, 1, 1)
-        self.rb_end_axis0_2 = QtWidgets.QRadioButton(self.groupBox_3)
-        self.rb_end_axis0_2.setMaximumSize(QtCore.QSize(20, 16777215))
-        self.rb_end_axis0_2.setText("")
-        self.rb_end_axis0_2.setObjectName("rb_end_axis0_2")
-        self.gridLayout_6.addWidget(self.rb_end_axis0_2, 3, 4, 2, 1)
+        self.rb_end_axis1 = QtWidgets.QRadioButton(self.groupBox_3)
+        self.rb_end_axis1.setMaximumSize(QtCore.QSize(20, 16777215))
+        self.rb_end_axis1.setText("")
+        self.rb_end_axis1.setObjectName("rb_end_axis1")
+        self.gridLayout_6.addWidget(self.rb_end_axis1, 3, 4, 2, 1)
         self.partition_style_axis0 = QtWidgets.QComboBox(self.groupBox_3)
         self.partition_style_axis0.setObjectName("partition_style_axis0")
         self.partition_style_axis0.addItem("")
@@ -1095,6 +1100,10 @@ class Ui_SimpleMask(object):
         self.MaskWidget.setCurrentIndex(4)
         self.mask_list_include.toggled['bool'].connect(self.mask_list_radius.setEnabled) # type: ignore
         self.mask_list_include.toggled['bool'].connect(self.mask_list_variation.setEnabled) # type: ignore
+        self.rb_beg_axis0.toggled['bool'].connect(self.vbeg_axis0.setEnabled) # type: ignore
+        self.rb_beg_axis1.toggled['bool'].connect(self.vbeg_axis1.setEnabled) # type: ignore
+        self.rb_end_axis0.toggled['bool'].connect(self.vend_axis0.setEnabled) # type: ignore
+        self.rb_end_axis1.toggled['bool'].connect(self.vend_axis1.setEnabled) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(SimpleMask)
         SimpleMask.setTabOrder(self.plot_log, self.plot_index)
         SimpleMask.setTabOrder(self.plot_index, self.infobar)
