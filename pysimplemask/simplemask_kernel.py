@@ -9,64 +9,10 @@ from .reader import APS9IDCReader, APS8IDIReader
 import skimage.io as skio
 import logging
 from .scattering_geometry import get_scattering_geometry
-
+from .qpartition_utilis import create_partitions, create_single_partition
 pg.setConfigOptions(imageAxisOrder='row-major')
 
-
 logger = logging.getLogger(__name__)
-
-
-def create_xy_mesh(mask, qmap, x_num, y_num):
-    mask_nz = np.nonzero(mask)
-    vrange = (np.min(mask_nz[0]), np.max(mask_nz[0]) + 1)
-    hrange = (np.min(mask_nz[1]), np.max(mask_nz[1]) + 1)
-
-    vg, hg = np.meshgrid(np.arange(mask.shape[0]), np.arange(mask.shape[1]),
-                         indexing='ij')
-
-    dy = (vrange[1] - vrange[0]) * 1.0 / y_num
-    dx = (hrange[1] - hrange[0]) * 1.0 / x_num
-
-    idx_map = np.zeros_like(mask, dtype=np.uint32)
-
-    # -- x --
-    for n in range(x_num):
-        roi = hg >= hrange[0] + dx * n
-        roi = roi * (hg < hrange[0] + dx * (n + 1))
-        idx_map[roi] = n + 1
-
-    # -- y --
-    for n in range(y_num):
-        roi = vg >= vrange[0] + (dy * n)
-        roi = roi * (vg < vrange[0] + dy * (n + 1))
-        idx_map[roi] += x_num * n
-
-    idx_map = idx_map * mask
-
-    xcorr = np.linspace(hrange[0], hrange[1], x_num + 1) + 0.5
-    # qxspan = qmap['qx'][0][xcorr.astype(np.int64)]
-    qxspan = xcorr
-
-    xcorr2 = (xcorr[:-1] + xcorr[1:]) / 2.0
-    # qxlist = qmap['qx'][0][xcorr2.astype(np.int64)]
-    qxlist = xcorr2  # qmap['qx'][0][xcorr2.astype(np.int64)]
-
-    qxlist = np.tile(qxlist, y_num).reshape(y_num, x_num)
-    qxlist = np.swapaxes(qxlist, 0, 1)
-    qxlist = qxlist.reshape(1, -1)
-
-    ycorr = np.linspace(vrange[0], vrange[1], y_num + 1) + 0.5
-    # qyspan = qmap['qy'][:, 0][xcorr.astype(np.int64)]
-    qyspan = ycorr
-
-    ycorr2 = (ycorr[:-1] + ycorr[1:]) / 2.0
-    # qylist = qmap['qx'][:, 0][ycorr2.astype(np.int64)]
-    qylist = ycorr2
-
-    qylist = np.tile(qylist, x_num).reshape(x_num, y_num)
-    qylist = qylist.reshape(1, -1)
-
-    return idx_map, qxspan, qyspan, qxlist, qylist
 
 
 class SimpleMask(object):
@@ -269,7 +215,7 @@ class SimpleMask(object):
         if self.qmap is None or target not in self.qmap.keys():
             return (0, 1), 'unit'
         else:
-            xmap = self.qmap[target]
+            xmap = self.qmap[target][self.mask == 1]
             return (np.nanmin(xmap), np.nanmax(xmap)), self.qmap_unit[target]
 
     def get_qp_value(self, x, y):
@@ -480,98 +426,16 @@ class SimpleMask(object):
         new_roi.sigRemoveRequested.connect(lambda: self.remove_roi(roi_key))
         return new_roi
 
-    # def get_qring_values(self):
-    #     result = {}
-    #     cen = (self.meta['bcx'], self.meta['bcy'])
-
-    #     for key in ['qring_qmin', 'qring_qmax']:
-    #         if key in self.hdl.roi:
-    #             x = tuple(self.hdl.roi[key].state['size'])[0] / 2.0 + cen[0]
-    #             value, _ = self.get_qp_value(x, cen[1])
-    #         else:
-    #             value = None
-    #         result[key] = value
-
-    #     for key in ['qring_pmin', 'qring_pmax']:
-    #         if key in self.hdl.roi:
-    #             value = self.hdl.roi[key].state['angle']
-    #             value = value - 90
-    #             value = value - np.floor(value / 360.0) * 360.0
-    #         else:
-    #             value = None
-    #         result[key] = value
-    #     return result
-
     def remove_roi(self, roi_key):
         self.hdl.remove_item(roi_key)
 
-    def get_partition(self, qnum, pnum, qmin=None, qmax=None, pmin=None,
-                      pmax=None, style='linear'):
-
-        mask = self.mask
-        qmap = self.qmap['q'] * mask
-        pmap_org = self.qmap['phi'] * mask
-
-        if qmin is None or qmax is None:
-            qmin = np.min(self.qmap['q'][mask > 0])
-            qmax = np.max(self.qmap['q'][mask > 0]) + 1e-9  # exclusive
-        if pmin is None or pmax is None:
-            pmin = 0
-            pmax = 360.0 + 1e-9
-
-        assert style in ('linear', 'logarithmic')
-        # q
-        if style == 'linear':
-            qspan = np.linspace(qmin, qmax, qnum + 1)
-            qlist = (qspan[1:] + qspan[:-1]) / 2.0
-        elif style == 'logarithmic':
-            qspan = np.logspace(np.log10(qmin), np.log10(qmax), qnum + 1)
-            qlist = np.sqrt(qspan[1:] * qspan[:-1])
-
-        # phi
-        pmap = pmap_org.copy()
-        # deal with edge case, eg (pmin, pmax) = (350, 10)
-        if pmax < pmin:
-            pmax += 360.0
-            pmap[pmap < pmin] += 360.0
-
-        pspan = np.linspace(pmin, pmax, pnum + 1)
-        plist = (pspan[1:] + pspan[:-1]) / 2.0
-
-        qroi = np.logical_and(qmap >= qmin, qmap < qmax)
-        proi = np.logical_and(pmap >= pmin, pmap < pmax)
-        roi = np.logical_and(qroi, proi)
-
-        qmap = qmap * roi
-        pmap = pmap * roi
-
-        partition = np.zeros_like(roi, dtype=np.uint32)
-
-        cqlist = np.tile(qlist, pnum).reshape(pnum, qnum)
-        cqlist = np.swapaxes(cqlist, 0, 1)
-        cplist = np.tile(plist, qnum).reshape(qnum, pnum)
-
-        idx = 1
-        for m in range(qnum):
-            qroi = (qmap >= qspan[m]) * (qmap < qspan[m + 1])
-            for n in range(pnum):
-                proi = (pmap >= pspan[n]) * (pmap < pspan[n + 1])
-                comb_roi = qroi * proi
-                if np.sum(comb_roi) == 0:
-                    cqlist[m, n] = np.nan
-                    cplist[m, n] = np.nan
-                else:
-                    partition[comb_roi] = idx
-                    idx += 1
-
-        return (qspan, cqlist, pspan, cplist), partition
-
     def compute_saxs1d(self, cutoff=3.0, episilon=1e-16, num=180):
-        t_dq_span_val, partition = self.get_partition(num, 1,
-                                                      None, None, 0, 360, 'linear')
-        qlist = t_dq_span_val[1].flatten()
-
-        self.data_raw[5] = partition
+        p_dict = create_single_partition(self.qmap['q'], self.mask, None, None,
+                                         n_bins=num, style='linear')
+        # t_dq_span_val, partition = self.get_partition(num, 1,
+        #                                    None, None, 0, 360, 'linear')
+        qlist = p_dict['vlist']
+        self.data_raw[5] = p_dict['partition']
         num_q = qlist.size
         saxs1d = np.zeros((5, num_q), dtype=np.float64)
 
@@ -579,9 +443,9 @@ class SimpleMask(object):
         cols = []
 
         for n in range(num_q):
-            roi = (partition == n + 1)
-            if np.sum(roi) == 0:
+            if p_dict['count'][n] == 0:
                 continue
+            roi = (p_dict['partition'] == n + 1)
             idx = np.nonzero(roi)
             values = self.saxs_lin[idx]
 
@@ -619,151 +483,30 @@ class SimpleMask(object):
 
         return saxs1d, zero_loc
 
-    def compute_partition(self, mode='q-phi', **kwargs):
-        if mode == 'q-phi':
-            return self.compute_partition_one(**kwargs)
-        # elif mode == 'xy-mesh':
-        #     return self.compute_partition_xymesh(**kwargs)
+    def compute_partition(self, kwargs0, kwargs1):
+        map_name = kwargs0.pop('xmap')
+        kwargs0['xmap'] = self.qmap[map_name]
+        kwargs0['mask'] = self.mask
 
-    def compute_partition_one(self, dn=10, sn=100, style='linear'):
-        if self.meta is None or self.data_raw is None:
-            return
+        map_name = kwargs1.pop('xmap')
+        if map_name == 'none':
+            kwargs1 = None
+        else:
+            kwargs1['xmap'] = self.qmap[map_name]
+            kwargs1['mask'] = self.mask
 
-    def compute_partition_qphi(self,
-                               dq_num=10, sq_num=100, style='linear',
-                               dp_num=36, sp_num=360):
-        if self.meta is None or self.data_raw is None:
-            return
+        static_p, dynamic_p = create_partitions(kwargs0, kwargs1)
 
-        qrings = self.qrings
-
-        if qrings is None or len(qrings) == 0:
-            qrings = [[None, None, 0, 360]]
-
-        # dqspan = []
-        # , dqval, dphispan, dphival, dyn_map
-        dyn_map = np.zeros_like(self.mask, dtype=np.uint32)
-        sta_map = np.zeros_like(self.mask, dtype=np.uint32)
-
-        def combine_span_val(record, new_item):
-            for n in range(4):
-                record[n].append(new_item[n])
-            return record
-
-        dq_record = [[] for n in range(4)]
-        sq_record = [[] for n in range(4)]
-
-        for segment in qrings:
-            # qmin, qmax, pmin, pmax = segment, 0, 60
-            qmin, qmax, pmin, pmax = segment
-            t_dq_span_val, tdyn_map = self.get_partition(
-                dq_num, dp_num, qmin, qmax, pmin, pmax, style)
-            dq_record = combine_span_val(dq_record, t_dq_span_val)
-
-            # offset the nonzero dynamic qmap
-            tdyn_map[tdyn_map > 0] += np.max(dyn_map)
-            tdyn_idx = np.nonzero(tdyn_map)
-            dyn_map[tdyn_idx] = tdyn_map[tdyn_idx]
-
-            # offset the nonzero static qmap
-            t_sq_span_val, tsta_map = self.get_partition(
-                sq_num, sp_num, qmin, qmax, pmin, pmax, style)
-            sq_record = combine_span_val(sq_record, t_sq_span_val)
-
-            tsta_map[tsta_map > 0] += np.max(sta_map)
-            sta_map += tsta_map
-            tsta_idx = np.nonzero(tsta_map)
-            sta_map[tsta_idx] = tsta_map[tsta_idx]
-
-        # (qspan, cqlist, pspan, cplist)
-        dqspan = np.hstack(dq_record[0])
-        sqspan = np.hstack(sq_record[0])
-
-        dqval = np.hstack(dq_record[1]).reshape(1, -1)
-        sqval = np.hstack(sq_record[1]).reshape(1, -1)
-
-        dphispan = np.hstack(dq_record[2])
-        sphispan = np.hstack(sq_record[2])
-
-        dphival = np.hstack(dq_record[3]).reshape(1, -1)
-        sphival = np.hstack(sq_record[3]).reshape(1, -1)
-
-        # dump result to file;
-        self.data_raw[3] = dyn_map
-        self.data_raw[4] = sta_map
+        self.data_raw[3] = dynamic_p['partition']
+        self.data_raw[4] = static_p['partition'] 
         self.hdl.setCurrentIndex(3)
 
         partition = {
-            'dqval': dqval,
-            'sqval': sqval,
-            'dynamicMap': dyn_map,
-            'staticMap': sta_map,
-            'dphival': dphival,
-            'sphival': sphival,
-            'dynamicQList': np.arange(0, dq_num * dp_num + 1).reshape(1, -1),
-            'staticQList': np.arange(0, sq_num * sp_num + 1).reshape(1, -1),
-            'dqspan': dqspan,
-            'sqspan': sqspan,
-            'dphispan': dphispan,
-            'sphispan': sphispan,
-            'dnophi': dp_num,
-            'snophi': sp_num,
-            'dnoq': dq_num,
-            'snoq': sq_num,
-            'x0': np.array([self.meta['bcx']]).reshape(1, 1),
-            'y0': np.array([self.meta['bcy']]).reshape(1, 1),
-            'xspec': np.array(-1.0).reshape(1, 1),
-            'yspec': np.array(-1.0).reshape(1, 1),
+            'static_q_list': static_p['vlist'],
+            'static_roi_map': static_p['partition'],
+            'dynamic_q_list': dynamic_p['vlist'],
+            'dynamic_roi_map': dynamic_p['partition'],
         }
-        for key in ['snophi', 'snoq', 'dnophi', 'dnoq']:
-            partition[key] = np.array(partition[key]).reshape(1, 1)
-
-        self.new_partition = partition
-        return partition
-
-    def compute_partition_xymesh(self, sx_num=8, sy_num=8, dx_num=1, dy_num=1):
-        if self.meta is None or self.data_raw is None:
-            return
-
-        # make the static numbers multiples of the dynamics numbers
-        sy_num = (sy_num + dy_num - 1) // dy_num * dy_num
-        sx_num = (sx_num + dx_num - 1) // dx_num * dx_num
-
-        # return idx_map, qxspan, qyspan, qxlist, qylist
-        dyn_map, dxspan, dyspan, dxlist, dylist = create_xy_mesh(
-            self.mask, self.qmap, dx_num, dy_num)
-        sta_map, sxspan, syspan, sxlist, sylist = create_xy_mesh(
-            self.mask, self.qmap, sx_num, sy_num)
-
-        self.data_raw[3] = dyn_map
-        self.data_raw[4] = sta_map
-        self.hdl.setCurrentIndex(3)
-
-        partition = {
-            'dqval': dxlist,
-            'sqval': sxlist,
-            'dynamicMap': dyn_map,
-            'staticMap': sta_map,
-            'dphival': dylist,
-            'sphival': sylist,
-            'dynamicQList': np.arange(0, dx_num * dy_num + 1).reshape(1, -1),
-            'staticQList': np.arange(0, sx_num * sx_num + 1).reshape(1, -1),
-            'dqspan': dxspan,
-            'sqspan': sxspan,
-            'dphispan': dyspan,
-            'sphispan': syspan,
-            'dnophi': dy_num,
-            'snophi': sy_num,
-            'dnoq': dx_num,
-            'snoq': sx_num,
-            'x0': np.array([self.meta['bcx']]).reshape(1, 1),
-            'y0': np.array([self.meta['bcy']]).reshape(1, 1),
-            'xspec': np.array(-1.0).reshape(1, 1),
-            'yspec': np.array(-1.0).reshape(1, 1),
-        }
-        for key in ['snophi', 'snoq', 'dnophi', 'dnoq']:
-            partition[key] = np.array(partition[key]).reshape(1, 1)
-
         self.new_partition = partition
         return partition
 
