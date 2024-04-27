@@ -52,14 +52,15 @@ def create_single_partition(xmap=None, mask=None, vbeg=None, vend=None,
 def combine_two_partitions(pt0_dict, pt1_dict):
     pt0 = pt0_dict['partition']
     pt1 = pt1_dict['partition']
+    mask = pt0 * pt1 > 0
 
     nbins0 = pt0_dict['vlist'].size
     nbins1 = pt1_dict['vlist'].size 
-    print(nbins0, nbins1)
 
     # pt_a, pt_b and pt_c start from 1
     pt_c = (pt0.astype(np.int64) - 1) * nbins1 + (pt1.astype(np.int64) - 1) + 1
     pt_c = np.clip(pt_c, a_min=0, a_max=None).astype(np.uint32)
+    pt_c *= mask
     minlength = nbins0 * nbins1 + 1
     counts = np.bincount(pt_c.ravel(),
                          minlength=minlength)[1:].reshape(nbins0, nbins1)
