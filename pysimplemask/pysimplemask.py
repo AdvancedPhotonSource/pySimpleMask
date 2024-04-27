@@ -695,7 +695,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
 
-        keys = ('map', 'vbeg', 'vend', 'sn', 'dn', 'style')
+        keys = ('xmap', 'vbeg', 'vend', 'sn', 'dn', 'style')
         axis0 = (self.cb_qmap_axis0, self.vbeg_axis0, self.vend_axis0,
                  self.sn_axis0, self.dn_axis0, self.partition_style_axis0)
 
@@ -706,15 +706,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
         values1 = [get_widget_value(w) for w in axis1]
         kwargs0 = {k:v for k, v in zip(keys, values0)}
         kwargs1 = {k:v for k, v in zip(keys, values1)}
-        print(kwargs0)
-        print(kwargs1)
 
         self.btn_compute_qpartition.setDisabled(True)
         self.statusbar.showMessage('Computing partition ... ', 10000)
         self.centralwidget.repaint()
 
         try:
-            self.sm.compute_partition(**kwargs)
+            self.sm.compute_partition(kwargs0, kwargs1)
         except Exception:
             traceback.print_exception()
 
