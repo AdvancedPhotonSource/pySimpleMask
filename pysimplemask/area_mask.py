@@ -10,30 +10,12 @@ import logging
 logger = logging.getLevelName(__name__)
 
 
-def create_qring(qmin, qmax, pmin, pmax, qnum=1, flag_const_width=True):
-    qrings = []
-    if qmin > qmax:
-        qmin, qmax = qmax, qmin
-    qcen = (qmin + qmax) / 2.0
-    qhalf = (qmax - qmin) / 2.0
-
-    for n in range(1, qnum + 1):
-        if flag_const_width:
-            low = qcen * n - qhalf
-            high = qcen * n + qhalf
-        else:
-            low = (qcen - qhalf) * n
-            high = (qcen + qhalf) * n
-        qrings.append((low, high, pmin, pmax))
-    return qrings
-
 
 class MaskBase():
     def __init__(self, shape=(512, 1024)) -> None:
         self.shape = shape
         self.zero_loc = None
         self.mtype = 'base'
-        self.qrings = []
 
     def describe(self):
         if self.zero_loc is None:
@@ -124,44 +106,6 @@ class MaskThreshold(MaskBase):
         self.zero_loc = np.array(np.nonzero(mask))
 
 
-class MaskQring(MaskBase):
-    """
-    use a ring on the qmap to define the mask
-    """
-
-    def __init__(self, shape=(512, 1024)) -> None:
-        super().__init__(shape=shape)
-        self.qrings = []
-
-    def evaluate(self, qmap, pmap, qrings=None):
-        mask = np.zeros_like(qmap, dtype=bool)
-        if qrings is None:
-            return
-
-        for n in range(len(qrings)):
-            pmap_loc = np.copy(pmap)
-
-            qmin, qmax, pmin, pmax = qrings[n]
-            if qmin > qmax:
-                qmin, qmax = qmax, qmin
-
-            qroi = np.logical_and((qmap >= qmin), (qmap < qmax))
-            if pmin > pmax:
-                pmax += 360.0
-                pmap_loc[pmap_loc < pmin] += 360.0
-
-            proi = np.logical_and((pmap_loc >= pmin), (pmap_loc < pmax))
-
-            mask[qroi * proi] = 1
-
-        mask = np.logical_not(mask)
-        self.zero_loc = np.array(np.nonzero(mask))
-        self.qrings = qrings
-
-    def get_qrings(self):
-        return self.qrings.copy()
-
-
 class MaskArray(MaskBase):
     def __init__(self, shape=(512, 1024)) -> None:
         super().__init__(shape=shape)
@@ -175,13 +119,12 @@ class MaskAssemble():
     def __init__(self, shape=(128, 128), saxs_log=None, qmap=None, pmap=None,
             ) -> None:
         self.workers = {
-            'mask_blemish': MaskFile(shape),
-            'mask_file': MaskFile(shape),
-            'mask_threshold': MaskThreshold(shape),
-            'mask_list': MaskList(shape),
-            'mask_draw': MaskArray(shape),
-            'mask_outlier': MaskList(shape),
-            'mask_qring': MaskQring(shape)
+            'Blemish': MaskFile(shape),
+            'File': MaskFile(shape),
+            'GlobalThreshold': MaskThreshold(shape),
+            'Manual': MaskList(shape),
+            'Draw': MaskArray(shape),
+            'CircularThreshold': MaskList(shape),
         }
         self.saxs_log = saxs_log
         self.qmap = qmap
@@ -212,10 +155,8 @@ class MaskAssemble():
         return mask
 
     def evaluate(self, target, **kwargs):
-        if target == 'mask_threshold':
+        if target == 'GlobalThreshold':
             self.workers[target].evaluate(self.saxs_log, **kwargs)
-        elif target == 'mask_qring':
-            self.workers[target].evaluate(self.qmap, self.pmap, **kwargs)
         else:
             self.workers[target].evaluate(**kwargs)
         self.selected_target = target
