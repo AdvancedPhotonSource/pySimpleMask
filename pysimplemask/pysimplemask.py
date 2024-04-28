@@ -122,31 +122,31 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_list_add.clicked.connect(self.mask_list_add)
 
         self.btn_mask_list_evaluate.clicked.connect(
-            lambda: self.mask_evaluate('mask_list'))
+            lambda: self.mask_evaluate('Manual'))
         self.btn_mask_apply.clicked.connect(self.mask_apply)
 
         # blemish
         self.btn_select_blemish.clicked.connect(self.select_blemish)
         self.btn_apply_blemish.clicked.connect(
-            lambda: self.mask_evaluate('mask_blemish'))
+            lambda: self.mask_evaluate('Blemish'))
 
-        # mask_file
+        # File
         self.btn_select_maskfile.clicked.connect(self.select_maskfile)
         self.btn_apply_maskfile.clicked.connect(
-            lambda: self.mask_evaluate('mask_file'))
+            lambda: self.mask_evaluate('File'))
 
         # draw method / array
         self.btn_mask_draw_add.clicked.connect(self.add_drawing)
         self.btn_mask_draw_evaluate.clicked.connect(
-            lambda: self.mask_evaluate('mask_draw'))
+            lambda: self.mask_evaluate('Draw'))
 
         # binary threshold
         self.btn_mask_threshold_evaluate.clicked.connect(
-            lambda: self.mask_evaluate('mask_threshold'))
+            lambda: self.mask_evaluate('GlobalThreshold'))
 
         # btn_mask_outlier_evaluate
         self.btn_mask_outlier_evaluate.clicked.connect(
-            lambda: self.mask_evaluate('mask_outlier'))
+            lambda: self.mask_evaluate('CircularThreshold'))
 
         self.cb_qmap_axis0.currentTextChanged.connect(
             lambda: self.update_axis_vrange(0))
@@ -256,7 +256,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return 
 
         if current_mask_index == 3:
-            self.handle_manual_mask_mouse_click(col, row)
+            self.handle_manual_mask_with_mouse_click(col, row)
             return
         else:
             self.handle_manual_partition_with_mouse_click(col, row)
@@ -296,17 +296,17 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if target is None or not self.is_ready():
             return
 
-        if target == 'mask_blemish':
+        if target == 'Blemish':
             kwargs = {
                 'fname': self.blemish_fname.text(),
                 'key': self.blemish_path.text()
             }
-        elif target == 'mask_file':
+        elif target == 'File':
             kwargs = {
                 'fname': self.maskfile_fname.text(),
                 'key': self.maskfile_path.text()
             }
-        elif target == 'mask_list':
+        elif target == 'Manual':
             num_row = self.mask_list_xylist.count()
             val = [str(self.mask_list_xylist.item(i).text())
                    for i in range(num_row)]
@@ -317,17 +317,17 @@ class SimpleMaskGUI(QMainWindow, Ui):
             kwargs = {
                 'zero_loc': xy
             }
-        elif target == 'mask_draw':
+        elif target == 'Draw':
             kwargs = {
                 'arr': np.logical_not(self.sm.apply_drawing())
             }
-        elif target == 'mask_threshold':
+        elif target == 'GlobalThreshold':
             kwargs = {
                 'low': self.binary_threshold_low.value(),
                 'high': self.binary_threshold_high.value(),
                 'scale': ['linear', 'log'][self.binary_scale.currentIndex()]
             }
-        elif target == 'mask_outlier':
+        elif target == 'CircularThreshold':
             num = self.outlier_num_roi.value()
             cutoff = self.outlier_cutoff.value()
             # iterations = self.outlier_iterations.value()
@@ -363,7 +363,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         self.sm.mask_apply(target)
         # perform evaluate again so the saxs1d shows the new results;
-        if target == 'Threshold':
+        if target == 'CircularThreshold':
             self.mask_evaluate(target=target)
         elif target == 'Manual':
             self.mask_list_clear()
