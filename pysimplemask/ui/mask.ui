@@ -2185,7 +2185,7 @@
           </property>
           <layout class="QGridLayout" name="gridLayout_7">
            <item row="0" column="2">
-            <widget class="QComboBox" name="comboBox_2">
+            <widget class="QComboBox" name="output_method">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                <horstretch>0</horstretch>
@@ -2194,17 +2194,22 @@
              </property>
              <item>
               <property name="text">
-               <string>8IDI Format</string>
+               <string>nexus</string>
               </property>
              </item>
              <item>
               <property name="text">
-               <string>Mask Only (tif)</string>
+               <string>numpy</string>
               </property>
              </item>
              <item>
               <property name="text">
-               <string>QPartition Only (tif)</string>
+               <string>txt_img</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>tensor</string>
               </property>
              </item>
             </widget>
