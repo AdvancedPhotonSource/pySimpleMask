@@ -10,6 +10,7 @@ import skimage.io as skio
 import logging
 from .scattering_geometry import get_scattering_geometry
 from .qpartition_utilis import create_partitions, create_single_partition
+from .qmc_saver import save_qmc
 pg.setConfigOptions(imageAxisOrder='row-major')
 
 logger = logging.getLogger(__name__)
@@ -101,53 +102,14 @@ class SimpleMask(object):
         pos = np.roll(pos, shift=1, axis=0)
         return pos.T
 
-    def save_partition(self, save_fname):
+    def save_partition(self, save_fname, method='nexus'):
         # if no partition is computed yet
         if self.new_partition is None:
             return
-
-        with h5py.File(save_fname, 'w') as hf:
-            if '/data' in hf:
-                del hf['/data']
-
-            data = hf.create_group('data')
-            data.create_dataset('mask', data=self.mask)
-            for key, val in self.new_partition.items():
-                data.create_dataset(key, data=val)
-
-            # directories that remain the same
-            dt = h5py.vlen_dtype(np.dtype('int32'))
-            version = data.create_dataset('Version', (1,), dtype=dt)
-            version[0] = [5]
-
-            maps = data.create_group("Maps")
-            dt = h5py.special_dtype(vlen=str)
-            map1name = maps.create_dataset('map1name', (1,), dtype=dt)
-            map1name[0] = 'q'
-
-            map2name = maps.create_dataset('map2name', (1,), dtype=dt)
-            map2name[0] = 'phi'
-
-            empty_arr = np.array([])
-            maps.create_dataset('q', data=self.qmap['q'])
-            maps.create_dataset('phi', data=self.qmap['phi'])
-            maps.create_dataset('x', data=empty_arr)
-            maps.create_dataset('y', data=empty_arr)
-
-            data.create_dataset('datetime', data=self.meta['datetime'])
-            for key, val in self.meta.items():
-                if key in ['datetime', 'energy', 'det_dist', 'pix_dim', 'bcx',
-                           'bcy', 'saxs']:
-                    continue
-
-                if isinstance(val, str):
-                    val = val.encode("ascii")
-                else:
-                    val = np.array(val)
-                    if val.size == 1:
-                        val = val.reshape(1, 1)
-
-                data.create_dataset(key, data=val)
+        
+        partiton_info = self.new_partition.copy()
+        partiton_info['mask'] = self.mask.astype(bool)
+        save_qmc(save_fname, partiton_info, method=method)
         logger.info('partition map is saved')
 
     # generate 2d saxs
@@ -512,8 +474,10 @@ class SimpleMask(object):
         partition = {
             'static_q_list': static_p['vlist'],
             'static_roi_map': static_p['partition'],
+            'static_counts': static_p['counts'],
             'dynamic_q_list': dynamic_p['vlist'],
             'dynamic_roi_map': dynamic_p['partition'],
+            'dynamic_counts': dynamic_p['counts'],
             'map_name': static_p['map_name'],
         }
         self.new_partition = partition

@@ -26,7 +26,6 @@ def create_single_partition(map_name='q', xmap=None, mask=None, vbeg=None,
         assert vbeg > 0, 'vbeg must > 0 when using logarithmic style'
         vspan = np.logspace(np.log10(vbeg), np.log10(vend), n_bins + 1)
         vlist = np.sqrt(vspan[1:] * vspan[:-1])
-
     partition = np.zeros_like(xmap, dtype=np.uint32)
 
     mask_prev = xmap < vspan[0] 
@@ -42,7 +41,7 @@ def create_single_partition(map_name='q', xmap=None, mask=None, vbeg=None,
     counts = np.bincount(partition.ravel(), minlength=n_bins+1)[1:]
     result = {
         'partition': partition,
-        'vlist': [vlist],
+        'vlist': vlist,
         'map_name': [map_name],
         # 'sparsity': np.sum(counts > 0) / n_bins,
         'counts': counts
@@ -55,8 +54,8 @@ def combine_two_partitions(pt0_dict, pt1_dict):
     pt1 = pt1_dict['partition']
     mask = pt0 * pt1 > 0
 
-    nbins0 = pt0_dict['vlist'][0].size
-    nbins1 = pt1_dict['vlist'][0].size 
+    nbins0 = pt0_dict['vlist'].size
+    nbins1 = pt1_dict['vlist'].size 
 
     # pt_a, pt_b and pt_c start from 1
     pt_c = (pt0.astype(np.int64) - 1) * nbins1 + (pt1.astype(np.int64) - 1) + 1
@@ -67,13 +66,15 @@ def combine_two_partitions(pt0_dict, pt1_dict):
                          minlength=minlength)[1:].reshape(nbins0, nbins1)
     # unique_elements = np.unique(pt_c)
     # sparsity = (len(unique_elements) - 1) / (nbins0 * nbins1)
-    # vlist0 = np.repeat(pt0_dict['vlist'], nbins1).reshape(nbins0, nbins1)
-    # vlist1 = np.repeat(pt1_dict['vlist'], nbins0).reshape(nbins0, nbins1)
-    # vlist = np.stack([vlist0, vlist1])
+    vlist0 = np.repeat(pt0_dict['vlist'], nbins1).reshape(nbins0, nbins1)
+    vlist1 = np.repeat(pt1_dict['vlist'], nbins0).reshape(nbins0, nbins1)
+    vlist = np.stack([vlist0, vlist1])
+    vlist = np.moveaxis(vlist, 0, 2)
     result = {
         'partition': pt_c,
-        'vlist': [pt0_dict['vlist'], pt1_dict['vlist']],
-        'map_name': [pt0_dict['map_name'], pt1_dict['map_name']],
+        # 'vlist': pt0_dict['vlist'] + pt1_dict['vlist'],
+        'vlist': vlist,
+        'map_name': pt0_dict['map_name'] + pt1_dict['map_name'],
         # 'sparsity': sparsity,
         'counts': counts
     }
