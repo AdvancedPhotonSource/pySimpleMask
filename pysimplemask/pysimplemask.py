@@ -361,7 +361,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
 
-        self.sm.mask_apply(target)
+        self.sm.mask_apply()
         # perform evaluate again so the saxs1d shows the new results;
         if target == 'CircularThreshold':
             self.mask_evaluate(target=target)
@@ -596,7 +596,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
 
-        keys = ('xmap', 'vbeg', 'vend', 'sn', 'dn', 'style')
+        keys = ('map_name', 'vbeg', 'vend', 'sn', 'dn', 'style')
         axis0 = (self.cb_qmap_axis0, self.vbeg_axis0, self.vend_axis0,
                  self.sn_axis0, self.dn_axis0, self.partition_style_axis0)
 

@@ -6,8 +6,8 @@ import h5py
 logger = logging.getLogger(__name__)
 
 
-def create_single_partition(xmap=None, mask=None, vbeg=None, vend=None,
-                            style='linear', n_bins=36):
+def create_single_partition(map_name='q', xmap=None, mask=None, vbeg=None, 
+                            vend=None, style='linear', n_bins=36):
     if vbeg is None or vend is None:
         vbeg = np.nanmin(xmap[mask > 0])
         vend = np.nanmax(xmap[mask > 0])
@@ -42,8 +42,9 @@ def create_single_partition(xmap=None, mask=None, vbeg=None, vend=None,
     counts = np.bincount(partition.ravel(), minlength=n_bins+1)[1:]
     result = {
         'partition': partition,
-        'vlist': vlist,
-        'sparsity': np.sum(counts > 0) / n_bins,
+        'vlist': [vlist],
+        'map_name': [map_name],
+        # 'sparsity': np.sum(counts > 0) / n_bins,
         'counts': counts
     }
     return result
@@ -54,8 +55,8 @@ def combine_two_partitions(pt0_dict, pt1_dict):
     pt1 = pt1_dict['partition']
     mask = pt0 * pt1 > 0
 
-    nbins0 = pt0_dict['vlist'].size
-    nbins1 = pt1_dict['vlist'].size 
+    nbins0 = pt0_dict['vlist'][0].size
+    nbins1 = pt1_dict['vlist'][0].size 
 
     # pt_a, pt_b and pt_c start from 1
     pt_c = (pt0.astype(np.int64) - 1) * nbins1 + (pt1.astype(np.int64) - 1) + 1
@@ -64,16 +65,16 @@ def combine_two_partitions(pt0_dict, pt1_dict):
     minlength = nbins0 * nbins1 + 1
     counts = np.bincount(pt_c.ravel(),
                          minlength=minlength)[1:].reshape(nbins0, nbins1)
-    unique_elements = np.unique(pt_c)
-    sparsity = (len(unique_elements) - 1) / (nbins0 * nbins1)
-    vlist0 = np.repeat(pt0_dict['vlist'], nbins1).reshape(nbins0, nbins1)
-    vlist1 = np.repeat(pt1_dict['vlist'], nbins0).reshape(nbins0, nbins1)
-    vlist = np.stack([vlist0, vlist1])
-
+    # unique_elements = np.unique(pt_c)
+    # sparsity = (len(unique_elements) - 1) / (nbins0 * nbins1)
+    # vlist0 = np.repeat(pt0_dict['vlist'], nbins1).reshape(nbins0, nbins1)
+    # vlist1 = np.repeat(pt1_dict['vlist'], nbins0).reshape(nbins0, nbins1)
+    # vlist = np.stack([vlist0, vlist1])
     result = {
         'partition': pt_c,
-        'vlist': vlist,
-        'sparsity': sparsity,
+        'vlist': [pt0_dict['vlist'], pt1_dict['vlist']],
+        'map_name': [pt0_dict['map_name'], pt1_dict['map_name']],
+        # 'sparsity': sparsity,
         'counts': counts
     }
     return result 
@@ -107,7 +108,6 @@ def test():
     pd1 = create_single_partition(pmap, mask, n_bins=37)
 
     pd2 = combine_two_partitions(pd0, pd1)
-    print(f"{pd2['sparsity']}")
     plt.imshow(pd2['partition'])
     plt.colorbar()
     plt.show()
@@ -119,11 +119,10 @@ def test2():
         qmap = f['/data/Maps/q'][()]
         mask = f['/data/mask'][()]
         pmap = f['/data/Maps/phi'][()]
-    kwargs0 = {'xmap': qmap, 'mask': mask, 'sn': 60, 'dn': 10, 'style': 'logarithmic'}
-    kwargs1 = {'xmap': pmap, 'mask': mask, 'sn': 55, 'dn': 11, 'style': 'linear'}
+    kwargs0 = {'map_name': 'q', 'xmap': qmap, 'mask': mask, 'sn': 60, 'dn': 10, 'style': 'logarithmic'}
+    kwargs1 = {'map_name': 'p', 'xmap': pmap, 'mask': mask, 'sn': 55, 'dn': 11, 'style': 'linear'}
     
     static_pd2, dynamic_pd2 = create_partitions(kwargs0, kwargs1)
-    print(f"{static_pd2['sparsity']}")
     plt.imshow(static_pd2['partition'])
     plt.colorbar()
     plt.show()

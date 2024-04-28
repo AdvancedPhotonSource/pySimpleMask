@@ -72,8 +72,7 @@ class SimpleMask(object):
         self.mask_kernel.redo_undo(action=action)
         self.mask_apply()
 
-    def mask_apply(self, target=None):
-        # if target is None, apply will return the current mask
+    def mask_apply(self):
         self.mask = self.mask_kernel.apply()
 
         self.data_raw[1] = self.saxs_log * self.mask
@@ -189,7 +188,7 @@ class SimpleMask(object):
 
         self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
         self.mask_kernel.update_qmap(self.qmap)
-        self.extent = self.compute_extent()
+        # self.extent = self.compute_extent()
 
         # self.meta['saxs'] = saxs
         self.data_raw[0] = self.saxs_log
@@ -236,17 +235,17 @@ class SimpleMask(object):
         mask = (vmap >= vbeg) * (vmap <= vend)
         return mask
 
-    def compute_extent(self):
-        k0 = 2 * np.pi / (12.3980 / self.meta['energy'])
-        x_range = np.array([0, self.shape[1]]) - self.meta['bcx']
-        y_range = np.array([-self.shape[0], 0]) + self.meta['bcy']
-        x_range = x_range * self.meta['pix_dim'] / self.meta['det_dist'] * k0
-        y_range = y_range * self.meta['pix_dim'] / self.meta['det_dist'] * k0
-        # the extent for matplotlib imshow is:
-        # self._extent = xmin, xmax, ymin, ymax = extent
-        # convert to a tuple of 4 elements;
+    # def compute_extent(self):
+    #     k0 = 2 * np.pi / (12.3980 / self.meta['energy'])
+    #     x_range = np.array([0, self.shape[1]]) - self.meta['bcx']
+    #     y_range = np.array([-self.shape[0], 0]) + self.meta['bcy']
+    #     x_range = x_range * self.meta['pix_dim'] / self.meta['det_dist'] * k0
+    #     y_range = y_range * self.meta['pix_dim'] / self.meta['det_dist'] * k0
+    #     # the extent for matplotlib imshow is:
+    #     # self._extent = xmin, xmax, ymin, ymax = extent
+    #     # convert to a tuple of 4 elements;
 
-        return (*x_range, *y_range)
+    #     return (*x_range, *y_range)
 
     def show_location(self, pos):
 
@@ -493,11 +492,11 @@ class SimpleMask(object):
         return saxs1d, zero_loc
 
     def compute_partition(self, kwargs0, kwargs1):
-        map_name = kwargs0.pop('xmap')
+        map_name = kwargs0['map_name']
         kwargs0['xmap'] = self.qmap[map_name]
         kwargs0['mask'] = self.mask
 
-        map_name = kwargs1.pop('xmap')
+        map_name = kwargs1['map_name']
         if map_name == 'none':
             kwargs1 = None
         else:
@@ -515,6 +514,7 @@ class SimpleMask(object):
             'static_roi_map': static_p['partition'],
             'dynamic_q_list': dynamic_p['vlist'],
             'dynamic_roi_map': dynamic_p['partition'],
+            'map_name': static_p['map_name'],
         }
         self.new_partition = partition
         return partition
