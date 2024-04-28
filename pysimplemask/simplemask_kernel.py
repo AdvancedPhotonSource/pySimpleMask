@@ -452,7 +452,7 @@ class SimpleMask(object):
         cols = []
 
         for n in range(num_q):
-            if p_dict['count'][n] == 0:
+            if p_dict['counts'][n] == 0:
                 continue
             roi = (p_dict['partition'] == n + 1)
             idx = np.nonzero(roi)
