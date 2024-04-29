@@ -153,12 +153,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.cb_qmap_axis1.currentTextChanged.connect(
             lambda: self.update_axis_vrange(1))
 
-        # tab correlation
-        # self.btn_mask_draw_add_corr.clicked.connect(self.add_drawing)
-        # self.btn_corr.clicked.connect(self.perform_correlation)
-        # self.btn_mask_draw_apply_corr.clicked.connect(self.corr_add_roi)
-        # self.angle_n_corr.valueChanged.connect(self.update_corr_angle)
-
         self.mask_outlier_hdl.setBackground((255, 255, 255))
         self.mp1.scene.sigMouseClicked.connect(self.mouse_clicked)
 
@@ -247,7 +241,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def mouse_clicked(self, event):
         if not event.double():
             return
-        # make sure the maskwidget is at manual mode or qring mode;
+
         current_mask_index = self.MaskWidget.currentIndex()
         mouse_point = self.mp1.getView().mapSceneToView(event.pos())
         col = int(mouse_point.x())
@@ -529,34 +523,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 'sl_mode': self.cb_selector_mode.currentText(),
                 'width': self.plot_width.value()
             }
-        # elif self.MaskWidget.currentIndex() == 6:
-        #     color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
-        #         self.cb_selector_color_corr.currentIndex()]
-        #     kwargs = {
-        #         'color': color,
-        #         'sl_type': self.cb_selector_type_corr.currentText(),
-        #         'sl_mode': 'inclusive',
-        #         'width': self.plot_width_corr.value()
-        #     }
-        # else:
-        #     return
+
         self.sm.add_drawing(**kwargs)
         return
     
-    # self.btn_mask_draw_apply_corr.clicked.connect(self.corr_add_roi)
-    def corr_add_roi(self):
-        roi = self.sm.apply_drawing()
-        self.sm.set_corr_roi(roi)
-        return
-    
-    def update_corr_angle(self):
-        angle_deg = 360.0 / self.angle_n_corr.value()
-        self.angle_corr_text.setText(f"{angle_deg:.2f} (deg)")
-    
-    def perform_correlation(self):
-        angle = 2 * np.pi / self.angle_n_corr.value()
-        self.sm.perform_correlation(angle)
-
     def update_axis_vrange(self, index=0):
         if index == 0:
             target = self.cb_qmap_axis0.currentText()

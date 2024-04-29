@@ -130,7 +130,6 @@ class SimpleMask(object):
 
         self.meta = reader.load_meta()
 
-        # keep same
         # self.data_raw = np.zeros(shape=(6, *saxs.shape))
         self.data_raw = np.zeros(shape=(16, *saxs.shape))
         self.mask = np.ones(saxs.shape, dtype=bool)
@@ -150,9 +149,7 @@ class SimpleMask(object):
 
         self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
         self.mask_kernel.update_qmap(self.qmap)
-        # self.extent = self.compute_extent()
 
-        # self.meta['saxs'] = saxs
         self.data_raw[0] = self.saxs_log
         self.data_raw[1] = self.saxs_log * self.mask
         self.data_raw[2] = self.mask
@@ -196,18 +193,6 @@ class SimpleMask(object):
         vend = np.nanmax(vmap[self.mask == 1]) if vend is None else vend
         mask = (vmap >= vbeg) * (vmap <= vend)
         return mask
-
-    # def compute_extent(self):
-    #     k0 = 2 * np.pi / (12.3980 / self.meta['energy'])
-    #     x_range = np.array([0, self.shape[1]]) - self.meta['bcx']
-    #     y_range = np.array([-self.shape[0], 0]) + self.meta['bcy']
-    #     x_range = x_range * self.meta['pix_dim'] / self.meta['det_dist'] * k0
-    #     y_range = y_range * self.meta['pix_dim'] / self.meta['det_dist'] * k0
-    #     # the extent for matplotlib imshow is:
-    #     # self._extent = xmin, xmax, ymin, ymax = extent
-    #     # convert to a tuple of 4 elements;
-
-    #     return (*x_range, *y_range)
 
     def show_location(self, pos):
 
@@ -488,24 +473,5 @@ class SimpleMask(object):
         self.qmap, self.qmap_unit = self.compute_qmap()
         self.mask_kernel.update_qmap(self.qmap)
 
-    def get_parameters(self):
-        val = []
-        for key in ['bcx', 'bcy', 'energy', 'pix_dim', 'det_dist']:
-            val.append(self.meta[key])
-        return val
-
-    def set_corr_roi(self, roi):
-        self.corr_roi = roi
-
-    def perform_correlation(self, angle_list):
-        pass
 
 
-def test01():
-    fname = '../data/H187_D100_att0_Rq0_00001_0001-100000.hdf'
-    sm = SimpleMask()
-    sm.read_data(fname)
-
-
-if __name__ == '__main__':
-    test01()
