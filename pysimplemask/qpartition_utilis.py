@@ -6,6 +6,21 @@ import h5py
 logger = logging.getLogger(__name__)
 
 
+def adjust_dynamic_range(arr):
+    # some downstream applications using pytorch doesn't support uint16 and
+    # uint32, uint64
+    max_val = np.max(arr)
+    if max_val <= 255:
+        dtype = np.uint8
+    elif max_val <= 2 ** 15 - 1:
+        dtype = np.int16
+    elif max_val <= 2 ** 31 - 1:
+        dtype = np.int32
+    else:
+        dtype = np.int64
+    return arr.astype(dtype)
+
+
 def create_single_partition(map_name='q', xmap=None, mask=None, vbeg=None, 
                             vend=None, style='linear', n_bins=36):
     if vbeg is None or vend is None:
@@ -26,7 +41,7 @@ def create_single_partition(map_name='q', xmap=None, mask=None, vbeg=None,
         assert vbeg > 0, 'vbeg must > 0 when using logarithmic style'
         vspan = np.logspace(np.log10(vbeg), np.log10(vend), n_bins + 1)
         vlist = np.sqrt(vspan[1:] * vspan[:-1])
-    partition = np.zeros_like(xmap, dtype=np.uint32)
+    partition = np.zeros_like(xmap, dtype=np.int64)
 
     mask_prev = xmap < vspan[0] 
     for m in range(n_bins):
@@ -40,7 +55,7 @@ def create_single_partition(map_name='q', xmap=None, mask=None, vbeg=None,
         mask_prev = mask_curr
     counts = np.bincount(partition.ravel(), minlength=n_bins+1)[1:]
     result = {
-        'partition': partition,
+        'partition': adjust_dynamic_range(partition),
         'vlist': vlist,
         'map_name': [map_name],
         # 'sparsity': np.sum(counts > 0) / n_bins,
@@ -59,7 +74,7 @@ def combine_two_partitions(pt0_dict, pt1_dict):
 
     # pt_a, pt_b and pt_c start from 1
     pt_c = (pt0.astype(np.int64) - 1) * nbins1 + (pt1.astype(np.int64) - 1) + 1
-    pt_c = np.clip(pt_c, a_min=0, a_max=None).astype(np.uint32)
+    pt_c = np.clip(pt_c, a_min=0, a_max=None)
     pt_c *= mask
     minlength = nbins0 * nbins1 + 1
     counts = np.bincount(pt_c.ravel(),
@@ -71,7 +86,7 @@ def combine_two_partitions(pt0_dict, pt1_dict):
     vlist = np.stack([vlist0, vlist1])
     vlist = np.moveaxis(vlist, 0, 2)
     result = {
-        'partition': pt_c,
+        'partition': adjust_dynamic_range(pt_c),
         # 'vlist': pt0_dict['vlist'] + pt1_dict['vlist'],
         'vlist': vlist,
         'map_name': pt0_dict['map_name'] + pt1_dict['map_name'],
