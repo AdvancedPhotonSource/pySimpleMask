@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1348</width>
-    <height>905</height>
+    <width>1678</width>
+    <height>1017</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -1860,314 +1860,317 @@
           <property name="title">
            <string>Partition</string>
           </property>
-          <layout class="QGridLayout" name="gridLayout_11">
+          <layout class="QGridLayout" name="gridLayout_6">
+           <item row="1" column="0">
+            <widget class="QComboBox" name="cb_qmap_axis0"/>
+           </item>
+           <item row="0" column="5">
+            <widget class="QLabel" name="label_13">
+             <property name="text">
+              <string>end</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="2">
+            <widget class="QRadioButton" name="rb_beg_axis0">
+             <property name="maximumSize">
+              <size>
+               <width>20</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="checkable">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="8">
+            <widget class="QLabel" name="label_20">
+             <property name="text">
+              <string>Style</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLabel" name="label_33">
+             <property name="text">
+              <string>unit</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLabel" name="unit_axis0">
+             <property name="text">
+              <string>unit</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="6">
+            <widget class="QSpinBox" name="sn_axis1">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>9999</number>
+             </property>
+             <property name="value">
+              <number>1</number>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="8">
+            <widget class="QComboBox" name="partition_style_axis1">
+             <item>
+              <property name="text">
+               <string>linear</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>logarithmic</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QLabel" name="unit_axis1">
+             <property name="text">
+              <string>unit</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="3">
+            <widget class="QDoubleSpinBox" name="vbeg_axis1">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>20</height>
+              </size>
+             </property>
+             <property name="decimals">
+              <number>6</number>
+             </property>
+             <property name="minimum">
+              <double>-10000.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>10000.000000000000000</double>
+             </property>
+             <property name="value">
+              <double>0.000000000000000</double>
+             </property>
+            </widget>
+           </item>
            <item row="0" column="0">
-            <layout class="QGridLayout" name="gridLayout_6">
-             <item row="1" column="6" rowspan="2">
-              <widget class="QSpinBox" name="sn_axis0">
-               <property name="minimum">
-                <number>2</number>
-               </property>
-               <property name="maximum">
-                <number>9999</number>
-               </property>
-               <property name="value">
-                <number>360</number>
-               </property>
-              </widget>
+            <widget class="QLabel" name="label_39">
+             <property name="text">
+              <string>qmap</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="6">
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>static bins</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="7">
+            <widget class="QSpinBox" name="dn_axis1">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>999</number>
+             </property>
+             <property name="value">
+              <number>1</number>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="5">
+            <widget class="QDoubleSpinBox" name="vend_axis1">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>20</height>
+              </size>
+             </property>
+             <property name="decimals">
+              <number>6</number>
+             </property>
+             <property name="minimum">
+              <double>-10000.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>10000.000000000000000</double>
+             </property>
+             <property name="value">
+              <double>360.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="6">
+            <widget class="QSpinBox" name="sn_axis0">
+             <property name="minimum">
+              <number>2</number>
+             </property>
+             <property name="maximum">
+              <number>9999</number>
+             </property>
+             <property name="value">
+              <number>360</number>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="3">
+            <widget class="QLabel" name="label_12">
+             <property name="text">
+              <string>begin</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="4">
+            <widget class="QRadioButton" name="rb_end_axis1">
+             <property name="maximumSize">
+              <size>
+               <width>20</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="7">
+            <widget class="QSpinBox" name="dn_axis0">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>999</number>
+             </property>
+             <property name="value">
+              <number>36</number>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QComboBox" name="cb_qmap_axis1"/>
+           </item>
+           <item row="0" column="7">
+            <widget class="QLabel" name="label_10">
+             <property name="text">
+              <string>dynamic bins</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="5">
+            <widget class="QDoubleSpinBox" name="vend_axis0">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>20</height>
+              </size>
+             </property>
+             <property name="decimals">
+              <number>6</number>
+             </property>
+             <property name="minimum">
+              <double>-10000.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>10000.000000000000000</double>
+             </property>
+             <property name="value">
+              <double>0.004200000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="8">
+            <widget class="QComboBox" name="partition_style_axis0">
+             <item>
+              <property name="text">
+               <string>linear</string>
+              </property>
              </item>
-             <item row="3" column="0" rowspan="2">
-              <widget class="QComboBox" name="cb_qmap_axis1"/>
+             <item>
+              <property name="text">
+               <string>logarithmic</string>
+              </property>
              </item>
-             <item row="3" column="8" rowspan="2">
-              <widget class="QComboBox" name="partition_style_axis1">
-               <item>
-                <property name="text">
-                 <string>linear</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>logarithmic</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-             <item row="1" column="3" rowspan="2">
-              <widget class="QDoubleSpinBox" name="vbeg_axis0">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>20</height>
-                </size>
-               </property>
-               <property name="decimals">
-                <number>6</number>
-               </property>
-               <property name="minimum">
-                <double>-10000.000000000000000</double>
-               </property>
-               <property name="maximum">
-                <double>10000.000000000000000</double>
-               </property>
-               <property name="value">
-                <double>0.002700000000000</double>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="1" rowspan="2">
-              <widget class="QLabel" name="unit_axis1">
-               <property name="text">
-                <string>unit</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="4" rowspan="2">
-              <widget class="QRadioButton" name="rb_end_axis0">
-               <property name="maximumSize">
-                <size>
-                 <width>20</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="2" rowspan="2">
-              <widget class="QRadioButton" name="rb_beg_axis0">
-               <property name="maximumSize">
-                <size>
-                 <width>20</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-               <property name="checkable">
-                <bool>true</bool>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="8">
-              <widget class="QLabel" name="label_20">
-               <property name="text">
-                <string>Style</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="5">
-              <widget class="QLabel" name="label_13">
-               <property name="text">
-                <string>end</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="2" rowspan="2">
-              <widget class="QRadioButton" name="rb_beg_axis1">
-               <property name="maximumSize">
-                <size>
-                 <width>20</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="5" rowspan="2">
-              <widget class="QDoubleSpinBox" name="vend_axis1">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>20</height>
-                </size>
-               </property>
-               <property name="decimals">
-                <number>6</number>
-               </property>
-               <property name="minimum">
-                <double>-10000.000000000000000</double>
-               </property>
-               <property name="maximum">
-                <double>10000.000000000000000</double>
-               </property>
-               <property name="value">
-                <double>360.000000000000000</double>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="7">
-              <widget class="QLabel" name="label_10">
-               <property name="text">
-                <string>dynamic bins</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QLabel" name="label_33">
-               <property name="text">
-                <string>unit</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="3">
-              <widget class="QLabel" name="label_12">
-               <property name="text">
-                <string>begin</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="3" rowspan="2">
-              <widget class="QDoubleSpinBox" name="vbeg_axis1">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>20</height>
-                </size>
-               </property>
-               <property name="decimals">
-                <number>6</number>
-               </property>
-               <property name="minimum">
-                <double>-10000.000000000000000</double>
-               </property>
-               <property name="maximum">
-                <double>10000.000000000000000</double>
-               </property>
-               <property name="value">
-                <double>0.000000000000000</double>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="1" rowspan="2">
-              <widget class="QLabel" name="unit_axis0">
-               <property name="text">
-                <string>unit</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="0">
-              <widget class="QLabel" name="label_39">
-               <property name="text">
-                <string>qmap</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="5" rowspan="2">
-              <widget class="QDoubleSpinBox" name="vend_axis0">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>0</width>
-                 <height>20</height>
-                </size>
-               </property>
-               <property name="decimals">
-                <number>6</number>
-               </property>
-               <property name="minimum">
-                <double>-10000.000000000000000</double>
-               </property>
-               <property name="maximum">
-                <double>10000.000000000000000</double>
-               </property>
-               <property name="value">
-                <double>0.004200000000000</double>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="7" rowspan="2">
-              <widget class="QSpinBox" name="dn_axis1">
-               <property name="minimum">
-                <number>1</number>
-               </property>
-               <property name="maximum">
-                <number>999</number>
-               </property>
-               <property name="value">
-                <number>1</number>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="6">
-              <widget class="QLabel" name="label">
-               <property name="text">
-                <string>static bins</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="4" rowspan="2">
-              <widget class="QRadioButton" name="rb_end_axis1">
-               <property name="maximumSize">
-                <size>
-                 <width>20</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="8" rowspan="2">
-              <widget class="QComboBox" name="partition_style_axis0">
-               <item>
-                <property name="text">
-                 <string>linear</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>logarithmic</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-             <item row="3" column="6" rowspan="2">
-              <widget class="QSpinBox" name="sn_axis1">
-               <property name="minimum">
-                <number>1</number>
-               </property>
-               <property name="maximum">
-                <number>9999</number>
-               </property>
-               <property name="value">
-                <number>1</number>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="7" rowspan="2">
-              <widget class="QSpinBox" name="dn_axis0">
-               <property name="minimum">
-                <number>1</number>
-               </property>
-               <property name="maximum">
-                <number>999</number>
-               </property>
-               <property name="value">
-                <number>36</number>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="0" rowspan="2">
-              <widget class="QComboBox" name="cb_qmap_axis0"/>
-             </item>
-            </layout>
+            </widget>
+           </item>
+           <item row="1" column="3">
+            <widget class="QDoubleSpinBox" name="vbeg_axis0">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>20</height>
+              </size>
+             </property>
+             <property name="decimals">
+              <number>6</number>
+             </property>
+             <property name="minimum">
+              <double>-10000.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>10000.000000000000000</double>
+             </property>
+             <property name="value">
+              <double>0.002700000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="4">
+            <widget class="QRadioButton" name="rb_end_axis0">
+             <property name="maximumSize">
+              <size>
+               <width>20</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2">
+            <widget class="QRadioButton" name="rb_beg_axis1">
+             <property name="maximumSize">
+              <size>
+               <width>20</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="9">
+            <widget class="QPushButton" name="btn_compute_qpartition">
+             <property name="text">
+              <string>compute</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
@@ -2200,11 +2203,6 @@
              <item>
               <property name="text">
                <string>numpy</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>txt_img</string>
               </property>
              </item>
              <item>
@@ -2246,13 +2244,6 @@
               </size>
              </property>
             </spacer>
-           </item>
-           <item row="0" column="1">
-            <widget class="QPushButton" name="btn_compute_qpartition">
-             <property name="text">
-              <string>compute</string>
-             </property>
-            </widget>
            </item>
           </layout>
          </widget>
