@@ -28,15 +28,18 @@ def save_as_nexus(save_fname, partition_info,
         group = hf.create_group(prefix)
         for key, val in partition_info.items():
             full_key = '/'.join([prefix, key])
-            # if key == 'map_name':
-            #     val = np.array(val, dtype='S')
-            group.create_dataset(full_key, data=val)
+            if key in ('mask', 'dynamic_roi_map', 'static_roi_map'):
+                compression = 'gzip'
+            else:
+                compression = None
+            group.create_dataset(full_key, data=val, compression=compression)
 
 
 def save_as_numpy(save_fname, partition_info):
     if not save_fname.endswith('.npz'):
         save_fname = save_fname + '.npz'
-    np.savez(save_fname, **partition_info)
+    # np.savez(save_fname, **partition_info)
+    np.savez_compressed(save_fname, **partition_info)
 
 
 def save_as_tensor(save_fname, partition_info):
