@@ -171,8 +171,8 @@ class SimpleMask(object):
             return (np.nanmin(xmap), np.nanmax(xmap)), self.qmap_unit[target]
 
     def set_partition_range(self, x, y, axis, vtarget, pkwargs_list):
-        xmap_name = pkwargs_list[axis]['xmap']
-        val = self.qmap[xmap_name][int(y), int(x)]
+        map_name = pkwargs_list[axis]['map_name']
+        val = self.qmap[map_name][int(y), int(x)]
         new_val_dict = {vtarget: val}
         pkwargs_list[axis].update(new_val_dict)
 
@@ -185,13 +185,14 @@ class SimpleMask(object):
         self.data_raw[5] = np.log10(saxs2 + self.saxs_lin_min)
         return val
 
-    def get_mask_with_partition(self, xmap='q', vbeg=None, vend=None, **kwargs):
-        if xmap == 'none':
+    def get_mask_with_partition(self, map_name='q', vbeg=None, vend=None,
+                                **kwargs):
+        if map_name == 'none':
             return 1
-        vmap = self.qmap[xmap]
-        vbeg = np.nanmin(vmap[self.mask == 1]) if vbeg is None else vbeg
-        vend = np.nanmax(vmap[self.mask == 1]) if vend is None else vend
-        mask = (vmap >= vbeg) * (vmap <= vend)
+        xmap = self.qmap[map_name]
+        vbeg = np.nanmin(xmap[self.mask == 1]) if vbeg is None else vbeg
+        vend = np.nanmax(xmap[self.mask == 1]) if vend is None else vend
+        mask = (xmap >= vbeg) * (xmap <= vend)
         return mask
 
     def show_location(self, pos):
