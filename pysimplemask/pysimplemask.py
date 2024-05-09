@@ -274,9 +274,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             traceback.print_exc()
             self.statusbar.showMessage('Failed to find center. Abort', 2000)
         else:
-            cen_old = (
-                self.db_bcx.value(), self.db_bcy.value()
-            )
+            cen_old = (self.db_bcx.value(), self.db_bcy.value())
             self.db_bcx.setValue(center[1])
             self.db_bcy.setValue(center[0])
             self.update_metadata(direction='gui->file')
@@ -284,7 +282,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
             logger.info(f'found center: {cen_old} --> {cen_new}')
         finally:
             self.btn_find_center.setText('Find Center')
-
 
     def mask_evaluate(self, target=None):
         if target is None or not self.is_ready():
@@ -433,10 +430,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.plot()
 
     def select_raw(self):
-        fname = QFileDialog.getOpenFileName(self,
+        fname, _ = QFileDialog.getOpenFileName(self,
                     caption='Select raw file hdf',
                     filter='Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.tif *.tiff *.fits *.raw, *.bin.*)',
-                    directory=self.work_dir)[0]
+                    directory=self.work_dir)
 
         if fname not in [None, '']:
             self.fname.setText(fname)
@@ -445,8 +442,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         return
 
     def select_blemish(self):
-        fname = QFileDialog.getOpenFileName(self, 'Select blemish file',
-                    filter='Supported Formats(*.tiff *.tif *.h5 *.hdf *.hdf5)')[0]
+        fname, _ = QFileDialog.getOpenFileName(self, 'Select blemish file',
+                    filter='Supported Formats(*.tiff *.tif *.h5 *.hdf *.hdf5)')
         if fname not in [None, '']:
             self.blemish_fname.setText(fname)
 
@@ -458,8 +455,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         return
 
     def select_maskfile(self):
-        fname = QFileDialog.getOpenFileName(self, 'Select mask file',
-                    filter='Supported Formats(*.tiff *.tif *.h5 *.hdf *.hdf5)')[0]
+        fname, _ = QFileDialog.getOpenFileName(self, 'Select mask file',
+                    filter='Supported Formats(*.tiff *.tif *.h5 *.hdf *.hdf5)')
         # fname = "../tests/data/triangle_mask/mask_lambda_test.h5"
         if fname not in [None, '']:
             self.maskfile_fname.setText(fname)
@@ -603,16 +600,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if self.sm.new_partition is None:
             self.compute_partition()
         method = self.output_method.currentText()
-        save_fname = QFileDialog.getSaveFileName(
-            self, caption='Save mask/qmap as')[0]
+        save_fname, _ = QFileDialog.getSaveFileName(self,
+                        caption='Save mask/qmap as')
         self.sm.save_partition(save_fname, method=method)
 
     def mask_list_load(self):
         if not self.is_ready():
             return
 
-        fname = QFileDialog.getOpenFileName(self, 'Select mask file',
-                    filter='Text/Json (*.txt *.csv *.json);;All files(*.*)')[0]
+        fname, _ = QFileDialog.getOpenFileName(self, 'Select mask file',
+                    filter='Text/Json (*.txt *.csv *.json);;All files(*.*)')
         if fname in ['', None]:
             return
         
