@@ -9,22 +9,7 @@ from ..file_reader import FileReader
 logger = logging.getLogger(__name__)
 
 
-def get_fake_metadata(shape):
-    # fake metadata
-    logger.warn('failed to get the raw metadata, using default values instead')
-    metadata = {
-        'datetime': "2022-05-08 14:00:51,799",
-        'energy': 11.0,         # keV
-        'det_dist': 7800,       # mm
-        'pix_dim': 55e-3,       # mm
-        'bcx': shape[1] // 2.0,
-        'bcy': shape[0] // 2.0
-    }
-    metadata['datetime'] = str(datetime.datetime.now())
-    return metadata
-
-
-def get_metadata(fname):
+def get_metadata(fname, shape):
     # read real metadata
     keys = {
         'ccdx': '/entry/instrument/bluesky/metadata/ccdx',
@@ -34,10 +19,10 @@ def get_metadata(fname):
         'energy': '/entry/instrument/bluesky/metadata/X_energy',
         'det_dist': '/entry/instrument/bluesky/metadata/det_dist',
         'pix_dim': '/entry/instrument/bluesky/metadata/pix_dim_x',
-        'bcx': '/entry/instrument/detector_1/beam_center_x',
-        'bcy': '/entry/instrument/detector_1/beam_center_y',
-        'xdim': '/entry/instrument/bluesky/metadata/xdim',
-        'ydim': '/entry/instrument/bluesky/metadata/ydim'
+        'bcx': '/entry/instrument/bluesky/metadata/bcx',
+        'bcy': '/entry/instrument/bluesky/metadata/bcy',
+        # 'xdim': '/entry/instrument/bluesky/metadata/xdim',
+        # 'ydim': '/entry/instrument/bluesky/metadata/ydim'
     }
 
     meta = {}
@@ -51,7 +36,9 @@ def get_metadata(fname):
 
     meta['bcx'] = meta['bcx'] + (ccdx - ccdx0) / meta['pix_dim']
     meta['bcy'] = meta['bcy'] + (ccdy - ccdy0) / meta['pix_dim']
-    meta['shape'] = (meta['ydim'], meta['xdim'])
+    meta['shape'] = tuple(shape)
+    # delete this line once Pete fixed the metadata
+    meta['pix_dim'] = 0.075
 
     # scattering geometry
     meta['sg_type'] = 'transmission'
@@ -59,6 +46,8 @@ def get_metadata(fname):
     
     for key in ['det_dist', 'pix_dim']:
         meta[key] *= 1000
+    for key in ['ccdx', 'ccdx0', 'ccdy', 'ccdy0']:
+        meta.pop(key, None)
 
     return meta
 
@@ -83,8 +72,7 @@ class APS8IDIReader(FileReader):
         if self.shape is None:
             self.get_scattering(0, 1)
         fname = self.fname.replace('.h5', '.hdf')
-        meta = get_metadata(fname)
-        meta['shape'] = self.shape
+        meta = get_metadata(fname, self.shape)
         return meta
 
 
