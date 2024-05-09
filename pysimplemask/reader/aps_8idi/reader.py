@@ -38,7 +38,7 @@ def get_metadata(fname, shape):
     meta['bcy'] = meta['bcy'] + (ccdy - ccdy0) / meta['pix_dim']
     meta['shape'] = tuple(shape)
     # delete this line once Pete fixed the metadata
-    meta['pix_dim'] = 0.075
+    meta['pix_dim'] = 0.075e-3
 
     # scattering geometry
     meta['sg_type'] = 'transmission'
@@ -64,7 +64,12 @@ class APS8IDIReader(FileReader):
             if num_frames <= 0:
                 num_frames= dset.shape[0]
             sl = slice(begin_idx, min(begin_idx + num_frames, dset.shape[0]))
-            data = dset[sl].sum(axis=0).astype(np.float32)
+            if sl.stop - sl.start <= 100:
+                data = dset[sl].sum(axis=0).astype(np.float32)
+            else:
+                data = 0
+                for n in range(sl.start, sl.stop):
+                    data += dset[n].astype(np.float32)
         self.shape = data.shape
         return data
     
