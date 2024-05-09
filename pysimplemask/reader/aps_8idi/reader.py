@@ -9,7 +9,7 @@ from ..file_reader import FileReader
 logger = logging.getLogger(__name__)
 
 
-def get_metadata(fname, shape):
+def get_metadata(fname):
     # read real metadata
     keys = {
         'ccdx': '/entry/instrument/bluesky/metadata/ccdx',
@@ -36,7 +36,6 @@ def get_metadata(fname, shape):
 
     meta['bcx'] = meta['bcx'] + (ccdx - ccdx0) / meta['pix_dim']
     meta['bcy'] = meta['bcy'] + (ccdy - ccdy0) / meta['pix_dim']
-    meta['shape'] = tuple(shape)
     # delete this line once Pete fixed the metadata
     meta['pix_dim'] = 0.075e-3
 
@@ -53,31 +52,33 @@ def get_metadata(fname, shape):
 
 
 class APS8IDIReader(FileReader):
-    def __init__(self, fname) -> None:
+    def __init__(self, fname, begin_idx=0, num_frames=-1) -> None:
         super(APS8IDIReader, self).__init__(fname)
         self.ftype = 'APS-8IDI-nexus'
-        self.shape = None
-
-    def get_scattering(self, begin_idx=0, num_frames=-1):
+        self.saxs = self.get_scattering(begin_idx, num_frames)
+        self.meta = self.load_meta()
+        self.meta['shape'] = self.saxs.shape
+        self.shape = self.saxs.shape
+        self.clean_data()
+    
+    def get_scattering(self, begin_idx=0, num_frames=-1, block_size=32):
         with h5py.File(self.fname, 'r') as f:
             dset = f['/entry/data/data']
             if num_frames <= 0:
                 num_frames= dset.shape[0]
             sl = slice(begin_idx, min(begin_idx + num_frames, dset.shape[0]))
-            if sl.stop - sl.start <= 100:
+            if sl.stop - sl.start <= block_size:
                 data = dset[sl].sum(axis=0).astype(np.float32)
             else:
                 data = 0
-                for n in range(sl.start, sl.stop):
-                    data += dset[n].astype(np.float32)
-        self.shape = data.shape
+                for n in range(sl.start, sl.stop, block_size):
+                    slt = slice(n, min(n + block_size, sl.stop))
+                    data += dset[slt].astype(np.float32).sum(axis=0)
         return data
     
     def load_meta(self):
-        if self.shape is None:
-            self.get_scattering(0, 1)
         fname = self.fname.replace('.h5', '.hdf')
-        meta = get_metadata(fname, self.shape)
+        meta = get_metadata(fname)
         return meta
 
 
