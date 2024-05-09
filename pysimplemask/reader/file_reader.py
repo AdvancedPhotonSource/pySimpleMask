@@ -21,7 +21,7 @@ class FileReader(object):
         self.saxs_log = None
         pass
 
-    def clean_data(self, mask=None):
+    def prepare_data(self, mask=None):
         mask = self.saxs > 0
         saxs_nonzero_1d = self.saxs[mask]
         self.saxs_lin_min = np.percentile(saxs_nonzero_1d, 1)

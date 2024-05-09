@@ -59,7 +59,7 @@ class APS8IDIReader(FileReader):
         self.meta = self.load_meta()
         self.meta['shape'] = self.saxs.shape
         self.shape = self.saxs.shape
-        self.clean_data()
+        self.prepare_data()
     
     def get_scattering(self, begin_idx=0, num_frames=-1, block_size=32):
         with h5py.File(self.fname, 'r') as f:

@@ -61,25 +61,34 @@ def get_metadata(fname):
 
 
 class APS9IDCReader(FileReader):
-    def __init__(self, fname) -> None:
+    def __init__(self, fname, begin_idx=0, num_frames=-1) -> None:
         super(APS9IDCReader, self).__init__(fname)
-        self.handler = None
-        self.ftype = 'Base Class'
-
-    def get_scattering(self, begin_idx=0, num_frames=-1):
+        self.ftype = 'APS-9IDC-nexus'
+        self.saxs = self.get_scattering(begin_idx, num_frames)
+        self.meta = self.load_meta()
+        # self.meta['shape'] = self.saxs.shape
+        self.shape = self.saxs.shape
+        self.prepare_data()
+    
+    def get_scattering(self, begin_idx=0, num_frames=-1, block_size=32):
         with h5py.File(self.fname, 'r') as f:
             dset = f['/entry/data/data']
             if num_frames <= 0:
                 num_frames= dset.shape[0]
             sl = slice(begin_idx, min(begin_idx + num_frames, dset.shape[0]))
-            data = dset[sl].sum(axis=0).astype(np.float32)
+            if sl.stop - sl.start <= block_size:
+                data = dset[sl].sum(axis=0).astype(np.float32)
+            else:
+                data = 0
+                for n in range(sl.start, sl.stop, block_size):
+                    slt = slice(n, min(n + block_size, sl.stop))
+                    data += dset[slt].astype(np.float32).sum(axis=0)
         return data
     
-    def get_data(self, roi_list):
-        return self.handler.get_data(roi_list)
-
     def load_meta(self):
-        return get_metadata(self.fname)
+        # fname = self.fname.replace('.h5', '.hdf')
+        meta = get_metadata(self.fname)
+        return meta
 
 
 if __name__ == '__main__':
