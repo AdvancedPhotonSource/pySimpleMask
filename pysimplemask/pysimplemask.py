@@ -420,7 +420,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.sm.update_parameters(values)
 
         elif direction == 'file->gui':
-            for k, v in self.sm.meta.items():
+            for k, v in self.sm.reader.meta.items():
                 if k not in pv.keys():
                     continue
                 if k == 'shape':
@@ -483,8 +483,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         fname = self.fname.text()
         kwargs = {
-            'begin_idx': self.spinBox_3.value(),
-            'num_frames': self.spinBox_4.value(),
+            'begin_idx': self.begin_idx.value(),
+            'num_frames': self.num_frames.value(),
             'beamline': str(self.cb_beamline.currentText())
         }
         default_sg_idx = {'APS-8ID-I': 0,
@@ -683,7 +683,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     def closeEvent(self, e) -> None:
         keys = ['blemish_fname', 'blemish_path', 'maskfile_fname',
-                'maskfile_path', 'cb_beamline']
+                'maskfile_path', 'cb_beamline', 'num_frames', 'begin_idx']
         config = {}
         for key in keys:
             config[key] = get_widget_value(self.__dict__[key], index=True)

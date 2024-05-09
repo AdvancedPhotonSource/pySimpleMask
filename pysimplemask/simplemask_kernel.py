@@ -18,18 +18,15 @@ logger = logging.getLogger(__name__)
 
 class SimpleMask(object):
     def __init__(self, pg_hdl, infobar):
+        self.reader = None
         self.data_raw = None
         self.shape = None
         self.qmap = None
         self.mask = None
         self.mask_kernel = None
-        self.saxs_lin = None
-        self.saxs_log = None
-        self.saxs_log_min = None
         self.plot_log = True
 
         self.new_partition = None
-        self.meta = None
 
         self.hdl = pg_hdl
         self.infobar = infobar
@@ -48,17 +45,14 @@ class SimpleMask(object):
         }
 
     def is_ready(self):
-        if self.meta is None or self.data_raw is None:
-            return False
-        else:
-            return True
+        return self.read_data is not None
 
     def find_center(self):
-        if self.saxs_lin is None:
+        if not self.is_ready():
             return
+
         mask = self.mask
-        # center = (self.meta['bcy'], self.meta['bcx'])
-        center = find_center(self.saxs_lin, mask=mask, center_guess=None,
+        center = find_center(self.reader.saxs_lin, mask=mask, center_guess=None,
                              scale='log')
         return center
 
@@ -75,16 +69,10 @@ class SimpleMask(object):
 
     def mask_apply(self):
         self.mask = self.mask_kernel.apply()
-
-        self.data_raw[1] = self.saxs_log * self.mask
+        saxs_with_mask = self.reader.get_scattering_with_mask(self.mask,
+                                                              self.plot_log)
+        self.data_raw[1] = saxs_with_mask 
         self.data_raw[2] = self.mask
-
-        if self.plot_log:
-            log_min = np.min(self.saxs_log[self.mask > 0])
-            self.data_raw[1][np.logical_not(self.mask)] = log_min
-        else:
-            lin_min = np.min(self.saxs_lin[self.mask > 0])
-            self.data_raw[1][np.logical_not(self.mask)] = lin_min
 
     def get_pts_with_similar_intensity(self, cen=None, radius=50,
                                        variation=50):
@@ -115,50 +103,31 @@ class SimpleMask(object):
     # generate 2d saxs
     def read_data(self, fname=None, beamline='APS-8ID-I', **kwargs):
         if beamline == 'APS-8ID-I':
-            reader = APS8IDIReader(fname)
+            self.reader = APS8IDIReader(fname, **kwargs)
         elif beamline == 'APS-9ID-C':
-            reader = APS9IDCReader(fname)
+            self.reader = APS9IDCReader(fname, **kwargs)
         else:
             logger.error(f'failed to create a dataset handler for {fname}')
-            # raise ValueError(f'beamline [{beamline}] not supported')
             return False
 
-        saxs = reader.get_scattering(**kwargs)
-        if saxs is None:
-            logger.error('failed to read scattering signal from the dataset.')
-            return False
-
-        self.meta = reader.load_meta()
-
-        # self.data_raw = np.zeros(shape=(6, *saxs.shape))
-        self.data_raw = np.zeros(shape=(16, *saxs.shape))
-        self.mask = np.ones(saxs.shape, dtype=bool)
-
-        saxs_nonzero = saxs[saxs > 0]
-        # use percentile instead of min to be robust
-        self.saxs_lin_min = np.percentile(saxs_nonzero, 1)
-        self.saxs_log_min = np.log10(self.saxs_lin_min)
-
-        self.saxs_lin = saxs.astype(np.float32)
-        self.min_val = np.min(saxs[saxs > 0])
-        self.saxs_log = np.log10(saxs + self.min_val)
-
-        self.shape = self.data_raw[0].shape
+        shape = self.reader.shape
+        self.shape = shape
+        self.data_raw = np.zeros(shape=(16, *shape))
+        self.mask = np.ones(shape, dtype=bool)
 
         self.qmap, self.qmap_unit = self.compute_qmap()
 
-        self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
+        self.mask_kernel = MaskAssemble(shape, self.reader.saxs_log)
         self.mask_kernel.update_qmap(self.qmap)
 
-        self.data_raw[0] = self.saxs_log
-        self.data_raw[1] = self.saxs_log * self.mask
+        self.data_raw[0] = self.reader.saxs_log
+        self.data_raw[1] = self.reader.saxs_log * self.mask
         self.data_raw[2] = self.mask
-
         return True 
 
     def compute_qmap(self):
-        sg_type = self.meta['sg_type']
-        qmap, qmap_unit = get_scattering_geometry(sg_type, self.meta)
+        sg_type = self.reader.meta['sg_type']
+        qmap, qmap_unit = get_scattering_geometry(sg_type, self.reader.meta)
         for n, (_, val) in enumerate(qmap.items()):
             self.data_raw[n + 6] = val
         return qmap, qmap_unit
@@ -180,9 +149,8 @@ class SimpleMask(object):
         for kwargs in pkwargs_list:
             mask_t = self.get_mask_with_partition(**kwargs)
             mask *= mask_t
-        saxs2 = np.copy(self.saxs_lin)
-        saxs2[mask != 1] = 0
-        self.data_raw[5] = np.log10(saxs2 + self.saxs_lin_min)
+        data = self.reader.get_scattering_with_mask(mask, log_style=True)
+        self.data_raw[5] = data
         return val
 
     def get_mask_with_partition(self, map_name='q', vbeg=None, vend=None,
@@ -196,7 +164,6 @@ class SimpleMask(object):
         return mask
 
     def show_location(self, pos):
-
         if not self.hdl.scene.itemsBoundingRect().contains(pos) or \
            self.shape is None:
             return
@@ -228,24 +195,17 @@ class SimpleMask(object):
 
     def show_saxs(self, cmap='jet', log=True, invert=False,
                   plot_center=True, plot_index=0, **kwargs):
-        if self.meta is None or self.data_raw is None:
+        if not self.is_ready():
             return
-        # self.hdl.reset_limits()
+
         self.hdl.clear()
-        # self.data = np.copy(self.data_raw)
-        # print('show_saxs', np.min(self.data[1]))
 
-        center = (self.meta['bcx'], self.meta['bcy'])
-
+        center = self.reader.get_center()
         self.plot_log = log
         if not log:
-            self.data_raw[0] = self.saxs_lin
+            self.data_raw[0] = self.reader.saxs_lin
         else:
-            self.data_raw[0] = self.saxs_log
-
-        # if invert:
-        #     temp = np.max(self.data[0]) - self.data[0]
-        #     self.data[0] = temp
+            self.data_raw[0] = self.reader.saxs_log
 
         self.hdl.setImage(self.data_raw)
         self.hdl.adjust_viewbox()
@@ -262,7 +222,7 @@ class SimpleMask(object):
         return
 
     def apply_drawing(self):
-        if self.meta is None or self.data_raw is None:
+        if not self.is_ready():
             return
 
         # ones = np.ones(self.data_raw[0].shape, dtype=np.bool)
@@ -313,13 +273,10 @@ class SimpleMask(object):
     def add_drawing(self, num_edges=None, radius=60, color='r',
                     sl_type='Polygon', width=3, sl_mode='exclusive',
                     second_point=None, label=None, movable=True):
-        # label: label of roi; default is None, which is for roi-draw
-
         if label is not None and label in self.hdl.roi:
             self.hdl.remove_item(label)
 
-        # cen = (shape[1] // 2, shape[2] // 2)
-        cen = (self.meta['bcx'], self.meta['bcy'])
+        cen = self.reader.get_center()
         if sl_mode == 'inclusive':
             pen = pg.mkPen(color=color, width=width, style=QtCore.Qt.DotLine)
         else:
@@ -470,7 +427,7 @@ class SimpleMask(object):
         return partition
 
     def update_parameters(self, val_dict):
-        self.meta.update(val_dict)
+        self.reader.meta.update(val_dict)
         self.qmap, self.qmap_unit = self.compute_qmap()
         self.mask_kernel.update_qmap(self.qmap)
 
