@@ -86,7 +86,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QSpinBox" name="spinBox_3">
+              <widget class="QSpinBox" name="begin_idx">
                <property name="maximum">
                 <number>99999</number>
                </property>
@@ -100,7 +100,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QSpinBox" name="spinBox_4">
+              <widget class="QSpinBox" name="num_frames">
                <property name="minimum">
                 <number>-1</number>
                </property>
@@ -2258,15 +2258,15 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ImageViewROI</class>
-   <extends>QWidget</extends>
-   <header>pyqtgraph_mod</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>PlotWidget</class>
    <extends>QWidget</extends>
    <header>pyqtgraph</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ImageViewROI</class>
+   <extends>QWidget</extends>
+   <header>pyqtgraph_mod</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
