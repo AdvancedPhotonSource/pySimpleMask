@@ -20,7 +20,7 @@ def get_fake_metadata(shape):
         'bcx': shape[1] // 2.0,
         'bcy': shape[0] // 2.0
     }
-    meta['datetime'] = str(datetime.datetime.now())
+    metadata['datetime'] = str(datetime.datetime.now())
     return metadata
 
 
