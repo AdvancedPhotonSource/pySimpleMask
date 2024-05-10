@@ -15,8 +15,6 @@ class FileReader(object):
         self.ftype = 'Base Class'
         self.saxs = None
         self.meta = None
-        self.saxs_lin_min = None 
-        self.saxs_log_min = None
         self.saxs_lin = None 
         self.saxs_log = None
         pass
@@ -24,13 +22,10 @@ class FileReader(object):
     def prepare_data(self, mask=None):
         mask = self.saxs > 0
         saxs_nonzero_1d = self.saxs[mask]
-        self.saxs_lin_min = np.percentile(saxs_nonzero_1d, 1)
-        self.saxs_log_min = np.log10(self.saxs_lin_min)
+        saxs_lin_min = np.min(saxs_nonzero_1d)
         self.saxs_lin = np.copy(self.saxs)
-        # self.saxs_lin[~mask] += self.saxs_lin_min
-        self.saxs_lin += self.saxs_lin_min
+        self.saxs_lin += saxs_lin_min / 2.0
         self.saxs_log = np.log10(self.saxs_lin)
-        # self.saxs_log[~mask] = np.nan
     
     def get_center(self):
         center = (self.meta['bcx'], self.meta['bcy'])
@@ -48,9 +43,6 @@ class FileReader(object):
 
     def get_scattering(self, *kargs, **kwargs):
         raise NotImplementedError
-
-    def get_data(self, *kargs, **kwargs):
-        return None
 
     def load_meta(self):
         # implement the method that reads the real metadata; other wise it
