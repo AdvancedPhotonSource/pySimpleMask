@@ -8,8 +8,8 @@ import pyqtgraph as pg
 
 from .simplemask_ui import Ui_SimpleMask as Ui
 from .simplemask_kernel import SimpleMask
-from PyQt5.QtWidgets import QFileDialog, QApplication, QMainWindow
-from PyQt5 import QtWidgets
+from PySide6.QtWidgets import QFileDialog, QApplication, QMainWindow
+from PySide6 import QtWidgets
 
 
 home_dir = os.path.join(os.path.expanduser('~'), '.simple-mask')

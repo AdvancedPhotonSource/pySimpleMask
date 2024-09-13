@@ -1,4 +1,3 @@
-import h5py
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
@@ -6,7 +5,6 @@ from .area_mask import MaskAssemble
 from .find_center import find_center
 from .pyqtgraph_mod import LineROI
 from .reader import APS9IDCReader, APS8IDIReader 
-import skimage.io as skio
 import logging
 from .scattering_geometry import get_scattering_geometry
 from .qpartition_utilis import create_partitions, create_single_partition

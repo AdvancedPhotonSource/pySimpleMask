@@ -1,5 +1,5 @@
 matplotlib>=3.5.1
-PyQt5>=5.15.2
+pyside6
 pyqtgraph>=0.12.3
 numpy
 scipy
