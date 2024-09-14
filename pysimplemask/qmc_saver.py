@@ -16,7 +16,7 @@ def save_qmc(*args, method='nexus'):
 
 
 def save_as_nexus(save_fname, partition_info,
-                  prefix='/entry/instrument/mask'):
+                  prefix='/entry/instrument/masks'):
     
     if not save_fname.endswith(('.h5', '.hdf', '.nx')):
         save_fname = save_fname + '.hdf'
