@@ -7,6 +7,10 @@ logger = logging.getLogger(__name__)
 
 
 def adjust_dynamic_range(arr):
+    # adjust the dynamic range of the array to the maximum possible
+    if arr.dtype in [np.float64, np.float32, np.float16]:
+        return arr
+    # convert to int if possible
     # some downstream applications using pytorch doesn't support uint16 and
     # uint32, uint64
     max_val = np.max(arr)
@@ -22,7 +26,8 @@ def adjust_dynamic_range(arr):
 
 
 def create_single_partition(map_name='q', xmap=None, mask=None, vbeg=None, 
-                            vend=None, style='linear', n_bins=36):
+                            vend=None, style='linear', n_bins=36,
+                            map_unit='a.u'):
     if vbeg is None or vend is None:
         vbeg = np.nanmin(xmap[mask > 0])
         vend = np.nanmax(xmap[mask > 0])
@@ -57,9 +62,10 @@ def create_single_partition(map_name='q', xmap=None, mask=None, vbeg=None,
     result = {
         'partition': adjust_dynamic_range(partition),
         'vlist': vlist,
+        'counts': counts,
         'map_name': [map_name],
-        # 'sparsity': np.sum(counts > 0) / n_bins,
-        'counts': counts
+        'map_unit': [map_unit],
+        'map_bins': [n_bins]
     }
     return result
 
@@ -79,19 +85,19 @@ def combine_two_partitions(pt0_dict, pt1_dict):
     minlength = nbins0 * nbins1 + 1
     counts = np.bincount(pt_c.ravel(),
                          minlength=minlength)[1:].reshape(nbins0, nbins1)
-    # unique_elements = np.unique(pt_c)
-    # sparsity = (len(unique_elements) - 1) / (nbins0 * nbins1)
-    vlist0 = np.repeat(pt0_dict['vlist'], nbins1).reshape(nbins0, nbins1)
-    vlist1 = np.repeat(pt1_dict['vlist'], nbins0).reshape(nbins0, nbins1)
-    vlist = np.stack([vlist0, vlist1])
-    vlist = np.moveaxis(vlist, 0, 2)
+
+    vlist = np.zeros((nbins0, nbins1, 2))
+    vlist[:, :, 0] = pt0_dict['vlist'][:, np.newaxis]
+    vlist[:, :, 1] = pt1_dict['vlist']
+    # vlist = vlist.reshape(-1, 2)
+
     result = {
         'partition': adjust_dynamic_range(pt_c),
-        # 'vlist': pt0_dict['vlist'] + pt1_dict['vlist'],
         'vlist': vlist,
+        'counts': counts,
         'map_name': pt0_dict['map_name'] + pt1_dict['map_name'],
-        # 'sparsity': sparsity,
-        'counts': counts
+        'map_bins': pt0_dict['map_bins'] + pt1_dict['map_bins'],
+        'map_unit': pt0_dict['map_unit'] + pt1_dict['map_unit'],
     }
     return result 
 

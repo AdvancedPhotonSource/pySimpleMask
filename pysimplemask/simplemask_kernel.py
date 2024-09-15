@@ -398,13 +398,15 @@ class SimpleMask(object):
         map_name = kwargs0['map_name']
         kwargs0['xmap'] = self.qmap[map_name]
         kwargs0['mask'] = self.mask
+        kwargs0['map_unit'] = self.qmap_unit[map_name]
 
-        map_name = kwargs1['map_name']
-        if map_name == 'none':
+        map_name1 = kwargs1['map_name']
+        if map_name1 == 'none':
             kwargs1 = None
         else:
-            kwargs1['xmap'] = self.qmap[map_name]
+            kwargs1['xmap'] = self.qmap[map_name1]
             kwargs1['mask'] = self.mask
+            kwargs1['map_unit'] = self.qmap_unit[map_name1]
 
         static_p, dynamic_p = create_partitions(kwargs0, kwargs1)
 
@@ -414,12 +416,15 @@ class SimpleMask(object):
 
         partition = {
             'static_q_list': static_p['vlist'],
+            'static_q_counts': static_p['counts'],
             'static_roi_map': static_p['partition'],
-            'static_counts': static_p['counts'],
             'dynamic_q_list': dynamic_p['vlist'],
+            'dynamic_q_counts': dynamic_p['counts'],
             'dynamic_roi_map': dynamic_p['partition'],
-            'dynamic_counts': dynamic_p['counts'],
+            'static_q_bins': static_p['map_bins'],
+            'dynamic_q_bins': dynamic_p['map_bins'],
             'map_name': static_p['map_name'],
+            'map_unit': static_p['map_unit'],
         }
         self.new_partition = partition
         return partition
