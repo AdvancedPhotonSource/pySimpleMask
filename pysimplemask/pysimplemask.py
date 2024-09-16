@@ -576,6 +576,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
         kwargs0 = {k:v for k, v in zip(keys, values0)}
         kwargs1 = {k:v for k, v in zip(keys, values1)}
 
+        # make sn a multiple of dn
+        for ax, kw in zip([axis0, axis1], [kwargs0, kwargs1]):
+            dn_val, sn_val = kw['dn'], kw['sn']
+            if sn_val % dn_val != 0:
+                kw['sn'] = dn_val * ((sn_val + dn_val - 1) // dn_val)
+                ax[keys.index('sn')].setValue(kw['sn'])
+
         if kwargs_only:
             return kwargs0, kwargs1
 
