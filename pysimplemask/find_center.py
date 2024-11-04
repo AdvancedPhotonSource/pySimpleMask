@@ -96,7 +96,7 @@ def estimate_center_cross_correlation(img0, mask, center):
     else:
         moving_mask = None
 
-    shift = phase_cross_correlation(img, moving_image,
+    shift, _, _ = phase_cross_correlation(img, moving_image,
         reference_mask=mask, moving_mask=moving_mask, upsample_factor=32,
         overlap_ratio=0.75)
     new_center = cen_int.astype(np.float64) + shift / 2.0

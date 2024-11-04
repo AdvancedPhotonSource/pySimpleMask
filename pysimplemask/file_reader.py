@@ -26,7 +26,7 @@ def get_file_type(fname):
         return 'aps_legacy'
     try:
         with h5py.File(fname, 'r') as hf:
-            if '/measurement/instrument/acquisition' in hf:
+            if '/entry/instrument/bluesky/metadata/versions' in hf:
                 return 'aps_metadata'
             elif '/entry_0000/instrument/id02-eiger500k-saxs' in hf:
                 return 'esrf_hdf' 
@@ -41,10 +41,10 @@ def get_fake_metadata(shape):
     # fake metadata
     logger.warn('failed to get the raw metadata, using default values instead')
     metadata = {
-        'datetime': "2022-05-08 14:00:51,799",
-        'energy': 11.0,         # keV
-        'det_dist': 7800,       # mm
-        'pix_dim': 55e-3,       # mm
+        # 'datetime': "2022-05-08 14:00:51,799",
+        'energy': 10.0,         # keV
+        'det_dist': 12500,       # mm
+        'pix_dim': 75e-3,       # mm
         'bcx': shape[1] // 2.0,
         'bcy': shape[0] // 2.0
     }
@@ -65,16 +65,16 @@ def get_metadata(fname, shape):
 
     # read real metadata
     keys = {
-        'ccdx': '/measurement/instrument/acquisition/stage_x',
-        'ccdx0': '/measurement/instrument/acquisition/stage_zero_x',
-        'ccdz': '/measurement/instrument/acquisition/stage_z',
-        'ccdz0': '/measurement/instrument/acquisition/stage_zero_z',
-        'datetime': '/measurement/instrument/source_begin/datetime',
-        'energy': '/measurement/instrument/source_begin/energy',
-        'det_dist': '/measurement/instrument/detector/distance',
-        'pix_dim': '/measurement/instrument/detector/x_pixel_size',
-        'bcx0': '/measurement/instrument/acquisition/beam_center_x',
-        'bcy0': '/measurement/instrument/acquisition/beam_center_y',
+        'ccdx': '/entry/instrument/bluesky/metadata/ccdx',
+        'ccdx0': '/entry/instrument/bluesky/metadata/ccdx0',
+        'ccdz': '/entry/instrument/bluesky/metadata/ccdy',
+        'ccdz0': '/entry/instrument/bluesky/metadata/ccdy0',
+        # 'datetime': '/entry/instrument/bluesky/metadata/datetime',
+        'energy': '/entry/instrument/bluesky/metadata/X_energy',
+        'det_dist': '/entry/instrument/bluesky/metadata/det_dist',
+        'pix_dim': '/entry/instrument/bluesky/metadata/pix_dim_x',
+        'bcx0': '/entry/instrument/bluesky/metadata/bcx',
+        'bcy0': '/entry/instrument/bluesky/metadata/bcy',
     }
 
     meta = {}
@@ -123,15 +123,12 @@ class APS8IDIReader(FileReader):
         elif fname.endswith('.bin.000'):
             logger.info('Rigaku 3M (6 x 500K) dataset')
             self.handler = Rigaku3MDataset(fname, batch_size=1000)
-
         elif fname.endswith('.imm'):
             logger.info('IMM dataset')
             self.handler = ImmDataset(fname, batch_size=100)
-
         elif fname.endswith('.h5') or fname.endswith('.hdf'):
             logger.info('APS HDF dataset')
             self.handler = HdfDataset(fname, batch_size=100)
-        
         else:
             logger.error('Unsupported APS dataset')
             return None

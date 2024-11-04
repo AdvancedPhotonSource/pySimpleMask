@@ -192,7 +192,7 @@ class SimpleMask(object):
             maps.create_dataset('x', data=empty_arr)
             maps.create_dataset('y', data=empty_arr)
 
-            data.create_dataset('datetime', data=self.meta['datetime'])
+            # data.create_dataset('datetime', data=self.meta['datetime'])
             for key, val in self.meta.items():
                 if key in ['datetime', 'energy', 'det_dist', 'pix_dim', 'bcx',
                            'bcy', 'saxs']:
