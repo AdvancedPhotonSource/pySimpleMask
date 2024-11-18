@@ -6,7 +6,6 @@ from .area_mask import MaskAssemble
 from .find_center import find_center
 from .pyqtgraph_mod import LineROI
 from .file_reader import read_raw_file
-import skimage.io as skio
 import logging
 import time
 
@@ -522,8 +521,7 @@ class SimpleMask(object):
                       pmax=None, style='linear'):
 
         mask = self.mask
-        qmap = self.qmap['q'] * mask
-        pmap_org = self.qmap['phi'] * mask
+        # pmap_org = self.qmap['phi'] * mask
 
         if qmin is None or qmax is None:
             qmin = np.min(self.qmap['q'][mask > 0])
@@ -541,32 +539,20 @@ class SimpleMask(object):
             qspan = np.logspace(np.log10(qmin), np.log10(qmax), qnum + 1)
             qlist = np.sqrt(qspan[1:] * qspan[:-1])
 
-        # phi
-        pmap = pmap_org.copy()
-        # deal with edge case, eg (pmin, pmax) = (350, 10)
-        if pmax < pmin:
-            pmax += 360.0
-            pmap[pmap < pmin] += 360.0
-
         pspan = np.linspace(pmin, pmax, pnum + 1)
         plist = (pspan[1:] + pspan[:-1]) / 2.0
 
-        qroi = np.logical_and(qmap >= qmin, qmap < qmax)
-        proi = np.logical_and(pmap >= pmin, pmap < pmax)
-        roi = np.logical_and(qroi, proi)
-
-        qmap = qmap * roi
-        pmap = pmap * roi
-
-        partition = np.zeros_like(roi, dtype=np.uint32)
+        partition = np.zeros_like(self.mask, dtype=np.uint32)
 
         cqlist = np.tile(qlist, pnum).reshape(pnum, qnum)
         cqlist = np.swapaxes(cqlist, 0, 1)
         cplist = np.tile(plist, qnum).reshape(qnum, pnum)
 
         idx = 1
+        qmap = self.qmap['q']
+        pmap = self.qmap['phi']
         for m in range(qnum):
-            qroi = (qmap >= qspan[m]) * (qmap < qspan[m + 1])
+            qroi = (qmap >= qspan[m]) * (qmap < qspan[m + 1]) * self.mask
             for n in range(pnum):
                 proi = (pmap >= pspan[n]) * (pmap < pspan[n + 1])
                 comb_roi = qroi * proi
@@ -649,8 +635,6 @@ class SimpleMask(object):
         if qrings is None or len(qrings) == 0:
             qrings = [[None, None, 0, 360]]
 
-        # dqspan = []
-        # , dqval, dphispan, dphival, dyn_map
         dyn_map = np.zeros_like(self.mask, dtype=np.uint32)
         sta_map = np.zeros_like(self.mask, dtype=np.uint32)
 
@@ -659,8 +643,8 @@ class SimpleMask(object):
                 record[n].append(new_item[n])
             return record
 
-        dq_record = [[] for n in range(4)]
-        sq_record = [[] for n in range(4)]
+        dq_record = [[] for _ in range(4)]
+        sq_record = [[] for _ in range(4)]
 
         for segment in qrings:
             # qmin, qmax, pmin, pmax = segment, 0, 60
