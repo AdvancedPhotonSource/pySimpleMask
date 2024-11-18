@@ -638,9 +638,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if self.sm.new_partition is None:
             self.compute_partition()
         save_fname = QFileDialog.getSaveFileName(
-            self, caption='Save mask/qmap as', filter='HDF (*.h5)')[0]
+            self, caption='Save mask/qmap as', filter='HDF (*.h5 *.hdf *.hdf5)')[0]
 
-        if not save_fname.endswith('.h5') or not save_fname.endswith('.hdf'):
+        ext = os.path.splitext(save_fname)[-1]
+        if ext not in ('.h5', '.hdf', '.hdf5'):
             save_fname += '.hdf'
         
         try:
