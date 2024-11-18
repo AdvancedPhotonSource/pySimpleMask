@@ -8,6 +8,8 @@ from .pyqtgraph_mod import LineROI
 from .file_reader import read_raw_file
 import skimage.io as skio
 import logging
+import time
+
 
 pg.setConfigOptions(imageAxisOrder='row-major')
 
@@ -209,8 +211,11 @@ class SimpleMask(object):
         if reader is None:
             logger.error(f'failed to create a dataset handler for {fname}')
             return False
-
+        t0 = time.perf_counter()
         saxs = reader.get_scattering(**kwargs)
+        t1 = time.perf_counter()
+        logger.info(f'data loaded in {t1 - t0: .1f} seconds')
+
         if saxs is None:
             logger.error('failed to read scattering signal from the dataset.')
             return False
