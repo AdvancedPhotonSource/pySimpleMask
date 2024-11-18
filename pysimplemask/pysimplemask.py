@@ -5,6 +5,8 @@ import logging
 import traceback
 import numpy as np
 import pyqtgraph as pg
+from PyQt5.QtWidgets import QMessageBox
+
 
 from .simplemask_ui import Ui_SimpleMask as Ui
 from .simplemask_kernel import SimpleMask
@@ -620,14 +622,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         try:
             self.sm.compute_partition(**kwargs)
+            self.statusbar.showMessage('New partition is generated.', 1000)
+            self.plot_index.setCurrentIndex(0)
+            self.plot_index.setCurrentIndex(3)
         except Exception:
-            traceback.print_exception()
-
-        self.statusbar.showMessage('New partition is generated.', 1000)
-        self.btn_compute_qpartition.setEnabled(True)
-        self.plot_index.setCurrentIndex(0)
-        self.plot_index.setCurrentIndex(3)
-        # self.btn_compute_qpartition.setStyleSheet("background-color: green")
+            traceback.print_exc()
+        finally:
+            self.btn_compute_qpartition.setEnabled(True)
+            # self.btn_compute_qpartition.setStyleSheet("background-color: green")
 
     def save_mask(self):
         if not self.is_ready():
@@ -637,7 +639,21 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.compute_partition()
         save_fname = QFileDialog.getSaveFileName(
             self, caption='Save mask/qmap as', filter='HDF (*.h5)')[0]
-        self.sm.save_partition(save_fname)
+
+        if not save_fname.endswith('.h5') or not save_fname.endswith('.hdf'):
+            save_fname += '.hdf'
+        
+        try:
+            self.sm.save_partition(save_fname)
+        except Exception:
+            error_message = traceback.format_exc()
+            traceback.print_exc()
+            error_dialog = QMessageBox(self)
+            error_dialog.setIcon(QMessageBox.Critical)
+            error_dialog.setText("Failed to save qmap to file")
+            error_dialog.setDetailedText(error_message)
+            error_dialog.setWindowTitle("Error")
+            error_dialog.exec()
 
     def mask_list_load(self):
         if not self.is_ready():

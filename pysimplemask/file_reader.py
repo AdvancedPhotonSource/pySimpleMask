@@ -39,7 +39,7 @@ def get_file_type(fname):
 
 def get_fake_metadata(shape):
     # fake metadata
-    logger.warn('failed to get the raw metadata, using default values instead')
+    logger.warning('failed to get the raw metadata, using default values instead')
     metadata = {
         # 'datetime': "2022-05-08 14:00:51,799",
         'energy': 10.0,         # keV
@@ -61,6 +61,7 @@ def get_metadata(fname, shape):
             break
 
     if meta_fname is None:
+        print('using fake metadata')
         return get_fake_metadata(shape)
 
     # read real metadata
