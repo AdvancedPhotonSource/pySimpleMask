@@ -56,8 +56,10 @@ def sum_frames_parallel(file_path, dataset_name='/entry/data/data',
             raise ValueError(f"start_frame must be between 0 and {total_frames-1}")
         
         # If num_frames is None, use all remaining frames
-        if num_frames is None or num_frames <= 0:
+        if num_frames is None or num_frames == 0:
             num_frames = total_frames - start_frame
+        elif num_frames < 0:
+            num_frames = max(1000, total_frames // 5)
         
         # Validate num_frames
         if num_frames <= 0:
