@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import logging
 
 
-logger = logging.getLevelName(__name__)
+logger = logging.getLogger(__name__)
 
 
 def create_qring(qmin, qmax, pmin, pmax, qnum=1, flag_const_width=True):
@@ -183,15 +183,39 @@ class MaskAssemble():
             'mask_outlier': MaskList(shape),
             'mask_qring': MaskQring(shape)
         }
+        self.shape = shape
         self.saxs_log = saxs_log
         self.qmap = qmap
         self.pmap = pmap
         self.mask_record = [np.ones_like(qmap, dtype=bool)]
-        self.mask_ptr = 0 
+        self.mask_ptr = 0
+        # 0: no mask; 1: apply the default mask
+        self.mask_ptr_min = 0
     
     def update_qmap(self, qmap_all):
         self.qmap = qmap_all['q']
         self.pmap = qmap_all['phi']
+    
+    def apply_default_mask(self):
+        basename = "/home/beams/8IDIUSER/Documents/Miaoqi/areaDetectorBlemish"
+
+        if tuple(self.shape) == (1813, 1558):
+            fname = os.path.join(basename, 'lambda2M_latest_blemish.tif')
+        elif tuple(self.shape) == (2162, 2068):
+            fname = os.path.join(basename, 'eiger4M_latest_blemish.tif')
+        else:
+            logger.warning('detector shape/type not supported')
+            self.mask_ptr_min = 0
+            return self.get_mask()
+
+        if os.path.isfile(fname):   # returns True for symbolic links too
+            logger.info(f'apply default blemish {os.path.realpath(fname)}')
+            self.evaluate('mask_blemish', fname=fname)
+            self.apply('mask_blemish')
+            self.mask_ptr_min = 1
+        else:
+            logger.warning(f'default blemish {fname} not found')
+        return self.get_mask()
 
     def apply(self, target):
         if target is None:
@@ -205,7 +229,6 @@ class MaskAssemble():
             # len(self.mask_record) == self.mask_ptr + 1
             self.mask_record.append(mask)
             self.mask_ptr += 1
-
         return mask
 
     def evaluate(self, target, **kwargs):
@@ -220,15 +243,17 @@ class MaskAssemble():
     
     def redo_undo(self, action='redo'):
         if action == 'undo':
-            if self.mask_ptr > 0:
+            if self.mask_ptr > self.mask_ptr_min:
                 self.mask_ptr -= 1
         elif action == 'redo': 
             if self.mask_ptr < len(self.mask_record) - 1:
                 self.mask_ptr += 1
         elif action == 'reset':
-            while len(self.mask_record) > 1:
+            # if 1 + mask_ptr_min = 2: keep the default mask
+            # if 1 + mask_ptr_min = 1: no default mask
+            while len(self.mask_record) > 1 + self.mask_ptr_min:
                 self.mask_record.pop()
-            self.mask_ptr = 0 
+            self.mask_ptr = self.mask_ptr_min
         
     def get_one_mask(self, target):
         return self.workers[target].get_mask()

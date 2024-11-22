@@ -128,8 +128,11 @@ class SimpleMask(object):
         self.mask_apply()
 
     def mask_apply(self, target=None):
-        # if target is None, apply will return the current mask
-        self.mask = self.mask_kernel.apply(target)
+        if target == 'default_mask':
+            self.mask = self.mask_kernel.apply_default_mask()
+        else:
+            # if target is None, apply will return the current mask
+            self.mask = self.mask_kernel.apply(target)
 
         self.data_raw[1] = self.saxs_log * self.mask
         self.data_raw[2] = self.mask
@@ -241,6 +244,7 @@ class SimpleMask(object):
         self.qrings = []
         self.qmap = self.compute_qmap()
         self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
+        self.mask_apply(target='default_mask')
         self.mask_kernel.update_qmap(self.qmap)
         self.extent = self.compute_extent()
 
