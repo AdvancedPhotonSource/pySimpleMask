@@ -200,17 +200,26 @@ class MaskAssemble():
         basename = "/home/beams/8IDIUSER/Documents/Miaoqi/areaDetectorBlemish"
 
         if tuple(self.shape) == (1813, 1558):
-            fname = os.path.join(basename, 'lambda2M_latest_blemish.tif')
+            fname = os.path.join(basename, 'lambda2M_latest_blemish')
         elif tuple(self.shape) == (2162, 2068):
-            fname = os.path.join(basename, 'eiger4M_latest_blemish.tif')
+            fname = os.path.join(basename, 'eiger4M_latest_blemish')
         else:
             logger.warning('detector shape/type not supported')
             self.mask_ptr_min = 0
             return self.get_mask()
 
         if os.path.isfile(fname):   # returns True for symbolic links too
-            logger.info(f'apply default blemish {os.path.realpath(fname)}')
-            self.evaluate('mask_blemish', fname=fname)
+            realpath = os.path.realpath(fname)
+            logger.info(f'apply default blemish {realpath}')
+            ext = os.path.splitext(realpath)[-1]
+            if ext == '.tif':
+                self.evaluate('mask_blemish', fname=fname)
+            elif ext in ['.h5', '.hdf5', '.hdf']:
+                self.evaluate('mask_blemish', fname=realpath, key='/data/mask')
+            else:
+                logger.warning(f'default blemish {fname} not supported')
+                self.mask_ptr_min = 0
+                return self.get_mask()
             self.apply('mask_blemish')
             self.mask_ptr_min = 1
         else:
