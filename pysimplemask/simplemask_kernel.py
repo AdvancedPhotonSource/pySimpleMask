@@ -141,11 +141,14 @@ class SimpleMask(object):
             self.qrings = self.mask_kernel.workers[target].get_qrings()
 
         if self.plot_log:
-            log_min = np.min(self.saxs_log[self.mask > 0])
-            self.data_raw[1][np.logical_not(self.mask)] = log_min
+            min_mask = (self.saxs_lin > 0) * self.mask
+            nz_min = np.min(self.saxs_lin[min_mask > 0])
+            self.data_raw[1][np.logical_not(min_mask)] = np.log10(nz_min)
         else:
             lin_min = np.min(self.saxs_lin[self.mask > 0])
             self.data_raw[1][np.logical_not(self.mask)] = lin_min
+
+        self.hdl.setImage(self.data_raw)
 
     def get_pts_with_similar_intensity(self, cen=None, radius=50,
                                        variation=50):
@@ -244,14 +247,16 @@ class SimpleMask(object):
         self.qrings = []
         self.qmap = self.compute_qmap()
         self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
-        self.mask_apply(target='default_mask')
-        self.mask_kernel.update_qmap(self.qmap)
+        # self.mask_kernel.update_qmap(self.qmap)
         self.extent = self.compute_extent()
 
         # self.meta['saxs'] = saxs
         self.data_raw[0] = self.saxs_log
         self.data_raw[1] = self.saxs_log * self.mask
         self.data_raw[2] = self.mask
+
+        self.mask_apply(target='default_mask')
+        self.mask_kernel.update_qmap(self.qmap)
 
         return True 
 
