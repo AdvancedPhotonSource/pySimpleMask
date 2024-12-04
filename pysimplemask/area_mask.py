@@ -97,7 +97,7 @@ class MaskFile(MaskBase):
         elif ext in ['.tiff', '.tif']:
             mask = skio.imread(fname).astype(np.int64)
         else:
-            logger.error('only support tif and hdf file.')
+            logger.error(f'MaskFile only support tif and hdf file. found {fname}')
 
         if mask is None:
             self.zero_loc = None
@@ -203,6 +203,8 @@ class MaskAssemble():
             fname = os.path.join(basename, 'lambda2M_latest_blemish')
         elif tuple(self.shape) == (2162, 2068):
             fname = os.path.join(basename, 'eiger4M_latest_blemish')
+        elif tuple(self.shape) == (1676, 2100):
+            fname = os.path.join(basename, 'rigaku3M_latest_blemish')
         else:
             logger.warning('detector shape/type not supported')
             self.mask_ptr_min = 0
@@ -212,9 +214,9 @@ class MaskAssemble():
             realpath = os.path.realpath(fname)
             logger.info(f'apply default blemish {realpath}')
             ext = os.path.splitext(realpath)[-1]
-            if ext == '.tif':
-                self.evaluate('mask_blemish', fname=fname)
-            elif ext in ['.h5', '.hdf5', '.hdf']:
+            if ext in ('.tif', '.tiff'):
+                self.evaluate('mask_blemish', fname=realpath)
+            elif ext in ('.h5', '.hdf5', '.hdf'):
                 self.evaluate('mask_blemish', fname=realpath, key='/data/mask')
             else:
                 logger.warning(f'default blemish {fname} not supported')
