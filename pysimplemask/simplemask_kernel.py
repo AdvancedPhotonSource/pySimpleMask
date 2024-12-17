@@ -527,7 +527,7 @@ class SimpleMask(object):
         self.hdl.remove_item(roi_key)
 
     def get_partition(self, qnum, pnum, qmin=None, qmax=None, pmin=None,
-                      pmax=None, style='linear'):
+                      pmax=None, style='linear', phi_offset=0.0):
 
         mask = self.mask
         # pmap_org = self.qmap['phi'] * mask
@@ -557,9 +557,17 @@ class SimpleMask(object):
         cqlist = np.swapaxes(cqlist, 0, 1)
         cplist = np.tile(plist, qnum).reshape(qnum, pnum)
 
-        idx = 1
         qmap = self.qmap['q']
+        # apply phi offset
         pmap = self.qmap['phi']
+        pmap_min = np.min(pmap)
+        print('pmap_min_before', pmap_min)
+        pmap = np.rad2deg(np.angle(np.exp(1j * np.deg2rad(pmap + phi_offset))))
+        print('pmap_min_after', pmap_min)
+        pmap = pmap - np.min(pmap) + pmap_min
+        print('pmap_min_before', pmap_min)
+
+        idx = 1
         for m in range(qnum):
             qroi = (qmap >= qspan[m]) * (qmap < qspan[m + 1]) * self.mask
             for n in range(pnum):
@@ -576,7 +584,8 @@ class SimpleMask(object):
 
     def compute_saxs1d(self, cutoff=3.0, episilon=1e-16, num=180):
         t_dq_span_val, partition = self.get_partition(num, 1,
-                                                      None, None, 0, 360, 'linear')
+                                                      None, None, 0, 360,
+                                                      'linear')
         qlist = t_dq_span_val[1].flatten()
 
         self.data_raw[5] = partition
@@ -635,7 +644,8 @@ class SimpleMask(object):
 
     def compute_partition_qphi(self,
                                dq_num=10, sq_num=100, style='linear',
-                               dp_num=36, sp_num=360):
+                               dp_num=36, sp_num=360,
+                               phi_offset=0.0):
         if self.meta is None or self.data_raw is None:
             return
 
@@ -659,7 +669,8 @@ class SimpleMask(object):
             # qmin, qmax, pmin, pmax = segment, 0, 60
             qmin, qmax, pmin, pmax = segment
             t_dq_span_val, tdyn_map = self.get_partition(
-                dq_num, dp_num, qmin, qmax, pmin, pmax, style)
+                dq_num, dp_num, qmin, qmax, pmin, pmax, style,
+                phi_offset=phi_offset)
             dq_record = combine_span_val(dq_record, t_dq_span_val)
 
             # offset the nonzero dynamic qmap
@@ -669,7 +680,8 @@ class SimpleMask(object):
 
             # offset the nonzero static qmap
             t_sq_span_val, tsta_map = self.get_partition(
-                sq_num, sp_num, qmin, qmax, pmin, pmax, style)
+                sq_num, sp_num, qmin, qmax, pmin, pmax, style,
+                phi_offset=phi_offset)
             sq_record = combine_span_val(sq_record, t_sq_span_val)
 
             tsta_map[tsta_map > 0] += np.max(sta_map)

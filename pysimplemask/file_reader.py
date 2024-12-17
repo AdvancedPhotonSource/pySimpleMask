@@ -42,11 +42,11 @@ def get_fake_metadata(shape):
     logger.warning('failed to get the raw metadata, using default values instead')
     metadata = {
         # 'datetime': "2022-05-08 14:00:51,799",
-        'energy': 10.0,         # keV
-        'det_dist': 12500,       # mm
+        'energy': 12.4,         # keV
+        'det_dist': 11500,       # mm
         'pix_dim': 75e-3,       # mm
-        'bcx': shape[1] // 2.0,
-        'bcy': shape[0] // 2.0
+        'bcx': 773.0,
+        'bcy': 809.0
     }
     return metadata
 

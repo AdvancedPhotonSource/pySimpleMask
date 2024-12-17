@@ -565,7 +565,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 'color': color,
                 'sl_type': self.cb_selector_type.currentText(),
                 'sl_mode': self.cb_selector_mode.currentText(),
-                'width': self.plot_width.value()
+                'width': self.plot_width.value(),
+                'num_edges': self.spinBox_num_edges.value()
             }
         # elif self.MaskWidget.currentIndex() == 6:
         #     color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
@@ -606,6 +607,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 'dq_num': self.sb_dqnum.value(),
                 'sp_num': self.sb_spnum.value(),
                 'dp_num': self.sb_dpnum.value(),
+                'phi_offset': self.doubleSpinBox_phi_offset.value(),
                 'style': self.partition_style.currentText(),
             }
         elif self.tabWidget.currentIndex() == 1:
