@@ -47,7 +47,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pySimpleMask'
-copyright = "2021, Miaoqi Chu"
+copyright = "2024, Miaoqi Chu"
 author = "Miaoqi Chu"
 
 # The version info for the project you're documenting, acts as replacement

@@ -1,4 +1,5 @@
-.PHONY: clean clean-test clean-pyc clean-build docs help
+.PHONY: clean clean-build clean-pyc clean-test coverage dist docs help install lint lint/flake8
+
 .DEFAULT_GOAL := help
 
 define BROWSER_PYSCRIPT
@@ -49,6 +50,7 @@ clean-test: ## remove test and coverage artifacts
 
 lint/flake8: ## check style with flake8
 	flake8 pysimplemask tests
+
 
 lint: lint/flake8 ## check style
 

@@ -79,9 +79,10 @@ Ready to contribute? Here's how to set up `pysimplemask` for local development.
 5. When you're done making changes, check that your changes pass flake8 and the
    tests, including testing other Python versions with tox::
 
-    $ flake8 pysimplemask tests
-    $ python setup.py test or pytest
-    $ tox
+    $ make lint
+    $ make test
+    Or
+    $ make test-all
 
    To get flake8 and tox, just pip install them into your virtualenv.
 
@@ -126,3 +127,11 @@ $ git push
 $ git push --tags
 
 Travis will then deploy to PyPI if tests pass.
+
+Code of Conduct
+---------------
+
+Please note that this project is released with a `Contributor Code of Conduct`_.
+By participating in this project you agree to abide by its terms.
+
+.. _`Contributor Code of Conduct`: CODE_OF_CONDUCT.rst
