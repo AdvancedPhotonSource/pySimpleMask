@@ -535,7 +535,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.db_cenx.setValue(self.sm.meta['bcx'])
         self.db_ceny.setValue(self.sm.meta['bcy'])
         self.db_energy.setValue(self.sm.meta['energy'])
-        self.db_pix_dim.setValue(self.sm.meta['pix_dim'])
+        self.db_pix_dim.setValue(self.sm.meta['pix_dim'] * 1.0e6)
         self.db_det_dist.setValue(self.sm.meta['det_dist'])
         self.le_shape.setText(str(self.sm.shape))
         self.groupBox.repaint()
