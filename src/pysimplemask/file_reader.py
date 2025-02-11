@@ -52,45 +52,45 @@ def get_fake_metadata(shape):
 
 
 def get_metadata(fname, shape):
-    files = glob.glob(os.path.dirname(os.path.realpath(fname)) + '/*.*')
+    prefix = os.path.splitext(fname)[0] + '_metadata.*'
+    meta_fname = glob.glob(prefix)
 
-    meta_fname = None
-    for f in files:
-        if get_file_type(f) == 'aps_metadata':
-            meta_fname = f
-            break
-
-    if meta_fname is None:
-        print('using fake metadata')
+    if len(meta_fname) == 0 or not os.path.isfile(meta_fname[0]):
         return get_fake_metadata(shape)
+    else:
+        logger.info(f'using metadata file: {meta_fname[0]}')
+        meta_fname = meta_fname[0]
 
     # read real metadata
     keys = {
-        'ccdx': '/entry/instrument/bluesky/metadata/ccdx',
-        'ccdx0': '/entry/instrument/bluesky/metadata/ccdx0',
-        'ccdz': '/entry/instrument/bluesky/metadata/ccdy',
-        'ccdz0': '/entry/instrument/bluesky/metadata/ccdy0',
-        # 'datetime': '/entry/instrument/bluesky/metadata/datetime',
-        'energy': '/entry/instrument/bluesky/metadata/X_energy',
-        'det_dist': '/entry/instrument/bluesky/metadata/det_dist',
-        'pix_dim': '/entry/instrument/bluesky/metadata/pix_dim_x',
-        'bcx0': '/entry/instrument/bluesky/metadata/bcx',
-        'bcy0': '/entry/instrument/bluesky/metadata/bcy',
+        'energy': '/entry/instrument/incident_beam/incident_energy',
+        'ccdx': '/entry/instrument/detector_1/position_x',
+        'ccdy': '/entry/instrument/detector_1/position_y',
+        'ccdx0': '/entry/instrument/detector_1/beam_center_position_x',
+        'ccdy0': '/entry/instrument/detector_1/beam_center_position_y',
+        'x_pixel_size': '/entry/instrument/detector_1/x_pixel_size',
+        'y_pixel_size': '/entry/instrument/detector_1/y_pixel_size',
+        'bcx0': '/entry/instrument/detector_1/beam_center_x',
+        'bcy0': '/entry/instrument/detector_1/beam_center_y',
+        'det_dist': '/entry/instrument/detector_1/distance',
     }
 
     meta = {}
     with h5py.File(meta_fname, 'r') as f:
         for key, val in keys.items():
-            meta[key] = np.squeeze(f[val][()])
-        meta['data_name'] = os.path.basename(meta_fname).encode("ascii")
+            meta[key] = f[val][()]
+        meta['data_name'] = os.path.basename(meta_fname)
 
     ccdx, ccdx0 = meta['ccdx'], meta['ccdx0']
-    ccdz, ccdz0 = meta['ccdz'], meta['ccdz0']
+    ccdy, ccdy0 = meta['ccdy'], meta['ccdy0']
 
-    meta['bcx'] = meta['bcx0'] + (ccdx - ccdx0) / meta['pix_dim']
-    meta['bcy'] = meta['bcy0'] + (ccdz - ccdz0) / meta['pix_dim']
+    meta['bcx'] = meta['bcx0'] + (ccdx - ccdx0) / meta['x_pixel_size']
+    meta['bcy'] = meta['bcy0'] + (ccdy - ccdy0) / meta['y_pixel_size']
     meta.pop('bcx0', None)
     meta.pop('bcy0', None)
+    meta['pix_dim'] = meta['x_pixel_size']
+    meta.pop('x_pixel_size', None)
+    meta.pop('y_pixel_size', None)
     return meta
 
 
