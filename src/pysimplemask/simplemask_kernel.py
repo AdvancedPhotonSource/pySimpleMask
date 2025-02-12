@@ -204,9 +204,6 @@ class SimpleMask(object):
                 if key in ['datetime', 'energy', 'det_dist', 'pix_dim', 'bcx',
                            'bcy', 'saxs']:
                     continue
-                val = np.array(val)
-                if val.size == 1:
-                    val = val.reshape(1, 1)
                 data.create_dataset(key, data=val)
         print('partition map is saved')
 
@@ -724,10 +721,10 @@ class SimpleMask(object):
             'snophi': sp_num,
             'dnoq': dq_num,
             'snoq': sq_num,
-            'x0': np.array([self.meta['bcx']]).reshape(1, 1),
-            'y0': np.array([self.meta['bcy']]).reshape(1, 1),
-            'xspec': np.array(-1.0).reshape(1, 1),
-            'yspec': np.array(-1.0).reshape(1, 1),
+            'x0': self.meta['bcx'],
+            'y0': self.meta['bcy'],
+            'xspec': -1.0,
+            'yspec': -1.0,
         }
         for key in ['snophi', 'snoq', 'dnophi', 'dnoq']:
             partition[key] = np.array(partition[key]).reshape(1, 1)
@@ -770,10 +767,10 @@ class SimpleMask(object):
             'snophi': sy_num,
             'dnoq': dx_num,
             'snoq': sx_num,
-            'x0': np.array([self.meta['bcx']]).reshape(1, 1),
-            'y0': np.array([self.meta['bcy']]).reshape(1, 1),
-            'xspec': np.array(-1.0).reshape(1, 1),
-            'yspec': np.array(-1.0).reshape(1, 1),
+            'x0': self.meta['bcx'],
+            'y0': self.meta['bcy'],
+            'xspec': -1.0,
+            'yspec': -1.0,
         }
         for key in ['snophi', 'snoq', 'dnophi', 'dnoq']:
             partition[key] = np.array(partition[key]).reshape(1, 1)
