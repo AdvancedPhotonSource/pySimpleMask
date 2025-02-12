@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 def get_file_type(fname):
     extname = os.path.splitext(fname)[-1]
-    if extname not in ('.hdf', '.h5', '.hdf5', '.imm', '.bin', '.000'):
+    if extname not in ('.hdf', '.h5', '.hdf5', '.imm', '.bin', 
+                       '.000', '.001', '.002', '.003', '.004', '.005'):
         return 'unknown_type'
 
     file_format = magic.from_file(fname)
@@ -28,8 +29,8 @@ def get_file_type(fname):
         with h5py.File(fname, 'r') as hf:
             if '/entry/instrument/bluesky/metadata/versions' in hf:
                 return 'aps_metadata'
-            elif '/entry_0000/instrument/id02-eiger500k-saxs' in hf:
-                return 'esrf_hdf' 
+            # elif '/entry_0000/instrument/id02-eiger500k-saxs' in hf:
+            #     return 'esrf_hdf' 
             elif '/entry/data/data' in hf:
                 return 'aps_hdf'
     except Exception:
@@ -52,15 +53,36 @@ def get_fake_metadata(shape):
 
 
 def get_metadata(fname, shape):
-    prefix = os.path.splitext(fname)[0] + '_metadata.*'
-    meta_fname = glob.glob(prefix)
+    """
+    get metadata from the raw file
+    Parameters
+    ----------
+    fname: str
+        raw file name
+    shape: tuple
+        shape of the data
+    Returns
+    -------
+    metadata: dict
+        metadata of the raw file
+    """
+    try:
+        metadata = get_hdf_metadata(fname, shape)
+    except Exception as e:
+        logger.error(f'failed to get metadata from {fname}')
+        logger.error(e)
+        metadata = get_fake_metadata(shape)
+    return metadata
 
-    if len(meta_fname) == 0 or not os.path.isfile(meta_fname[0]):
-        return get_fake_metadata(shape)
-    else:
-        logger.info(f'using metadata file: {meta_fname[0]}')
-        meta_fname = meta_fname[0]
 
+def get_hdf_metadata(fname, shape):
+    prefix = os.path.join(os.path.dirname(fname), '*_metadata.hdf')
+    meta_fnames = glob.glob(prefix)
+    assert len(meta_fnames) > 0, f'no *_metadata.hdf found in the folder of {fname}'
+    if len(meta_fnames) > 1:
+        logger.warning(f'multiple *_metadata.hdf found in the folder of {fname}. using the first one')
+    meta_fname = meta_fnames[0]
+    logger.info(f'using metadata file: {meta_fname}')
     # read real metadata
     keys = {
         'energy': '/entry/instrument/incident_beam/incident_energy',
@@ -117,11 +139,12 @@ class APS8IDIReader(FileReader):
         super(APS8IDIReader, self).__init__(fname)
         self.handler = None
         self.ftype = 'Base Class'
+        rigaku_endings = tuple(f".bin.00{i}" for i in range(6))
 
         if fname.endswith('.bin'):
             logger.info('Rigaku 500k dataset')
             self.handler = RigakuDataset(fname, batch_size=1000)
-        elif fname.endswith('.bin.000'):
+        elif fname.endswith(rigaku_endings):
             logger.info('Rigaku 3M (6 x 500K) dataset')
             self.handler = Rigaku3MDataset(fname, batch_size=1000)
         elif fname.endswith('.imm'):
@@ -229,7 +252,8 @@ class FitsReader(FileReader):
 def read_raw_file(fname):
     ext_name = os.path.splitext(fname)[-1]
     logger.info(f'using file extension {ext_name}')
-    if ext_name in ('.hdf', '.h5', '.hdf5', '.imm', '.bin', '.000'):
+    if ext_name in ('.hdf', '.h5', '.hdf5', '.imm', '.bin',
+                    '.000', '.001', '.002', '.003', '.004', '.005'):
         # exclude the hdf meta file; 
         ftype = get_file_type(fname)
         if ftype == 'aps_metadata':
