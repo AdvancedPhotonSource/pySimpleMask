@@ -465,7 +465,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
                self.db_det_dist)
         values = []
         for pv in pvs:
-            values.append(pv.value())
+            value = pv.value()
+            if pv == self.db_pix_dim:
+                value = value * 1.0e-6
+            values.append(value)
         if swapxy:
             y, x = values[0], values[1]
             values[0], values[1] = x, y
