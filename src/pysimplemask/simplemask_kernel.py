@@ -205,7 +205,6 @@ class SimpleMask(object):
                            'bcy', 'saxs']:
                     continue
                 data.create_dataset(key, data=val)
-        print('partition map is saved')
 
     # generate 2d saxs
     def read_data(self, fname=None, **kwargs):
@@ -349,7 +348,6 @@ class SimpleMask(object):
         # self.hdl.reset_limits()
         self.hdl.clear()
         # self.data = np.copy(self.data_raw)
-        # print('show_saxs', np.min(self.data[1]))
 
         center = (self.meta['bcx'], self.meta['bcy'])
 
@@ -558,11 +556,8 @@ class SimpleMask(object):
         # apply phi offset
         pmap = self.qmap['phi']
         pmap_min = np.min(pmap)
-        print('pmap_min_before', pmap_min)
         pmap = np.rad2deg(np.angle(np.exp(1j * np.deg2rad(pmap + phi_offset))))
-        print('pmap_min_after', pmap_min)
         pmap = pmap - np.min(pmap) + pmap_min
-        print('pmap_min_before', pmap_min)
 
         idx = 1
         for m in range(qnum):
