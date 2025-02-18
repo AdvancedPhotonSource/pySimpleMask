@@ -274,6 +274,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
         try:
             self.btn_find_center.setText('Finding Center ...')
+            self.btn_find_center.setDisabled(True)
             self.centralwidget.repaint()
             center = self.sm.find_center()
         except Exception:
@@ -290,6 +291,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             logger.info(f'found center: {cen_old} --> {cen_new}')
         finally:
             self.btn_find_center.setText('Find Center')
+            self.btn_find_center.setEnabled(True)
 
 
     def mask_evaluate(self, target=None):

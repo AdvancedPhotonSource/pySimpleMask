@@ -154,10 +154,9 @@ class SimpleMask(object):
     def find_center(self):
         if self.saxs_lin is None:
             return
-        mask = self.mask
-        # center = (self.meta['bcy'], self.meta['bcx'])
-        center = find_center(self.saxs_lin, mask=mask, center_guess=None,
-                             scale='log')
+        center_guess = (self.meta['bcy'], self.meta['bcx'])
+        center = find_center(self.saxs_lin, mask=self.mask,
+                             center_guess=center_guess, scale='log')
         return center
 
     def mask_evaluate(self, target, **kwargs):

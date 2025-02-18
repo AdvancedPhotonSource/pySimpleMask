@@ -1,142 +1,168 @@
 import numpy as np
 import skimage.io as skio
-from skimage.morphology import disk
-from skimage.filters import median
 from skimage.registration import phase_cross_correlation
-from scipy.interpolate import NearestNDInterpolator
-from scipy.ndimage import binary_dilation
-
-
-def percentile_filter(img0, mask, percentile_range=(2.0, 98.0)):
-    img = np.copy(img0)
-
-    valid_roi = mask > 0
-    img_valid = img[valid_roi]
-
-    # get ride of the bad pixels
-    vmin = np.percentile(img_valid, percentile_range[0])
-    vmax = np.percentile(img_valid, percentile_range[1])
-    invalid_roi = np.logical_or(img <= vmin, img >= vmax)
-    img_median = median(img, disk(15))
-    img[invalid_roi] = img_median[invalid_roi]
-    return img
-
-
-def median_filter(img0, disk_size=7, threshold=3.0):
-    img = np.copy(img0)
-    img_median = median(img, disk(disk_size))
-    img_median[img_median == 0] = 1
-    roi = img * 1.0 / img_median > threshold
-    img[roi] = img_median[roi]
-    # only apply the upper litmit; photon counting detector can yield lots of
-    # zeros;
-    # roi = img * 1.0 / img_median < 1.0 / threshold
-    # img[roi] = img_median[roi]
-    return img
 
 
 def estimate_center(img, threshold=90):
-    # estimate center using percentile
+    """Estimates the center of an image based on a percentile threshold.
+
+    Parameters
+    ----------
+    img : ndarray
+        The input image.
+    threshold : float, optional
+        The percentile threshold to use. Default is 90.
+
+    Returns
+    -------
+    ndarray
+        The estimated center coordinates (y, x).
+    """
     cutoff = np.percentile(img.ravel(), threshold)
-    cen_idx = np.nonzero(img >= cutoff)
-    cen = np.mean(np.array(cen_idx), axis=1)
-    return cen
+    y_indices, x_indices = np.where(img >= cutoff)
+    if y_indices.size == 0 or x_indices.size == 0:
+        return np.array([img.shape[0] // 2, img.shape[1] // 2])
+    return np.array([np.mean(y_indices), np.mean(x_indices)])
 
 
-def estimate_center2(img0, mask):
-    img = np.copy(img0)
-    v, h = np.meshgrid(np.arange(img.shape[0]), np.arange(img.shape[1]),
-                       indexing='ij')
-    img[mask == 0] = 0
-    min_val = np.min(img[mask == 1])
-    img = img - min_val
+def estimate_center2(img, mask):
+    """Estimates the center using a weighted average based on pixel intensity.
 
-    v_cen = np.sum((img * v)[mask == 1]) / np.sum(img)
-    h_cen = np.sum((img * h)[mask == 1]) / np.sum(img)
-    return np.array((v_cen, h_cen))
+    Parameters
+    ----------
+    img : ndarray
+        The input image.
+    mask : ndarray
+        A boolean mask indicating valid pixels.
 
+    Returns
+    -------
+    ndarray
+        The estimated center coordinates (y, x).
+    """
+    masked_img = img * mask
+    total_intensity = np.sum(masked_img)
 
-def center_crop(img0, mask=None, cen=None):
-    img = np.copy(img0)
-    if cen is None:
-        cen = estimate_center2(img, mask)
+    if total_intensity == 0:
+        return np.array([img.shape[0] // 2, img.shape[1] // 2])
 
-    cen = (cen + 0.5).astype(np.int64)
-    h = min(cen[0], img.shape[0] + 1 - cen[0])
-    w = min(cen[1], img.shape[1] + 1 - cen[1])
-    size = min(h, w)
-    h, w = size, size
-
-    img = img[cen[0] - h: cen[0] + h + 1,
-              cen[1] - w: cen[1] + w + 1]
-
-    mask = mask[cen[0] - h: cen[0] + h + 1,
-                cen[1] - w: cen[1] + w + 1]
-    min_value = np.min(img[mask == 1])
-    img = img - min_value
-    return cen, img, mask 
+    y, x = np.indices(img.shape)
+    y_cen = np.sum(masked_img * y) / total_intensity
+    x_cen = np.sum(masked_img * x) / total_intensity
+    return np.array([y_cen, x_cen])
 
 
-def fix_gaps_interpolation(img, mask2d, iterations=2):
-    data = img * mask2d
-    mask = np.where(mask2d == 1)
-    interp = NearestNDInterpolator(np.transpose(mask), data[mask])
-    img = interp(*np.indices(data.shape))
-    mask2d = binary_dilation(mask2d, iterations=iterations)
-    img[mask2d == 0] = 0
-    return img, mask2d
+def center_crop(img, mask=None, center=None):
+    """Crops the image around the estimated center.
+
+    Parameters
+    ----------
+    img : ndarray
+        The input image.
+    mask : ndarray, optional
+        A boolean mask indicating valid pixels. Default is None.
+    center : ndarray, optional
+        The center coordinates (y, x) around which to crop. Default is None.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the center coordinates, the cropped image, and the cropped mask (if provided).
+    """
+
+    if center is None:
+        center = estimate_center2(img, mask)
+
+    center = np.round(center).astype(int)
+    half_size = min(center[0], img.shape[0] - center[0], center[1], img.shape[1] - center[1])
+
+    cropped_img = img[center[0] - half_size:center[0] + half_size + 1,
+                      center[1] - half_size:center[1] + half_size + 1]
+    cropped_mask = None
+    if mask is not None:
+        cropped_mask = mask[center[0] - half_size:center[0] + half_size + 1,
+                           center[1] - half_size:center[1] + half_size + 1]
+
+    min_value = np.min(cropped_img[cropped_mask == 1] if cropped_mask is not None and np.any(cropped_mask==1) else cropped_img)
+    cropped_img = cropped_img - min_value
+    return center, cropped_img, cropped_mask
 
 
-def estimate_center_cross_correlation(img0, mask, center):
-    cen_int, img, mask = center_crop(img0, mask, center)
-    moving_image = np.flipud(np.fliplr(img))
+def estimate_center_cross_correlation(img, mask, center):
+    """Refines the center estimation using phase cross-correlation.
 
-    if np.sum(mask) / mask.size < 0.98:
-        moving_mask = np.flipud(np.fliplr(mask))
+    Parameters
+    ----------
+    img : ndarray
+        The input image.
+    mask : ndarray
+        A boolean mask indicating valid pixels.
+    center : ndarray
+        The initial center coordinates (y, x).
+
+    Returns
+    -------
+    ndarray
+        The refined center coordinates (y, x).
+    """
+    center_int, cropped_img, cropped_mask = center_crop(img, mask, center)
+    moving_image = np.flip(cropped_img)
+
+    if cropped_mask is not None and np.sum(cropped_mask) / cropped_mask.size < 0.98:
+        moving_mask = np.flip(cropped_mask)
     else:
         moving_mask = None
 
-    shift, _, _ = phase_cross_correlation(img, moving_image,
-        reference_mask=mask, moving_mask=moving_mask, upsample_factor=32,
-        overlap_ratio=0.75)
-    new_center = cen_int.astype(np.float64) + shift / 2.0
+    shift, _, _ = phase_cross_correlation(cropped_img, moving_image,
+                                         reference_mask=cropped_mask, moving_mask=moving_mask,
+                                         upsample_factor=4, overlap_ratio=0.75)
+    new_center = center_int.astype(float) + shift / 2.0
 
     return new_center
 
 
-def find_center(img, mask=None, iter_bad_pixel=0, iter_median_filter=2,
-                scale='log', iter_center=3, center_guess=None):
+def find_center(img, mask=None, scale='log', iter_center=2, center_guess=None):
+    """Finds the center of an image using iterative refinement.
+
+    Parameters
+    ----------
+    img : ndarray
+        The input image.
+    mask : ndarray, optional
+        A boolean mask indicating valid pixels. Default is None.
+    scale : str, optional
+        The scaling to apply to the image ('log' or 'linear'). Default is 'log'.
+    iter_center : int, optional
+        The number of iterations to perform. Default is 2.
+    center_guess : ndarray, optional
+        An initial guess for the center coordinates (y, x). Default is None.
+
+    Returns
+    -------
+    ndarray
+        The refined center coordinates (y, x).
+    """
 
     if mask is None:
         mask = np.ones_like(img, dtype=bool)
-    img[mask == 0] = 0
 
-    # remove bad pixels using percentile filter
-    for _ in range(iter_bad_pixel):
-        img = percentile_filter(img, mask)
+    masked_img = img.copy()
+    masked_img[mask == 0] = 0
 
-    # remove bad pixels using median filter
-    for _ in range(iter_median_filter):
-        img = median_filter(img) * mask
-
+    assert scale in ('log', 'linear')
     if scale == 'log':
-        min_value = np.min(img[img > 0])
-        img[img <= 0] = min_value
-        img = np.log10(img).astype(np.float32)
+        min_value = np.min(masked_img[masked_img > 0])
+        masked_img[masked_img <= 0] = min_value
+        masked_img = np.log10(masked_img).astype(np.float32)
     else:
-        img = img.astype(np.float32)
-    
-    img = (img - np.min(img)) / (np.max(img) - np.min(img))
-    img[mask == 0] = 0
-    img, mask = fix_gaps_interpolation(img, mask, iterations=2)
+        masked_img = masked_img.astype(np.float32)
 
-    if center_guess is None:
-        center = estimate_center(img)
-    else:
-        center = np.array(center_guess)
-    
-    for n in range(iter_center):
-        center = estimate_center_cross_correlation(img, mask, center)
+    masked_img = (masked_img - np.min(masked_img)) / (np.max(masked_img) - np.min(masked_img))
+
+    center = center_guess if center_guess is not None else estimate_center(masked_img)
+
+    for _ in range(iter_center):
+        center = estimate_center_cross_correlation(masked_img, mask, center)
 
     return center
 
