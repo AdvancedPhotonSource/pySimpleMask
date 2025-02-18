@@ -196,8 +196,9 @@ class MaskAssemble():
         self.qmap = qmap_all['q']
         self.pmap = qmap_all['phi']
     
-    def apply_default_mask(self):
-        basename = "/home/beams/8IDIUSER/Documents/Miaoqi/areaDetectorBlemish"
+    def apply_default_mask(self,
+                           default_blemish_path="~/Documents/Miaoqi/areaDetectorBlemish"):
+        basename = os.path.expanduser(default_blemish_path)
 
         if tuple(self.shape) == (1813, 1558):
             fname = os.path.join(basename, 'lambda2M_latest_blemish')
@@ -210,7 +211,7 @@ class MaskAssemble():
             self.mask_ptr_min = 0
             return self.get_mask()
 
-        if os.path.isfile(fname):   # returns True for symbolic links too
+        if os.path.isfile(fname):  # returns True for symbolic links too
             realpath = os.path.realpath(fname)
             logger.info(f'apply default blemish {realpath}')
             ext = os.path.splitext(realpath)[-1]
