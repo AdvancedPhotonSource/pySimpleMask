@@ -16,6 +16,50 @@ pg.setConfigOptions(imageAxisOrder='row-major')
 logger = logging.getLogger(__name__)
 
 
+def optimize_integer_array(arr):
+    """
+    Optimizes the data type of a NumPy array of integers to minimize memory usage.
+
+    Args:
+        arr: A NumPy array of integers.
+
+    Returns:
+        A NumPy array with the optimized data type, or the original array if 
+        the input is not a NumPy array of integers or if it's empty.
+    """
+
+    if not isinstance(arr, np.ndarray) or arr.size == 0:
+        return arr  # Return original if not a numpy array or if empty
+
+    if not np.issubdtype(arr.dtype, np.integer):
+        return arr  # Return original if not an integer type
+
+    min_val, max_val = arr.min(), arr.max()  # Get min/max values
+
+    # Choose smallest dtype based on min/max
+    if min_val >= 0:  # Unsigned types
+        if max_val <= np.iinfo(np.uint8).max:
+            new_dtype = np.uint8
+        elif max_val <= np.iinfo(np.uint16).max:
+            new_dtype = np.uint16
+        elif max_val <= np.iinfo(np.uint32).max:
+            new_dtype = np.uint32
+        else:
+            new_dtype = np.uint64
+    else:  # Signed types
+        if min_val >= np.iinfo(np.int8).min and max_val <= np.iinfo(np.int8).max:
+            new_dtype = np.int8
+        elif min_val >= np.iinfo(np.int16).min and max_val <= np.iinfo(np.int16).max:
+            new_dtype = np.int16
+        elif min_val >= np.iinfo(np.int32).min and max_val <= np.iinfo(np.int32).max:
+            new_dtype = np.int32
+        else:
+            new_dtype = np.int64
+
+    return arr.astype(new_dtype) if new_dtype != arr.dtype else arr
+
+
+
 def create_xy_mesh(mask, qmap, x_num, y_num):
     mask_nz = np.nonzero(mask)
     vrange = (np.min(mask_nz[0]), np.max(mask_nz[0]) + 1)
@@ -166,45 +210,36 @@ class SimpleMask(object):
         pos = np.roll(pos, shift=1, axis=0)
         return pos.T
 
-    def save_partition(self, save_fname):
+    def save_partition(self, save_fname, root='/qmap'):
         # if no partition is computed yet
         if self.new_partition is None:
             return
 
+        def optimize_save(group_handle, key, val): 
+            val = optimize_integer_array(val)
+            if isinstance(val, np.ndarray) and val.size > 1024:
+                group_handle.create_dataset(key, data=val, compression='lzf')
+            else:
+                group_handle.create_dataset(key, data=val)
+
         with h5py.File(save_fname, 'w') as hf:
-            if '/data' in hf:
-                del hf['/data']
+            if root in hf:
+                del hf[root]
 
-            data = hf.create_group('data')
-            data.create_dataset('mask', data=self.mask)
+            group_handle = hf.create_group(root)
+            optimize_save(group_handle, 'mask', self.mask)
             for key, val in self.new_partition.items():
-                data.create_dataset(key, data=val)
+                optimize_save(group_handle, key, val)
 
-            # directories that remain the same
-            dt = h5py.vlen_dtype(np.dtype('int32'))
-            version = data.create_dataset('Version', (1,), dtype=dt)
-            version[0] = [5]
+            maps = group_handle.create_group("Maps")
+            map1name = maps.create_dataset('map1name', data='q')
+            map2name = maps.create_dataset('map2name', data='phi')
 
-            maps = data.create_group("Maps")
-            dt = h5py.special_dtype(vlen=str)
-            map1name = maps.create_dataset('map1name', (1,), dtype=dt)
-            map1name[0] = 'q'
-
-            map2name = maps.create_dataset('map2name', (1,), dtype=dt)
-            map2name[0] = 'phi'
-
-            empty_arr = np.array([])
-            maps.create_dataset('q', data=self.qmap['q'])
-            maps.create_dataset('phi', data=self.qmap['phi'])
-            maps.create_dataset('x', data=empty_arr)
-            maps.create_dataset('y', data=empty_arr)
-
-            # data.create_dataset('datetime', data=self.meta['datetime'])
             for key, val in self.meta.items():
                 if key in ['datetime', 'energy', 'det_dist', 'pix_dim', 'bcx',
                            'bcy', 'saxs']:
                     continue
-                data.create_dataset(key, data=val)
+                optimize_save(group_handle, key, val)
 
     # generate 2d saxs
     def read_data(self, fname=None, **kwargs):
@@ -691,8 +726,8 @@ class SimpleMask(object):
         dphispan = np.hstack(dq_record[2])
         sphispan = np.hstack(sq_record[2])
 
-        dphival = np.hstack(dq_record[3]).reshape(1, -1)
-        sphival = np.hstack(sq_record[3]).reshape(1, -1)
+        dphilist = np.hstack(dq_record[3]).reshape(1, -1)
+        sphilist = np.hstack(sq_record[3]).reshape(1, -1)
 
         # dump result to file;
         self.data_raw[3] = dyn_map
@@ -700,14 +735,12 @@ class SimpleMask(object):
         self.hdl.setCurrentIndex(3)
 
         partition = {
-            'dqval': dqval,
-            'sqval': sqval,
-            'dynamicMap': dyn_map,
-            'staticMap': sta_map,
-            'dphival': dphival,
-            'sphival': sphival,
-            'dynamicQList': np.arange(0, dq_num * dp_num + 1).reshape(1, -1),
-            'staticQList': np.arange(0, sq_num * sp_num + 1).reshape(1, -1),
+            'dqlist': dqval,
+            'sqlist': sqval,
+            'dqmap': dyn_map,
+            'sqmap': sta_map,
+            'dphilist': dphilist,
+            'sphilist': sphilist,
             'dqspan': dqspan,
             'sqspan': sqspan,
             'dphispan': dphispan,
@@ -718,8 +751,6 @@ class SimpleMask(object):
             'snoq': sq_num,
             'x0': self.meta['bcx'],
             'y0': self.meta['bcy'],
-            'xspec': -1.0,
-            'yspec': -1.0,
         }
         for key in ['snophi', 'snoq', 'dnophi', 'dnoq']:
             partition[key] = np.array(partition[key]).reshape(1, 1)
@@ -746,14 +777,12 @@ class SimpleMask(object):
         self.hdl.setCurrentIndex(3)
 
         partition = {
-            'dqval': dxlist,
-            'sqval': sxlist,
-            'dynamicMap': dyn_map,
-            'staticMap': sta_map,
-            'dphival': dylist,
-            'sphival': sylist,
-            'dynamicQList': np.arange(0, dx_num * dy_num + 1).reshape(1, -1),
-            'staticQList': np.arange(0, sx_num * sx_num + 1).reshape(1, -1),
+            'dqlist': dxlist,
+            'sqlist': sxlist,
+            'dqmap': dyn_map,
+            'sqmap': sta_map,
+            'dphilist': dylist,
+            'sphilist': sylist,
             'dqspan': dxspan,
             'sqspan': sxspan,
             'dphispan': dyspan,
@@ -764,8 +793,6 @@ class SimpleMask(object):
             'snoq': sx_num,
             'x0': self.meta['bcx'],
             'y0': self.meta['bcy'],
-            'xspec': -1.0,
-            'yspec': -1.0,
         }
         for key in ['snophi', 'snoq', 'dnophi', 'dnoq']:
             partition[key] = np.array(partition[key]).reshape(1, 1)
