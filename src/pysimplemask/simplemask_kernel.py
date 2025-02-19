@@ -128,16 +128,25 @@ class SimpleMask(object):
 
         def optimize_save(group_handle, key, val): 
             if isinstance(val, np.ndarray) and val.size > 1024:
-                group_handle.create_dataset(key, data=val, compression='lzf')
+                compression = 'lzf'
             else:
-                group_handle.create_dataset(key, data=val)
+                compression = None
+            dset = group_handle.create_dataset(key, data=val,
+                                               compression=compression)
+            return dset
 
         with h5py.File(save_fname, 'w') as hf:
             if root in hf:
                 del hf[root]
             group_handle = hf.create_group(root)
             for key, val in self.new_partition.items():
-                optimize_save(group_handle, key, val)
+                dset = optimize_save(group_handle, key, val)
+                if '_v_list_dim' in key:
+                    dim = int(key[-1])
+                    dset.attrs['unit'] = self.new_partition['map_units'][dim]
+                    dset.attrs['name'] = self.new_partition['map_names'][dim]
+                    dset.attrs['size'] = val.size 
+
             group_handle.attrs['hash'] = hash_val
             group_handle.attrs['version'] = '0.1'
 
@@ -176,7 +185,7 @@ class SimpleMask(object):
 
         # reset the qrings after data loading
         self.qrings = []
-        self.qmap = self.compute_qmap()
+        self.qmap, self.qmap_unit = self.compute_qmap()
         self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
         # self.mask_kernel.update_qmap(self.qmap)
         self.extent = self.compute_extent()
@@ -219,7 +228,17 @@ class SimpleMask(object):
             'y': vg,
         }
 
-        return qmap
+        qmap_unit = {
+            'phi': 'deg',
+            'alpha': 'deg',
+            'q': '1/Å',
+            'qx': '1/Å',
+            'qy': '1/Å',
+            'x': 'pixel',
+            'y': 'pixel',
+        }
+
+        return qmap, qmap_unit
 
     def get_qp_value(self, x, y):
         x = int(x)
@@ -550,6 +569,8 @@ class SimpleMask(object):
             'beam_center_y': self.meta['bcy'],
             'mask': self.mask,
             'energy': self.meta['energy'],
+            'map_names': list(map_names),
+            'map_units': [self.qmap_unit[name0], self.qmap_unit[name1]],
         }
         partition.update(dynamic_map)
         partition.update(static_map)
@@ -562,7 +583,7 @@ class SimpleMask(object):
         for idx, key in enumerate(
                 ['bcx', 'bcy', 'energy', 'pix_dim', 'det_dist']):
             self.meta[key] = val[idx]
-        self.qmap = self.compute_qmap()
+        self.qmap, self.qmap_unit = self.compute_qmap()
         self.mask_kernel.update_qmap(self.qmap)
 
     def get_parameters(self):

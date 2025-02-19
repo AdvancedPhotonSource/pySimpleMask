@@ -185,7 +185,6 @@ def combine_partitions(
 
     # Construct output dictionary with correct prefix
     partition_pack = {
-        f'{prefix}_map_names': [pack1['map_name'], pack2['map_name']],
         f'{prefix}_num_pts': [pack1['num_pts'], pack2['num_pts']],
         f'{prefix}_roi_map': partition_natural_order,
         f'{prefix}_v_list_dim0': pack1['v_list'],
