@@ -8,6 +8,8 @@ from .pyqtgraph_mod import LineROI
 from .file_reader import read_raw_file
 import logging
 import time
+from .utils import (hash_numpy_dict, optimize_integer_array,
+                    generate_partition, combine_partitions)
 
 
 pg.setConfigOptions(imageAxisOrder='row-major')
@@ -15,102 +17,6 @@ pg.setConfigOptions(imageAxisOrder='row-major')
 
 logger = logging.getLogger(__name__)
 
-
-def optimize_integer_array(arr):
-    """
-    Optimizes the data type of a NumPy array of integers to minimize memory usage.
-
-    Args:
-        arr: A NumPy array of integers.
-
-    Returns:
-        A NumPy array with the optimized data type, or the original array if 
-        the input is not a NumPy array of integers or if it's empty.
-    """
-
-    if not isinstance(arr, np.ndarray) or arr.size == 0:
-        return arr  # Return original if not a numpy array or if empty
-
-    if not np.issubdtype(arr.dtype, np.integer):
-        return arr  # Return original if not an integer type
-
-    min_val, max_val = arr.min(), arr.max()  # Get min/max values
-
-    # Choose smallest dtype based on min/max
-    if min_val >= 0:  # Unsigned types
-        if max_val <= np.iinfo(np.uint8).max:
-            new_dtype = np.uint8
-        elif max_val <= np.iinfo(np.uint16).max:
-            new_dtype = np.uint16
-        elif max_val <= np.iinfo(np.uint32).max:
-            new_dtype = np.uint32
-        else:
-            new_dtype = np.uint64
-    else:  # Signed types
-        if min_val >= np.iinfo(np.int8).min and max_val <= np.iinfo(np.int8).max:
-            new_dtype = np.int8
-        elif min_val >= np.iinfo(np.int16).min and max_val <= np.iinfo(np.int16).max:
-            new_dtype = np.int16
-        elif min_val >= np.iinfo(np.int32).min and max_val <= np.iinfo(np.int32).max:
-            new_dtype = np.int32
-        else:
-            new_dtype = np.int64
-
-    return arr.astype(new_dtype) if new_dtype != arr.dtype else arr
-
-
-
-def create_xy_mesh(mask, qmap, x_num, y_num):
-    mask_nz = np.nonzero(mask)
-    vrange = (np.min(mask_nz[0]), np.max(mask_nz[0]) + 1)
-    hrange = (np.min(mask_nz[1]), np.max(mask_nz[1]) + 1)
-
-    vg, hg = np.meshgrid(np.arange(mask.shape[0]), np.arange(mask.shape[1]),
-                         indexing='ij')
-
-    dy = (vrange[1] - vrange[0]) * 1.0 / y_num
-    dx = (hrange[1] - hrange[0]) * 1.0 / x_num
-
-    idx_map = np.zeros_like(mask, dtype=np.uint32)
-
-    # -- x --
-    for n in range(x_num):
-        roi = hg >= hrange[0] + dx * n
-        roi = roi * (hg < hrange[0] + dx * (n + 1))
-        idx_map[roi] = n + 1
-
-    # -- y --
-    for n in range(y_num):
-        roi = vg >= vrange[0] + (dy * n)
-        roi = roi * (vg < vrange[0] + dy * (n + 1))
-        idx_map[roi] += x_num * n
-
-    idx_map = idx_map * mask
-
-    xcorr = np.linspace(hrange[0], hrange[1], x_num + 1) + 0.5
-    # qxspan = qmap['qx'][0][xcorr.astype(np.int64)]
-    qxspan = xcorr
-
-    xcorr2 = (xcorr[:-1] + xcorr[1:]) / 2.0
-    # qxlist = qmap['qx'][0][xcorr2.astype(np.int64)]
-    qxlist = xcorr2  # qmap['qx'][0][xcorr2.astype(np.int64)]
-
-    qxlist = np.tile(qxlist, y_num).reshape(y_num, x_num)
-    qxlist = np.swapaxes(qxlist, 0, 1)
-    qxlist = qxlist.reshape(1, -1)
-
-    ycorr = np.linspace(vrange[0], vrange[1], y_num + 1) + 0.5
-    # qyspan = qmap['qy'][:, 0][xcorr.astype(np.int64)]
-    qyspan = ycorr
-
-    ycorr2 = (ycorr[:-1] + ycorr[1:]) / 2.0
-    # qylist = qmap['qx'][:, 0][ycorr2.astype(np.int64)]
-    qylist = ycorr2
-
-    qylist = np.tile(qylist, x_num).reshape(x_num, y_num)
-    qylist = qylist.reshape(1, -1)
-
-    return idx_map, qxspan, qyspan, qxlist, qylist
 
 
 class SimpleMask(object):
@@ -152,8 +58,8 @@ class SimpleMask(object):
             return True
 
     def find_center(self):
-        if self.saxs_lin is None:
-            return
+        if self.saxs_lin is None: return
+
         center_guess = (self.meta['bcy'], self.meta['bcx'])
         center = find_center(self.saxs_lin, mask=self.mask,
                              center_guess=center_guess, scale='log')
@@ -209,13 +115,18 @@ class SimpleMask(object):
         pos = np.roll(pos, shift=1, axis=0)
         return pos.T
 
-    def save_partition(self, save_fname, root='/qmap'):
+    def save_partition(self, save_fname, root='/qmap', version='0.1'):
         # if no partition is computed yet
         if self.new_partition is None:
             return
 
+        for key, val in self.new_partition.items():
+            self.new_partition[key] = optimize_integer_array(val)
+
+        hash_val = hash_numpy_dict(self.new_partition) 
+        logger.info('Hash value of the partition: {}'.format(hash_val))
+
         def optimize_save(group_handle, key, val): 
-            val = optimize_integer_array(val)
             if isinstance(val, np.ndarray) and val.size > 1024:
                 group_handle.create_dataset(key, data=val, compression='lzf')
             else:
@@ -224,21 +135,11 @@ class SimpleMask(object):
         with h5py.File(save_fname, 'w') as hf:
             if root in hf:
                 del hf[root]
-
             group_handle = hf.create_group(root)
-            optimize_save(group_handle, 'mask', self.mask)
             for key, val in self.new_partition.items():
                 optimize_save(group_handle, key, val)
-
-            maps = group_handle.create_group("Maps")
-            map1name = maps.create_dataset('map1name', data='q')
-            map2name = maps.create_dataset('map2name', data='phi')
-
-            for key, val in self.meta.items():
-                if key in ['datetime', 'energy', 'det_dist', 'pix_dim', 'bcx',
-                           'bcy', 'saxs']:
-                    continue
-                optimize_save(group_handle, key, val)
+            group_handle.attrs['hash'] = hash_val
+            group_handle.attrs['version'] = '0.1'
 
     # generate 2d saxs
     def read_data(self, fname=None, **kwargs):
@@ -297,13 +198,8 @@ class SimpleMask(object):
         vg, hg = np.meshgrid(v, h, indexing='ij')
 
         r = np.sqrt(vg * vg + hg * hg) * self.meta['pix_dim']
-        # phi = np.arctan2(vg, hg)
-        # to be compatible with matlab xpcs-gui; phi = 0 starts at 6 clock
-        # and it goes clockwise;
-        phi = np.arctan2(hg, vg)
-        phi[phi < 0] = phi[phi < 0] + np.pi * 2.0
-        phi = np.max(phi) - phi     # make it clockwise
 
+        phi = np.arctan2(hg, vg)
         alpha = np.arctan(r / self.meta['det_dist'])
         qr = np.sin(alpha) * k0
         qr = 2 * np.sin(alpha / 2) * k0
@@ -318,7 +214,9 @@ class SimpleMask(object):
             'alpha': alpha.astype(np.float32),
             'q': qr,
             'qx': qx.astype(np.float32),
-            'qy': qy.astype(np.float32)
+            'qy': qy.astype(np.float32),
+            'x': hg,
+            'y': vg,
         }
 
         return qmap
@@ -555,64 +453,10 @@ class SimpleMask(object):
     def remove_roi(self, roi_key):
         self.hdl.remove_item(roi_key)
 
-    def get_partition(self, qnum, pnum, qmin=None, qmax=None, pmin=None,
-                      pmax=None, style='linear', phi_offset=0.0):
-
-        mask = self.mask
-        # pmap_org = self.qmap['phi'] * mask
-
-        if qmin is None or qmax is None:
-            qmin = np.min(self.qmap['q'][mask > 0])
-            qmax = np.max(self.qmap['q'][mask > 0]) + 1e-9  # exclusive
-        if pmin is None or pmax is None:
-            pmin = 0
-            pmax = 360.0 + 1e-9
-
-        assert style in ('linear', 'logarithmic')
-        # q
-        if style == 'linear':
-            qspan = np.linspace(qmin, qmax, qnum + 1)
-            qlist = (qspan[1:] + qspan[:-1]) / 2.0
-        elif style == 'logarithmic':
-            qspan = np.logspace(np.log10(qmin), np.log10(qmax), qnum + 1)
-            qlist = np.sqrt(qspan[1:] * qspan[:-1])
-
-        pspan = np.linspace(pmin, pmax, pnum + 1)
-        plist = (pspan[1:] + pspan[:-1]) / 2.0
-
-        partition = np.zeros_like(self.mask, dtype=np.uint32)
-
-        cqlist = np.tile(qlist, pnum).reshape(pnum, qnum)
-        cqlist = np.swapaxes(cqlist, 0, 1)
-        cplist = np.tile(plist, qnum).reshape(qnum, pnum)
-
-        qmap = self.qmap['q']
-        # apply phi offset
-        pmap = self.qmap['phi']
-        pmap_min = np.min(pmap)
-        pmap = np.rad2deg(np.angle(np.exp(1j * np.deg2rad(pmap + phi_offset))))
-        pmap = pmap - np.min(pmap) + pmap_min
-
-        idx = 1
-        for m in range(qnum):
-            qroi = (qmap >= qspan[m]) * (qmap < qspan[m + 1]) * self.mask
-            for n in range(pnum):
-                proi = (pmap >= pspan[n]) * (pmap < pspan[n + 1])
-                comb_roi = qroi * proi
-                if np.sum(comb_roi) == 0:
-                    cqlist[m, n] = np.nan
-                    cplist[m, n] = np.nan
-                else:
-                    partition[comb_roi] = idx
-                    idx += 1
-
-        return (qspan, cqlist, pspan, cplist), partition
-
     def compute_saxs1d(self, cutoff=3.0, episilon=1e-16, num=180):
-        t_dq_span_val, partition = self.get_partition(num, 1,
-                                                      None, None, 0, 360,
-                                                      'linear')
-        qlist = t_dq_span_val[1].flatten()
+        saxs_pack = generate_partition('q', self.mask, self.qmap['q'], num,
+                                       style='linear')
+        qlist, partition = saxs_pack['v_list'], saxs_pack['partition']
 
         self.data_raw[5] = partition
         num_q = qlist.size
@@ -663,138 +507,52 @@ class SimpleMask(object):
         return saxs1d, zero_loc
 
     def compute_partition(self, mode='q-phi', **kwargs):
-        if mode == 'q-phi':
-            return self.compute_partition_qphi(**kwargs)
-        elif mode == 'xy-mesh':
-            return self.compute_partition_xymesh(**kwargs)
-
-    def compute_partition_qphi(self,
-                               dq_num=10, sq_num=100, style='linear',
-                               dp_num=36, sp_num=360,
-                               phi_offset=0.0):
+        map_names = {
+            'q-phi': ('q', 'phi'),
+            'xy-mesh': ('x', 'y'),
+        }[mode]
+        t0 = time.perf_counter()
+        flag = self.compute_partition_general(map_names=map_names, **kwargs)
+        t1 = time.perf_counter()
+        logger.info('compute partition finished in %f seconds' %(t1 - t0))
+        return flag
+    
+    def compute_partition_general(self, map_names=('q', 'phi'),
+                                  dq_num=10, sq_num=100, style='linear',
+                                  dp_num=36, sp_num=360,
+                                  phi_offset=0.0):
         if self.meta is None or self.data_raw is None:
             return
 
-        qrings = self.qrings
+        assert map_names in (('q', 'phi'), ('x', 'y'))
+        name0, name1 = map_names
+        #  generate dynamic partition
+        pack_dq = generate_partition(name0, self.mask, self.qmap[name0],
+                                     dq_num, style=style, phi_offset=None)
+        pack_dp = generate_partition(name1, self.mask, self.qmap[name1], 
+                                     dp_num, style=style, phi_offset=phi_offset)
+        dynamic_map = combine_partitions(pack_dq, pack_dp, prefix='dynamic')
 
-        if qrings is None or len(qrings) == 0:
-            qrings = [[None, None, 0, 360]]
-
-        dyn_map = np.zeros_like(self.mask, dtype=np.uint32)
-        sta_map = np.zeros_like(self.mask, dtype=np.uint32)
-
-        def combine_span_val(record, new_item):
-            for n in range(4):
-                record[n].append(new_item[n])
-            return record
-
-        dq_record = [[] for _ in range(4)]
-        sq_record = [[] for _ in range(4)]
-
-        for segment in qrings:
-            # qmin, qmax, pmin, pmax = segment, 0, 60
-            qmin, qmax, pmin, pmax = segment
-            t_dq_span_val, tdyn_map = self.get_partition(
-                dq_num, dp_num, qmin, qmax, pmin, pmax, style,
-                phi_offset=phi_offset)
-            dq_record = combine_span_val(dq_record, t_dq_span_val)
-
-            # offset the nonzero dynamic qmap
-            tdyn_map[tdyn_map > 0] += np.max(dyn_map)
-            tdyn_idx = np.nonzero(tdyn_map)
-            dyn_map[tdyn_idx] = tdyn_map[tdyn_idx]
-
-            # offset the nonzero static qmap
-            t_sq_span_val, tsta_map = self.get_partition(
-                sq_num, sp_num, qmin, qmax, pmin, pmax, style,
-                phi_offset=phi_offset)
-            sq_record = combine_span_val(sq_record, t_sq_span_val)
-
-            tsta_map[tsta_map > 0] += np.max(sta_map)
-            sta_map += tsta_map
-            tsta_idx = np.nonzero(tsta_map)
-            sta_map[tsta_idx] = tsta_map[tsta_idx]
-
-        # (qspan, cqlist, pspan, cplist)
-        dqspan = np.hstack(dq_record[0])
-        sqspan = np.hstack(sq_record[0])
-
-        dqval = np.hstack(dq_record[1]).reshape(1, -1)
-        sqval = np.hstack(sq_record[1]).reshape(1, -1)
-
-        dphispan = np.hstack(dq_record[2])
-        sphispan = np.hstack(sq_record[2])
-
-        dphilist = np.hstack(dq_record[3]).reshape(1, -1)
-        sphilist = np.hstack(sq_record[3]).reshape(1, -1)
+        # generate static partition
+        pack_sq = generate_partition(name0, self.mask, self.qmap[name0], 
+                                     sq_num, style=style, phi_offset=None)
+        pack_sp = generate_partition(name1, self.mask, self.qmap[name1], 
+                                     sp_num, style=style, phi_offset=phi_offset)
+        static_map = combine_partitions(pack_sq, pack_sp, prefix='static')
 
         # dump result to file;
-        self.data_raw[3] = dyn_map
-        self.data_raw[4] = sta_map
+        self.data_raw[3] = dynamic_map['dynamic_roi_map'] 
+        self.data_raw[4] = static_map['static_roi_map'] 
         self.hdl.setCurrentIndex(3)
 
         partition = {
-            'dqlist': dqval,
-            'sqlist': sqval,
-            'dqmap': dyn_map,
-            'sqmap': sta_map,
-            'dphilist': dphilist,
-            'sphilist': sphilist,
-            'dqspan': dqspan,
-            'sqspan': sqspan,
-            'dphispan': dphispan,
-            'sphispan': sphispan,
-            'dnophi': dp_num,
-            'snophi': sp_num,
-            'dnoq': dq_num,
-            'snoq': sq_num,
-            'x0': self.meta['bcx'],
-            'y0': self.meta['bcy'],
+            'beam_center_x': self.meta['bcx'],
+            'beam_center_y': self.meta['bcy'],
+            'mask': self.mask,
+            'energy': self.meta['energy'],
         }
-        for key in ['snophi', 'snoq', 'dnophi', 'dnoq']:
-            partition[key] = np.array(partition[key]).reshape(1, 1)
-
-        self.new_partition = partition
-        return partition
-
-    def compute_partition_xymesh(self, sx_num=8, sy_num=8, dx_num=1, dy_num=1):
-        if self.meta is None or self.data_raw is None:
-            return
-
-        # make the static numbers multiples of the dynamics numbers
-        sy_num = (sy_num + dy_num - 1) // dy_num * dy_num
-        sx_num = (sx_num + dx_num - 1) // dx_num * dx_num
-
-        # return idx_map, qxspan, qyspan, qxlist, qylist
-        dyn_map, dxspan, dyspan, dxlist, dylist = create_xy_mesh(
-            self.mask, self.qmap, dx_num, dy_num)
-        sta_map, sxspan, syspan, sxlist, sylist = create_xy_mesh(
-            self.mask, self.qmap, sx_num, sy_num)
-
-        self.data_raw[3] = dyn_map
-        self.data_raw[4] = sta_map
-        self.hdl.setCurrentIndex(3)
-
-        partition = {
-            'dqlist': dxlist,
-            'sqlist': sxlist,
-            'dqmap': dyn_map,
-            'sqmap': sta_map,
-            'dphilist': dylist,
-            'sphilist': sylist,
-            'dqspan': dxspan,
-            'sqspan': sxspan,
-            'dphispan': dyspan,
-            'sphispan': syspan,
-            'dnophi': dy_num,
-            'snophi': sy_num,
-            'dnoq': dx_num,
-            'snoq': sx_num,
-            'x0': self.meta['bcx'],
-            'y0': self.meta['bcy'],
-        }
-        for key in ['snophi', 'snoq', 'dnophi', 'dnoq']:
-            partition[key] = np.array(partition[key]).reshape(1, 1)
+        partition.update(dynamic_map)
+        partition.update(static_map)
 
         self.new_partition = partition
         return partition
