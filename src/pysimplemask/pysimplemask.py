@@ -618,10 +618,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         elif self.tabWidget.currentIndex() == 1:
             kwargs = {
                 'mode': 'xy-mesh',
-                'sx_num': self.sb_sxnum.value(),
-                'sy_num': self.sb_synum.value(),
-                'dx_num': self.sb_dxnum.value(),
-                'dy_num': self.sb_dynum.value(),
+                'sq_num': self.sb_sxnum.value(),
+                'sp_num': self.sb_synum.value(),
+                'dq_num': self.sb_dxnum.value(),
+                'dp_num': self.sb_dynum.value(),
             }
         self.btn_compute_qpartition.setDisabled(True)
         self.statusbar.showMessage('Computing partition ... ', 10000)
