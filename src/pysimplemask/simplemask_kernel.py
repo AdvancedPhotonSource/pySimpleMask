@@ -9,7 +9,7 @@ from .file_reader import read_raw_file
 import logging
 import time
 from .utils import (hash_numpy_dict, optimize_integer_array,
-                    generate_partition, combine_partitions)
+                    generate_partition, combine_partitions, check_consistency)
 
 
 pg.setConfigOptions(imageAxisOrder='row-major')
@@ -123,10 +123,10 @@ class SimpleMask(object):
         for key, val in self.new_partition.items():
             self.new_partition[key] = optimize_integer_array(val)
 
-        hash_val = hash_numpy_dict(self.new_partition) 
+        hash_val = hash_numpy_dict(self.new_partition)
         logger.info('Hash value of the partition: {}'.format(hash_val))
 
-        def optimize_save(group_handle, key, val): 
+        def optimize_save(group_handle, key, val):
             if isinstance(val, np.ndarray) and val.size > 1024:
                 compression = 'lzf'
             else:
@@ -145,7 +145,7 @@ class SimpleMask(object):
                     dim = int(key[-1])
                     dset.attrs['unit'] = self.new_partition['map_units'][dim]
                     dset.attrs['name'] = self.new_partition['map_names'][dim]
-                    dset.attrs['size'] = val.size 
+                    dset.attrs['size'] = val.size
 
             group_handle.attrs['hash'] = hash_val
             group_handle.attrs['version'] = '0.1'
@@ -198,7 +198,7 @@ class SimpleMask(object):
         self.mask_apply(target='default_mask')
         self.mask_kernel.update_qmap(self.qmap)
 
-        return True 
+        return True
 
     def compute_qmap(self):
         k0 = 2 * np.pi / (12.398 / self.meta['energy'])
@@ -535,7 +535,7 @@ class SimpleMask(object):
         t1 = time.perf_counter()
         logger.info('compute partition finished in %f seconds' %(t1 - t0))
         return flag
-    
+
     def compute_partition_general(self, map_names=('q', 'phi'),
                                   dq_num=10, sq_num=100, style='linear',
                                   dp_num=36, sp_num=360,
@@ -548,21 +548,25 @@ class SimpleMask(object):
         #  generate dynamic partition
         pack_dq = generate_partition(name0, self.mask, self.qmap[name0],
                                      dq_num, style=style, phi_offset=None)
-        pack_dp = generate_partition(name1, self.mask, self.qmap[name1], 
+        pack_dp = generate_partition(name1, self.mask, self.qmap[name1],
                                      dp_num, style=style, phi_offset=phi_offset)
         dynamic_map = combine_partitions(pack_dq, pack_dp, prefix='dynamic')
 
         # generate static partition
-        pack_sq = generate_partition(name0, self.mask, self.qmap[name0], 
+        pack_sq = generate_partition(name0, self.mask, self.qmap[name0],
                                      sq_num, style=style, phi_offset=None)
-        pack_sp = generate_partition(name1, self.mask, self.qmap[name1], 
+        pack_sp = generate_partition(name1, self.mask, self.qmap[name1],
                                      sp_num, style=style, phi_offset=phi_offset)
         static_map = combine_partitions(pack_sq, pack_sp, prefix='static')
 
         # dump result to file;
-        self.data_raw[3] = dynamic_map['dynamic_roi_map'] 
-        self.data_raw[4] = static_map['static_roi_map'] 
+        self.data_raw[3] = dynamic_map['dynamic_roi_map']
+        self.data_raw[4] = static_map['static_roi_map']
         self.hdl.setCurrentIndex(3)
+
+        flag_consistency = check_consistency(dynamic_map['dynamic_roi_map'],
+                                             static_map['static_roi_map'])
+        logger.info('dqmap/sqmap consistency check: {}'.format(flag_consistency))
 
         partition = {
             'beam_center_x': self.meta['bcx'],
