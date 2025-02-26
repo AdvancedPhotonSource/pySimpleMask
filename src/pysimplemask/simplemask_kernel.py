@@ -571,8 +571,10 @@ class SimpleMask(object):
         partition = {
             'beam_center_x': self.meta['bcx'],
             'beam_center_y': self.meta['bcy'],
+            'pixel_size': self.meta['pix_dim'],
             'mask': self.mask,
             'energy': self.meta['energy'],
+            'detector_distance': self.meta['det_dist'],
             'map_names': list(map_names),
             'map_units': [self.qmap_unit[name0], self.qmap_unit[name1]],
         }
