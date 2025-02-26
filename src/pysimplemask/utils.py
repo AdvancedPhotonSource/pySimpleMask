@@ -192,7 +192,7 @@ def combine_partitions(
         f'{prefix}_roi_map': partition_natural_order,
         f'{prefix}_v_list_dim0': pack1['v_list'],
         f'{prefix}_v_list_dim1': pack2['v_list'],
-        f'{prefix}_index_mapping': unique_idx[unique_idx >= 0],
+        f'{prefix}_index_mapping': unique_idx[unique_idx >= 1] - 1,
     }
 
     return partition_pack
