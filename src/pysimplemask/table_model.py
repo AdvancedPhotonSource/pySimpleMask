@@ -1,5 +1,6 @@
-from PyQt5 import QtCore
-from PyQt5.QtCore import QModelIndex, Qt
+from PySide6 import QtCore
+from PySide6.QtCore import QModelIndex, Qt
+
 
 class XmapConstraintsTableModel(QtCore.QAbstractTableModel):
     def __init__(self, data=None, parent=None):
