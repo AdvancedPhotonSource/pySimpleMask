@@ -490,6 +490,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not xmap_name: return
         vbeg = self.doubleSpinBox_param_vbeg.value()
         vend = self.doubleSpinBox_param_vend.value()
+        if vbeg > vend:
+            vbeg, vend = vend, vbeg
+            self.doubleSpinBox_param_vbeg.setValue(vbeg)
+            self.doubleSpinBox_param_vend.setValue(vend)
         logic = self.comboBox_param_logic.currentText()
         unit = self.sm.qmap_unit[xmap_name]
         self.model.addRow([xmap_name, unit, vbeg, vend, logic])
