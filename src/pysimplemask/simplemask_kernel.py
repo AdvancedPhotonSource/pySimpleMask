@@ -39,7 +39,6 @@ class SimpleMask(object):
         self.extent = None
         self.hdl.scene.sigMouseMoved.connect(self.show_location)
         self.bad_pixel_set = set()
-        self.qrings = []
         self.corr_roi = None
 
         self.idx_map = {
@@ -85,9 +84,6 @@ class SimpleMask(object):
 
         self.data_raw[1] = self.saxs_log * self.mask
         self.data_raw[2] = self.mask
-
-        if target == "mask_qring":
-            self.qrings = self.mask_kernel.workers[target].get_qrings()
 
         if self.plot_log:
             min_mask = (self.saxs_lin > 0) * self.mask
@@ -183,8 +179,6 @@ class SimpleMask(object):
 
         self.shape = self.data_raw[0].shape
 
-        # reset the qrings after data loading
-        self.qrings = []
         self.qmap, self.qmap_unit = self.compute_qmap()
         self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
         # self.mask_kernel.update_qmap(self.qmap)
@@ -446,28 +440,6 @@ class SimpleMask(object):
         roi_key = self.hdl.add_item(new_roi, label)
         new_roi.sigRemoveRequested.connect(lambda: self.remove_roi(roi_key))
         return new_roi
-
-    def get_qring_values(self):
-        result = {}
-        cen = (self.meta['bcx'], self.meta['bcy'])
-
-        for key in ['qring_qmin', 'qring_qmax']:
-            if key in self.hdl.roi:
-                x = tuple(self.hdl.roi[key].state['size'])[0] / 2.0 + cen[0]
-                value, _ = self.get_qp_value(x, cen[1])
-            else:
-                value = None
-            result[key] = value
-
-        for key in ['qring_pmin', 'qring_pmax']:
-            if key in self.hdl.roi:
-                value = self.hdl.roi[key].state['angle']
-                value = value - 90
-                value = value - np.floor(value / 360.0) * 360.0
-            else:
-                value = None
-            result[key] = value
-        return result
 
     def remove_roi(self, roi_key):
         self.hdl.remove_item(roi_key)
