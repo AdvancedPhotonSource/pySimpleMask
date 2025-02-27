@@ -5,12 +5,12 @@ import logging
 import traceback
 import numpy as np
 import pyqtgraph as pg
-from PyQt5.QtWidgets import QMessageBox
 
 
 from .simplemask_ui import Ui_SimpleMask as Ui
 from .simplemask_kernel import SimpleMask
-from PyQt5.QtWidgets import QFileDialog, QApplication, QMainWindow, QHeaderView
+from PySide6.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QFileDialog, QApplication, QMainWindow, QHeaderView
 from .table_model import XmapConstraintsTableModel
 
 
@@ -359,15 +359,17 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.plot()
 
     def select_raw(self):
-        fname = QFileDialog.getOpenFileName(self,
-                    caption='Select raw file hdf',
-                    filter='Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.tif *.tiff *.fits *.raw, *.bin.*)',
-                    directory=self.work_dir)[0]
+        default_dir = self.work_dir if self.work_dir else os.getcwd()
 
-        if fname not in [None, '']:
+        fname = QFileDialog.getOpenFileName(
+                self,
+                caption="Select raw file hdf",
+                dir=default_dir,  # <-- Fixed!
+                filter="Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.tif *.tiff *.fits *.raw, *.bin.*)"
+        )[0]
+        if fname:
             self.fname.setText(fname)
-        self.work_dir = os.path.dirname(fname)
-
+            self.work_dir = os.path.dirname(fname)
         return
 
     def select_blemish(self):
@@ -480,8 +482,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not xmap_name: return
         vmin, vmax = self.sm.qmap[xmap_name].min(), self.sm.qmap[xmap_name].max()
         unit = self.sm.qmap_unit[xmap_name]
-        self.label_param_minval.setText(f"Min: {vmin:.5f} ({unit})")
-        self.label_param_maxval.setText(f"Max: {vmax:.5f} ({unit})")
+        self.label_param_minval.setText(f"Min: {vmin:.4f} {unit}")
+        self.label_param_maxval.setText(f"Max: {vmax:.4f} {unit}")
         self.doubleSpinBox_param_vbeg.setValue(vmin)
         self.doubleSpinBox_param_vend.setValue(vmax)
     
@@ -568,6 +570,12 @@ class SimpleMaskGUI(QMainWindow, Ui):
         
         try:
             self.sm.save_partition(save_fname)
+            success_dialog = QMessageBox(self)
+            success_dialog.setIcon(QMessageBox.Information)
+            success_dialog.setText("Successfully saved qmap to file")
+            success_dialog.setDetailedText(save_fname)
+            success_dialog.setWindowTitle("Success")
+            success_dialog.exec()
         except Exception:
             error_message = traceback.format_exc()
             traceback.print_exc()
