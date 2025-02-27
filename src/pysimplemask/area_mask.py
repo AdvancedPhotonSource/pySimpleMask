@@ -135,7 +135,16 @@ class MaskParameter(MaskBase):
     def evaluate(self, qmap=None, constraints=None):
         mask = np.ones(self.shape, dtype=bool)
         for xmap_name, unit, vbeg, vend, logic in constraints:
-            mask_t = (qmap[xmap_name] >= vbeg) * (qmap[xmap_name] <= vend)
+            xmap = qmap[xmap_name]
+            if xmap_name in ['phi', 'chi', 'alpha'] and unit == 'deg':
+                # deal with the periodicity of the angle,
+                # vbeg, vend = 160, 200 or vbeg, vend = -200, -160
+                xmap = np.copy(xmap)
+                if vbeg <= -180 and -180 <= vend <= 180:
+                    xmap[xmap > vend] -= 360.0
+                if vend > 180 and -180 <= vbeg <= 180:
+                    xmap[xmap < vbeg] += 360.0
+            mask_t = (xmap >= vbeg) * (xmap <= vend)
             if logic == 'AND':
                 mask = np.logical_and(mask, mask_t)
             elif logic == 'OR':
