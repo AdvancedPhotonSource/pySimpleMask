@@ -9,7 +9,7 @@ from .file_reader import read_raw_file
 import logging
 import time
 from .utils import (hash_numpy_dict, optimize_integer_array,
-                    generate_partition, combine_partitions)
+                    generate_partition, combine_partitions, check_consistency)
 
 
 pg.setConfigOptions(imageAxisOrder='row-major')
@@ -39,7 +39,6 @@ class SimpleMask(object):
         self.extent = None
         self.hdl.scene.sigMouseMoved.connect(self.show_location)
         self.bad_pixel_set = set()
-        self.qrings = []
         self.corr_roi = None
 
         self.idx_map = {
@@ -86,9 +85,6 @@ class SimpleMask(object):
         self.data_raw[1] = self.saxs_log * self.mask
         self.data_raw[2] = self.mask
 
-        if target == "mask_qring":
-            self.qrings = self.mask_kernel.workers[target].get_qrings()
-
         if self.plot_log:
             min_mask = (self.saxs_lin > 0) * self.mask
             nz_min = np.min(self.saxs_lin[min_mask > 0])
@@ -123,10 +119,10 @@ class SimpleMask(object):
         for key, val in self.new_partition.items():
             self.new_partition[key] = optimize_integer_array(val)
 
-        hash_val = hash_numpy_dict(self.new_partition) 
+        hash_val = hash_numpy_dict(self.new_partition)
         logger.info('Hash value of the partition: {}'.format(hash_val))
 
-        def optimize_save(group_handle, key, val): 
+        def optimize_save(group_handle, key, val):
             if isinstance(val, np.ndarray) and val.size > 1024:
                 compression = 'lzf'
             else:
@@ -145,7 +141,7 @@ class SimpleMask(object):
                     dim = int(key[-1])
                     dset.attrs['unit'] = self.new_partition['map_units'][dim]
                     dset.attrs['name'] = self.new_partition['map_names'][dim]
-                    dset.attrs['size'] = val.size 
+                    dset.attrs['size'] = val.size
 
             group_handle.attrs['hash'] = hash_val
             group_handle.attrs['version'] = '0.1'
@@ -168,8 +164,7 @@ class SimpleMask(object):
         self.reader = reader
         self.meta = reader.load_meta()
 
-        # keep same
-        self.data_raw = np.zeros(shape=(6, *saxs.shape))
+        self.shape = saxs.shape
         self.mask = np.ones(saxs.shape, dtype=bool)
 
         saxs_nonzero = saxs[saxs > 0]
@@ -181,11 +176,13 @@ class SimpleMask(object):
         self.min_val = np.min(saxs[saxs > 0])
         self.saxs_log = np.log10(saxs + self.min_val)
 
-        self.shape = self.data_raw[0].shape
-
-        # reset the qrings after data loading
-        self.qrings = []
         self.qmap, self.qmap_unit = self.compute_qmap()
+        num_qmaps = len(self.qmap)
+        self.data_raw = np.zeros(shape=(6 + num_qmaps, *saxs.shape))
+
+        for offset, val in enumerate(self.qmap.values()):
+            self.data_raw[6 + offset] = val
+
         self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
         # self.mask_kernel.update_qmap(self.qmap)
         self.extent = self.compute_extent()
@@ -198,7 +195,7 @@ class SimpleMask(object):
         self.mask_apply(target='default_mask')
         self.mask_kernel.update_qmap(self.qmap)
 
-        return True 
+        return True
 
     def compute_qmap(self):
         k0 = 2 * np.pi / (12.398 / self.meta['energy'])
@@ -447,28 +444,6 @@ class SimpleMask(object):
         new_roi.sigRemoveRequested.connect(lambda: self.remove_roi(roi_key))
         return new_roi
 
-    def get_qring_values(self):
-        result = {}
-        cen = (self.meta['bcx'], self.meta['bcy'])
-
-        for key in ['qring_qmin', 'qring_qmax']:
-            if key in self.hdl.roi:
-                x = tuple(self.hdl.roi[key].state['size'])[0] / 2.0 + cen[0]
-                value, _ = self.get_qp_value(x, cen[1])
-            else:
-                value = None
-            result[key] = value
-
-        for key in ['qring_pmin', 'qring_pmax']:
-            if key in self.hdl.roi:
-                value = self.hdl.roi[key].state['angle']
-                value = value - 90
-                value = value - np.floor(value / 360.0) * 360.0
-            else:
-                value = None
-            result[key] = value
-        return result
-
     def remove_roi(self, roi_key):
         self.hdl.remove_item(roi_key)
 
@@ -535,7 +510,7 @@ class SimpleMask(object):
         t1 = time.perf_counter()
         logger.info('compute partition finished in %f seconds' %(t1 - t0))
         return flag
-    
+
     def compute_partition_general(self, map_names=('q', 'phi'),
                                   dq_num=10, sq_num=100, style='linear',
                                   dp_num=36, sp_num=360,
@@ -548,27 +523,33 @@ class SimpleMask(object):
         #  generate dynamic partition
         pack_dq = generate_partition(name0, self.mask, self.qmap[name0],
                                      dq_num, style=style, phi_offset=None)
-        pack_dp = generate_partition(name1, self.mask, self.qmap[name1], 
+        pack_dp = generate_partition(name1, self.mask, self.qmap[name1],
                                      dp_num, style=style, phi_offset=phi_offset)
         dynamic_map = combine_partitions(pack_dq, pack_dp, prefix='dynamic')
 
         # generate static partition
-        pack_sq = generate_partition(name0, self.mask, self.qmap[name0], 
+        pack_sq = generate_partition(name0, self.mask, self.qmap[name0],
                                      sq_num, style=style, phi_offset=None)
-        pack_sp = generate_partition(name1, self.mask, self.qmap[name1], 
+        pack_sp = generate_partition(name1, self.mask, self.qmap[name1],
                                      sp_num, style=style, phi_offset=phi_offset)
         static_map = combine_partitions(pack_sq, pack_sp, prefix='static')
 
         # dump result to file;
-        self.data_raw[3] = dynamic_map['dynamic_roi_map'] 
-        self.data_raw[4] = static_map['static_roi_map'] 
+        self.data_raw[3] = dynamic_map['dynamic_roi_map']
+        self.data_raw[4] = static_map['static_roi_map']
         self.hdl.setCurrentIndex(3)
+
+        flag_consistency = check_consistency(dynamic_map['dynamic_roi_map'],
+                                             static_map['static_roi_map'])
+        logger.info('dqmap/sqmap consistency check: {}'.format(flag_consistency))
 
         partition = {
             'beam_center_x': self.meta['bcx'],
             'beam_center_y': self.meta['bcy'],
+            'pixel_size': self.meta['pix_dim'],
             'mask': self.mask,
             'energy': self.meta['energy'],
+            'detector_distance': self.meta['det_dist'],
             'map_names': list(map_names),
             'map_units': [self.qmap_unit[name0], self.qmap_unit[name1]],
         }
@@ -584,6 +565,10 @@ class SimpleMask(object):
                 ['bcx', 'bcy', 'energy', 'pix_dim', 'det_dist']):
             self.meta[key] = val[idx]
         self.qmap, self.qmap_unit = self.compute_qmap()
+
+        for offset, val in enumerate(self.qmap.values()):
+            self.data_raw[6 + offset] = val
+
         self.mask_kernel.update_qmap(self.qmap)
 
     def get_parameters(self):

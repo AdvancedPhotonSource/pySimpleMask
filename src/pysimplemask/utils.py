@@ -7,10 +7,10 @@ import json
 def hash_numpy_dict(input_dictionary):
     """
     Computes a stable SHA256 hash for a dictionary containing NumPy arrays and lists of strings.
-    
+
     Parameters:
         dictionary (dict): Dictionary with NumPy arrays and lists of strings.
-    
+
     Returns:
         str: A SHA256 hash of the dictionary.
     """
@@ -23,15 +23,15 @@ def hash_numpy_dict(input_dictionary):
 
         if isinstance(value, np.ndarray):
             # Ensure consistent dtype & memory layout
-            value = np.ascontiguousarray(value)  
+            value = np.ascontiguousarray(value)
             hasher.update(value.astype(value.dtype.newbyteorder('='))  # Force consistent endianness
                          .tobytes())
 
-        elif isinstance(value, list):  
+        elif isinstance(value, list):
             # Convert list of strings to JSON for consistent encoding
             hasher.update(json.dumps(value, sort_keys=True).encode())
 
-        else:  
+        else:
             # Convert other types to a JSON string for stability
             hasher.update(json.dumps(value, sort_keys=True).encode())
 
@@ -46,7 +46,7 @@ def optimize_integer_array(arr):
         arr: A NumPy array of integers.
 
     Returns:
-        A NumPy array with the optimized data type, or the original array if 
+        A NumPy array with the optimized data type, or the original array if
         the input is not a NumPy array of integers or if it's empty.
     """
 
@@ -103,7 +103,8 @@ def generate_partition(
             raise ValueError("Invalid `xmap` values for logarithmic binning. All values are non-positive.")
         v_min = np.nanmin(valid_xmap)
         xmap = np.where(xmap > 0, xmap, np.nan)  # Avoid modifying input
-        v_span = np.logspace(np.log10(v_min), np.log10(v_max), num_pts + 1)
+        v_span = np.logspace(np.log10(v_min), np.log10(v_max), num_pts + 1,
+                             base=10)
         v_list = np.sqrt(v_span[1:] * v_span[:-1])
     else:
         v_span = np.linspace(v_min, v_max, num_pts + 1)
@@ -114,9 +115,11 @@ def generate_partition(
 
     partition = np.digitize(xmap, v_span).astype(np.uint32) * mask
     partition[partition > num_pts] = 0
-    partition[xmap == v_max] = num_pts
+    # Ensure the maximum value (excluding unmasked) is assigned to the last bin
+    partition[(xmap == v_max) * mask] = num_pts
 
-    return {'map_name': map_name, 'num_pts': num_pts, 'partition': partition, 'v_list': v_list}
+    return {'map_name': map_name, 'num_pts': num_pts, 'partition': partition,
+            'v_list': v_list}
 
 
 def combine_partitions(
@@ -127,8 +130,8 @@ def combine_partitions(
     """
     Combines two partition maps into a single partition space.
 
-    This function merges two partition dictionaries (typically representing 
-    different dimensions such as 'q' and 'phi', or 'x' and 'y') into a 
+    This function merges two partition dictionaries (typically representing
+    different dimensions such as 'q' and 'phi', or 'x' and 'y') into a
     combined partition index map.
 
     Parameters
@@ -189,8 +192,51 @@ def combine_partitions(
         f'{prefix}_roi_map': partition_natural_order,
         f'{prefix}_v_list_dim0': pack1['v_list'],
         f'{prefix}_v_list_dim1': pack2['v_list'],
-        f'{prefix}_index_mapping': unique_idx[unique_idx >= 0],
+        f'{prefix}_index_mapping': unique_idx[unique_idx >= 1] - 1,
     }
 
     return partition_pack
 
+
+def check_consistency(dqmap: np.ndarray, sqmap: np.ndarray) -> bool:
+    """
+    Check the consistency of dqmap and sqmap efficiently.
+
+    Ensures that each unique value in `sqmap` corresponds to only one unique value in `dqmap`.
+
+    Parameters
+    ----------
+    dqmap : np.ndarray
+        A 2D NumPy array representing the dqmap.
+    sqmap : np.ndarray
+        A 2D NumPy array representing the sqmap.
+
+    Returns
+    -------
+    bool
+        True if each unique value in `sqmap` maps to exactly one unique value in `dqmap`,
+        False otherwise.
+
+    Raises
+    ------
+    ValueError
+        If `dqmap` and `sqmap` do not have the same shape.
+    """
+    if dqmap.shape != sqmap.shape:
+        raise ValueError("dqmap and sqmap must have the same shape")
+
+    # Flatten arrays for efficient processing
+    sq_flat = sqmap.ravel()
+    dq_flat = dqmap.ravel()
+
+    # Dictionary to store mapping from sqmap values to dqmap values
+    sq_to_dq: dict[int, int] = {}
+
+    for sq_value, dq_value in zip(sq_flat, dq_flat):
+        if sq_value in sq_to_dq:
+            if sq_to_dq[sq_value] != dq_value:
+                return False  # Inconsistent mapping found
+        else:
+            sq_to_dq[sq_value] = dq_value
+
+    return True

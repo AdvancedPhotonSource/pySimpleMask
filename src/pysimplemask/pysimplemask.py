@@ -11,8 +11,7 @@ from PyQt5.QtWidgets import QMessageBox
 from .simplemask_ui import Ui_SimpleMask as Ui
 from .simplemask_kernel import SimpleMask
 from PyQt5.QtWidgets import QFileDialog, QApplication, QMainWindow, QHeaderView
-from .area_mask import create_qring
-from .table_model import QringTableModel
+from .table_model import XmapConstraintsTableModel
 
 
 home_dir = os.path.join(os.path.expanduser('~'), '.simple-mask')
@@ -127,27 +126,19 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_outlier_apply.clicked.connect(
             lambda: self.mask_apply('mask_outlier'))
 
-        # btn_mask_qring
-        self.btn_mask_qring_evaluate.clicked.connect(
-            lambda: self.mask_evaluate('mask_qring'))
-        self.btn_mask_qring_apply.clicked.connect(
-            lambda: self.mask_apply('mask_qring'))
-        self.btn_mask_qring_add1.clicked.connect(
-            lambda: self.mask_qring_list_add('mouse_click'))
-        self.btn_mask_qring_add2.clicked.connect(
-            lambda: self.mask_qring_list_add('manual'))
-        self.btn_mask_qring_add3.clicked.connect(
-            lambda: self.mask_qring_list_add('file'))
-        self.btn_mask_qring_clear.clicked.connect(self.clear_qring_list)
-
-        # tab correlation
-        self.btn_mask_draw_add_corr.clicked.connect(self.add_drawing)
-        self.btn_corr.clicked.connect(self.perform_correlation)
-        self.btn_mask_draw_apply_corr.clicked.connect(self.corr_add_roi)
-        self.angle_n_corr.valueChanged.connect(self.update_corr_angle)
-
         self.mask_outlier_hdl.setBackground((255, 255, 255))
         self.mp1.scene.sigMouseClicked.connect(self.mouse_clicked)
+
+        # xmap constraint
+        self.model = XmapConstraintsTableModel()
+        self.tableView.setModel(self.model)
+        self.btn_mask_param_add.clicked.connect(self.add_param_constraint)
+        self.btn_mask_param_delete.clicked.connect(self.delete_param_constraint)
+
+        self.btn_mask_param_evaluate.clicked.connect(
+            lambda: self.mask_evaluate('mask_parameter'))
+        self.btn_mask_param_apply.clicked.connect(
+            lambda: self.mask_apply('mask_parameter'))
 
         self.work_dir = None
         if path is not None:
@@ -161,8 +152,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.work_dir = os.path.expanduser('~')
 
         self.MaskWidget.setCurrentIndex(0)
-        self.qring_model = QringTableModel(data=[[]])
-        self.tableView.setModel(self.qring_model)
         header = self.tableView.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)  
         self.setting_fname = os.path.join(home_dir, 'default_setting.json')
@@ -197,7 +186,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not event.double():
             return
 
-        # make sure the maskwidget is at manual mode or qring mode;
         current_idx = self.MaskWidget.currentIndex()
         if current_idx not in [3, 5]:
             return
@@ -220,47 +208,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 }
                 pos = self.sm.get_pts_with_similar_intensity(**kwargs)
                 self.mask_list_add_pts(pos)
-        else:
-            # qring mode, select qbegin and qend with mouse
-            q, p = self.sm.get_qp_value(col, row)
-            if q is None or p is None:
-                return
-            if self.box_qring_qmin.isChecked():
-                self.mask_qring_qmin.setValue(q)
-                label = 'qring_qmin'
-                color = 'k'
-            elif self.box_qring_qmax.isChecked():
-                self.mask_qring_qmax.setValue(q)
-                label = 'qring_qmax'
-                color = 'r'
-            elif self.box_qring_pmin.isChecked():
-                self.mask_qring_pmin.setValue(p)
-                label = 'qring_pmin'
-                color = 'k'
-            elif self.box_qring_pmax.isChecked():
-                self.mask_qring_pmax.setValue(p)
-                label = 'qring_pmax'
-                color = 'r'
-            if label.startswith('qring_q'):
-                new_roi = self.sm.add_drawing(sl_type='Circle',
-                                          second_point=(col, row),
-                                          width=1.0,
-                                          color=color,
-                                          label=label,
-                                          movable=False)
-            else:
-                new_roi = self.sm.add_drawing(sl_type='Line',
-                                          second_point=(col, row),
-                                          width=0.5,
-                                          color=color,
-                                          label=label)
-            new_roi.sigRegionChanged.connect(self.update_qring_values)
-    
-    def update_qring_values(self):
-        new_state = self.sm.get_qring_values()
-        for k, v in new_state.items():
-            if v is not None:
-                self.__dict__['mask_' + k].setValue(v)
     
     def mask_action(self, action):
         if not self.is_ready():
@@ -350,13 +297,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
             p.setLabel('left', 'Intensity (a.u.)')
             p.setLogMode(y=True)
             kwargs = {'zero_loc': zero_loc}
-        elif target == 'mask_qring':
-            if self.qring_model.data == [[]]:
-                return
-            else:
-                data = self.qring_model.data.copy()
-                # self.qring_model.data = [[]]
-            kwargs = {'qrings': data}
+
+        elif target == 'mask_parameter':
+            kwargs = {
+                'constraints': self.model._data
+            }
 
         msg = self.sm.mask_evaluate(target, **kwargs)
         self.statusbar.showMessage(msg, 10000)
@@ -375,76 +320,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.mask_evaluate(target=target)
         elif target == 'mask_list':
             self.mask_list_clear()
-        elif target == 'mask_qring':
-            self.clear_qring_list()
 
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(1)
-
-    def mask_qring_list_add(self, method='manual'):
-        if method == 'mouse_click':
-            tmp_kwargs = {
-                "qmin": self.mask_qring_qmin.value(),
-                "qmax": self.mask_qring_qmax.value(),
-                "pmin": self.mask_qring_pmin.value(),
-                "pmax": self.mask_qring_pmax.value(),
-                "qnum": self.mask_qring_num.value(),
-                "flag_const_width": self.mask_qring_constwidth.isChecked(),
-            }
-            qrings = create_qring(**tmp_kwargs)
-        elif method == 'manual':
-            pts = self.mask_qring_input.text()
-            self.mask_qring_input.clear()
-            if len(pts) < 1:
-                self.statusbar.showMessage('Input list is invalid.', 500)
-                return
-            try:
-                xy = text_to_array(pts, dtype=np.float64)
-                # to a 2d list
-                qrings = xy[0: xy.size // 4 * 4].reshape(-1, 4).tolist()
-            except Exception:
-                self.statusbar.showMessage('Input list is invalid.', 500)
-                return
-
-        elif method == 'file':
-            fname = QFileDialog.getOpenFileName(self, 'Select qring file',
-                    filter='Text/Json (*.txt *.csv *.json);;All files(*.*)')[0]
-            if fname in ['', None]:
-                return
-        
-            if fname.endswith('.json'):
-                with open(fname, 'r') as f:
-                    x = json.load(f)
-                xy = []
-                for _, v in x.items():
-                    xy.append(v)
-                xy = np.array(xy)
-
-            elif fname.endswith('.txt') or fname.endswith('.csv'):
-                try:
-                    xy = np.loadtxt(fname, delimiter=',')
-                except ValueError:
-                    xy = np.loadtxt(fname)
-                except Exception:
-                    self.statusbar.showMessage(
-                        'only support csv and space separated file', 500)
-                    return
-            qrings = xy[0: xy.size // 4 * 4].reshape(-1, 4).tolist()
-
-        if self.qring_model.data == [[]]:
-            self.qring_model.data = qrings
-        else:
-            self.qring_model.data.extend(qrings)
-        # update tableview
-        self.tableView.setModel(None)
-        self.tableView.setModel(self.qring_model)
-        return
-    
-    def clear_qring_list(self):
-        self.tableView.setModel(None)
-        self.qring_model.data = [[]]
-        self.tableView.setModel(self.qring_model)
-        self.sm.hdl.remove_rois(filter_str='qring_')
 
     def update_index(self):
         idx = self.mp1.currentIndex
@@ -536,6 +414,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
         }
         if not self.sm.read_data(fname, **kwargs):
             return
+        
+        self.comboBox_param_xmap_name.clear()
+        self.comboBox_param_xmap_name.addItems(list(self.sm.qmap.keys()))
+        self.comboBox_param_xmap_name.currentIndexChanged.connect(self.update_xmap_limits)
+        self.update_xmap_limits()
+
+        while self.plot_index.count() > 6:
+            self.plot_index.removeItem(6)
+        for key in self.sm.qmap.keys():
+            self.plot_index.addItem(key)
 
         self.db_cenx.setValue(self.sm.meta['bcx'])
         self.db_ceny.setValue(self.sm.meta['bcy'])
@@ -587,6 +475,33 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.sm.add_drawing(**kwargs)
         return
     
+    def update_xmap_limits(self):
+        xmap_name = self.comboBox_param_xmap_name.currentText()
+        if not xmap_name: return
+        vmin, vmax = self.sm.qmap[xmap_name].min(), self.sm.qmap[xmap_name].max()
+        unit = self.sm.qmap_unit[xmap_name]
+        self.label_param_minval.setText(f"Min: {vmin:.5f} ({unit})")
+        self.label_param_maxval.setText(f"Max: {vmax:.5f} ({unit})")
+        self.doubleSpinBox_param_vbeg.setValue(vmin)
+        self.doubleSpinBox_param_vend.setValue(vmax)
+    
+    def add_param_constraint(self):
+        xmap_name = self.comboBox_param_xmap_name.currentText()
+        if not xmap_name: return
+        vbeg = self.doubleSpinBox_param_vbeg.value()
+        vend = self.doubleSpinBox_param_vend.value()
+        if vbeg > vend:
+            vbeg, vend = vend, vbeg
+            self.doubleSpinBox_param_vbeg.setValue(vbeg)
+            self.doubleSpinBox_param_vend.setValue(vend)
+        logic = self.comboBox_param_logic.currentText()
+        unit = self.sm.qmap_unit[xmap_name]
+        self.model.addRow([xmap_name, unit, vbeg, vend, logic])
+    
+    def delete_param_constraint(self):
+        idx = self.tableView.currentIndex().row()
+        self.model.removeRow(idx)
+        
     # self.btn_mask_draw_apply_corr.clicked.connect(self.corr_add_roi)
     def corr_add_roi(self):
         roi = self.sm.apply_drawing()
