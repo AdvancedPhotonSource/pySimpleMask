@@ -1,11 +1,11 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "pysimplemask"
-version = "0.1.0"
-description = "A GUI for creating mask and q-partition maps for scattering patterns in preparation for SAXS/WAXS/XPCS  data reduction"
+dynamic = ["version"]
+description = "A GUI for creating mask and q-partition maps for scattering patterns in preparation for SAXS/WAXS/XPCS data reduction"
 readme = "README.rst"
 authors = [
   {name = "Miaoqi Chu", email = "mqichu@anl.gov"}
@@ -13,27 +13,45 @@ authors = [
 maintainers = [
   {name = "Miaoqi Chu", email = "mqichu@anl.gov"}
 ]
-classifiers = [
-
-]
 license = {text = "MIT license"}
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Operating System :: OS Independent"
+]
+
 dependencies = [
-  
+    "numpy",
+    "scipy",
+    "h5py",
+    "hdf5plugin",
+    "scikit-image",
+    "matplotlib",
+    "pyqtgraph",
+    "PyQt5",
+    "astropy",
+    "python-magic"
 ]
 
 [project.optional-dependencies]
 dev = [
-    "coverage",  # testing
-    "mypy",  # linting
-    "pytest",  # testing
-    "ruff"  # linting
+    "coverage",  # Testing
+    "mypy",  # Type checking
+    "pytest",  # Testing
+    "ruff"  # Linting
 ]
 
 [project.scripts]
 pysimplemask = "pysimplemask.cli:main"
 
 [project.urls]
-
 bugs = "https://github.com/AZjk/pysimplemask/issues"
 changelog = "https://github.com/AZjk/pysimplemask/blob/master/changelog.md"
 homepage = "https://github.com/AZjk/pysimplemask"
@@ -41,17 +59,16 @@ homepage = "https://github.com/AZjk/pysimplemask"
 [tool.setuptools]
 package-dir = {"" = "src"}
 
+[tool.setuptools_scm]
+version_scheme = "post-release"
+local_scheme = "node-and-timestamp"
+
 [tool.setuptools.package-data]
 "*" = ["*.*"]
 
-
-# Mypy
-# ----
-
+# ---- Mypy ----
 [tool.mypy]
 files = "."
-
-# Use strict defaults
 strict = true
 warn_unreachable = true
 warn_no_return = true
@@ -61,4 +78,3 @@ warn_no_return = true
 module = "tests.*"
 allow_untyped_defs = true
 disable_error_code = "attr-defined"
-
