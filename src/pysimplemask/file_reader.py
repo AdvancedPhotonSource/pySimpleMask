@@ -1,7 +1,6 @@
 import os
 import glob
 import h5py
-import magic
 import numpy as np
 import hdf5plugin
 from astropy.io import fits
@@ -21,17 +20,15 @@ def get_file_type(fname):
                        '.000', '.001', '.002', '.003', '.004', '.005'):
         return 'unknown_type'
 
-    file_format = magic.from_file(fname)
-    if 'Hierarchical Data Format' not in file_format:
-        # legacy file
-        return 'aps_legacy'
+    if extname in ('.000', '.001', '.002', '.003', '.004', '.005',
+                   '.imm', '.bin'):
+        return "aps_legacy"
+
     try:
         with h5py.File(fname, 'r') as hf:
-            if '/entry/instrument/bluesky/metadata/versions' in hf:
-                return 'aps_metadata'
             # elif '/entry_0000/instrument/id02-eiger500k-saxs' in hf:
             #     return 'esrf_hdf' 
-            elif '/entry/data/data' in hf:
+            if '/entry/data/data' in hf:
                 return 'aps_hdf'
     except Exception:
         pass
@@ -225,7 +222,6 @@ class TiffReader(FileReader):
 
 
 class TimePixRawReader(FileReader):
-
     def __init__(self, fname) -> None:
         self.fname = fname
         self.shape = None

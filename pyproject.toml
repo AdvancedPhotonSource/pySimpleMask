@@ -35,9 +35,8 @@ dependencies = [
     "scikit-image",
     "matplotlib",
     "pyqtgraph",
-    "PyQt5",
-    "astropy",
-    "python-magic"
+    "PySide6",
+    "astropy"
 ]
 
 [project.optional-dependencies]
