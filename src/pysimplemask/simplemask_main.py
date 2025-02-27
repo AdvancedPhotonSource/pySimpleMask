@@ -663,7 +663,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             json.dump(config, fhdl)
 
 
-def run(path=None):
+def main_gui(path=None):
     # if os.name == 'nt':
     #     setup_windows_icon()
     # QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
@@ -673,4 +673,4 @@ def run(path=None):
 
 
 if __name__ == '__main__':
-    run()
+    main_gui()
