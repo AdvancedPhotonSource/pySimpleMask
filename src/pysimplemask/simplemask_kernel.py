@@ -205,7 +205,7 @@ class SimpleMask(object):
 
         r = np.sqrt(vg * vg + hg * hg) * self.meta['pix_dim']
 
-        phi = np.arctan2(hg, vg)
+        phi = np.arctan2(vg, hg) * (-1)
         alpha = np.arctan(r / self.meta['det_dist'])
         qr = np.sin(alpha) * k0
         qr = 2 * np.sin(alpha / 2) * k0
