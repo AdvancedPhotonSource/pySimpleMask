@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import QMessageBox
 from .simplemask_ui import Ui_SimpleMask as Ui
 from .simplemask_kernel import SimpleMask
 from PyQt5.QtWidgets import QFileDialog, QApplication, QMainWindow, QHeaderView
+from .table_model import XmapConstraintsTableModel
 
 
 home_dir = os.path.join(os.path.expanduser('~'), '.simple-mask')
@@ -127,6 +128,17 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         self.mask_outlier_hdl.setBackground((255, 255, 255))
         self.mp1.scene.sigMouseClicked.connect(self.mouse_clicked)
+
+        # xmap constraint
+        self.model = XmapConstraintsTableModel()
+        self.tableView.setModel(self.model)
+        self.btn_mask_param_add.clicked.connect(self.add_param_constraint)
+        self.btn_mask_param_delete.clicked.connect(self.delete_param_constraint)
+
+        self.btn_mask_param_evaluate.clicked.connect(
+            lambda: self.mask_evaluate('mask_parameter'))
+        self.btn_mask_param_apply.clicked.connect(
+            lambda: self.mask_apply('mask_parameter'))
 
         self.work_dir = None
         if path is not None:
@@ -286,6 +298,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
             p.setLogMode(y=True)
             kwargs = {'zero_loc': zero_loc}
 
+        elif target == 'mask_parameter':
+            kwargs = {
+                'constraints': self.model._data
+            }
+
         msg = self.sm.mask_evaluate(target, **kwargs)
         self.statusbar.showMessage(msg, 10000)
         self.plot_index.setCurrentIndex(0)
@@ -397,6 +414,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
         }
         if not self.sm.read_data(fname, **kwargs):
             return
+        
+        self.comboBox_param_xmap_name.clear()
+        self.comboBox_param_xmap_name.addItems(list(self.sm.qmap.keys()))
+        self.comboBox_param_xmap_name.currentIndexChanged.connect(self.update_xmap_limits)
+        self.update_xmap_limits()
+
+        while self.plot_index.count() > 6:
+            self.plot_index.removeItem(6)
+        for key in self.sm.qmap.keys():
+            self.plot_index.addItem(key)
 
         self.db_cenx.setValue(self.sm.meta['bcx'])
         self.db_ceny.setValue(self.sm.meta['bcy'])
@@ -448,6 +475,29 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.sm.add_drawing(**kwargs)
         return
     
+    def update_xmap_limits(self):
+        xmap_name = self.comboBox_param_xmap_name.currentText()
+        if not xmap_name: return
+        vmin, vmax = self.sm.qmap[xmap_name].min(), self.sm.qmap[xmap_name].max()
+        unit = self.sm.qmap_unit[xmap_name]
+        self.label_param_minval.setText(f"Min: {vmin:.5f} ({unit})")
+        self.label_param_maxval.setText(f"Max: {vmax:.5f} ({unit})")
+        self.doubleSpinBox_param_vbeg.setValue(vmin)
+        self.doubleSpinBox_param_vend.setValue(vmax)
+    
+    def add_param_constraint(self):
+        xmap_name = self.comboBox_param_xmap_name.currentText()
+        if not xmap_name: return
+        vbeg = self.doubleSpinBox_param_vbeg.value()
+        vend = self.doubleSpinBox_param_vend.value()
+        logic = self.comboBox_param_logic.currentText()
+        unit = self.sm.qmap_unit[xmap_name]
+        self.model.addRow([xmap_name, unit, vbeg, vend, logic])
+    
+    def delete_param_constraint(self):
+        idx = self.tableView.currentIndex().row()
+        self.model.removeRow(idx)
+        
     # self.btn_mask_draw_apply_corr.clicked.connect(self.corr_add_roi)
     def corr_add_roi(self):
         roi = self.sm.apply_drawing()

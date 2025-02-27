@@ -124,42 +124,23 @@ class MaskThreshold(MaskBase):
         self.zero_loc = np.array(np.nonzero(mask))
 
 
-class MaskQring(MaskBase):
+class MaskParameter(MaskBase):
     """
     use a ring on the qmap to define the mask
     """
-
     def __init__(self, shape=(512, 1024)) -> None:
         super().__init__(shape=shape)
-        self.qrings = []
+        self.constraints = []
 
-    def evaluate(self, qmap, pmap, qrings=None):
-        mask = np.zeros_like(qmap, dtype=bool)
-        if qrings is None:
-            return
-
-        for n in range(len(qrings)):
-            pmap_loc = np.copy(pmap)
-
-            qmin, qmax, pmin, pmax = qrings[n]
-            if qmin > qmax:
-                qmin, qmax = qmax, qmin
-
-            qroi = np.logical_and((qmap >= qmin), (qmap < qmax))
-            if pmin > pmax:
-                pmax += 360.0
-                pmap_loc[pmap_loc < pmin] += 360.0
-
-            proi = np.logical_and((pmap_loc >= pmin), (pmap_loc < pmax))
-
-            mask[qroi * proi] = 1
-
-        mask = np.logical_not(mask)
-        self.zero_loc = np.array(np.nonzero(mask))
-        self.qrings = qrings
-
-    def get_qrings(self):
-        return self.qrings.copy()
+    def evaluate(self, qmap=None, constraints=None):
+        mask = np.ones(self.shape, dtype=bool)
+        for xmap_name, unit, vbeg, vend, logic in constraints:
+            mask_t = (qmap[xmap_name] >= vbeg) * (qmap[xmap_name] <= vend)
+            if logic == 'AND':
+                mask = np.logical_and(mask, mask_t)
+            elif logic == 'OR':
+                mask = np.logical_or(mask, mask_t)
+        self.zero_loc = np.array(np.nonzero(~mask))
 
 
 class MaskArray(MaskBase):
@@ -172,8 +153,7 @@ class MaskArray(MaskBase):
 
 
 class MaskAssemble():
-    def __init__(self, shape=(128, 128), saxs_log=None, qmap=None, pmap=None,
-            ) -> None:
+    def __init__(self, shape=(128, 128), saxs_log=None, qmap=None) -> None:
         self.workers = {
             'mask_blemish': MaskFile(shape),
             'mask_file': MaskFile(shape),
@@ -181,20 +161,18 @@ class MaskAssemble():
             'mask_list': MaskList(shape),
             'mask_draw': MaskArray(shape),
             'mask_outlier': MaskList(shape),
-            'mask_qring': MaskQring(shape)
+            'mask_parameter': MaskParameter(shape)
         }
         self.shape = shape
         self.saxs_log = saxs_log
         self.qmap = qmap
-        self.pmap = pmap
-        self.mask_record = [np.ones_like(qmap, dtype=bool)]
+        self.mask_record = [np.ones_like(saxs_log, dtype=bool)]
         self.mask_ptr = 0
         # 0: no mask; 1: apply the default mask
         self.mask_ptr_min = 0
     
     def update_qmap(self, qmap_all):
-        self.qmap = qmap_all['q']
-        self.pmap = qmap_all['phi']
+        self.qmap = qmap_all
     
     def apply_default_mask(self,
                            default_blemish_path="~/Documents/Miaoqi/areaDetectorBlemish"):
@@ -246,8 +224,8 @@ class MaskAssemble():
     def evaluate(self, target, **kwargs):
         if target == 'mask_threshold':
             self.workers[target].evaluate(self.saxs_log, **kwargs)
-        elif target == 'mask_qring':
-            self.workers[target].evaluate(self.qmap, self.pmap, **kwargs)
+        elif target == 'mask_parameter':
+            self.workers[target].evaluate(qmap=self.qmap, **kwargs)
         else:
             self.workers[target].evaluate(**kwargs)
 

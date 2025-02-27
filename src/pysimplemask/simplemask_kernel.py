@@ -164,8 +164,7 @@ class SimpleMask(object):
         self.reader = reader
         self.meta = reader.load_meta()
 
-        # keep same
-        self.data_raw = np.zeros(shape=(6, *saxs.shape))
+        self.shape = saxs.shape
         self.mask = np.ones(saxs.shape, dtype=bool)
 
         saxs_nonzero = saxs[saxs > 0]
@@ -177,9 +176,13 @@ class SimpleMask(object):
         self.min_val = np.min(saxs[saxs > 0])
         self.saxs_log = np.log10(saxs + self.min_val)
 
-        self.shape = self.data_raw[0].shape
-
         self.qmap, self.qmap_unit = self.compute_qmap()
+        num_qmaps = len(self.qmap)
+        self.data_raw = np.zeros(shape=(6 + num_qmaps, *saxs.shape))
+
+        for offset, val in enumerate(self.qmap.values()):
+            self.data_raw[6 + offset] = val
+
         self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
         # self.mask_kernel.update_qmap(self.qmap)
         self.extent = self.compute_extent()
@@ -562,6 +565,10 @@ class SimpleMask(object):
                 ['bcx', 'bcy', 'energy', 'pix_dim', 'det_dist']):
             self.meta[key] = val[idx]
         self.qmap, self.qmap_unit = self.compute_qmap()
+
+        for offset, val in enumerate(self.qmap.values()):
+            self.data_raw[6 + offset] = val
+
         self.mask_kernel.update_qmap(self.qmap)
 
     def get_parameters(self):
