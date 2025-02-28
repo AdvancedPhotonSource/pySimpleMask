@@ -22,8 +22,8 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBo
     QSpinBox, QSplitter, QStatusBar, QTabWidget,
     QTableView, QToolButton, QVBoxLayout, QWidget)
 
-from pyqtgraph import PlotWidget
 from .pyqtgraph_mod import ImageViewROI
+from pyqtgraph import PlotWidget
 
 class Ui_SimpleMask(object):
     def setupUi(self, SimpleMask):
@@ -43,6 +43,7 @@ class Ui_SimpleMask(object):
         self.gridLayout_16.setObjectName(u"gridLayout_16")
         self.splitter = QSplitter(self.centralwidget)
         self.splitter.setObjectName(u"splitter")
+        self.splitter.setOrientation(Qt.Orientation.Horizontal)
         self.layoutWidget = QWidget(self.splitter)
         self.layoutWidget.setObjectName(u"layoutWidget")
         self.verticalLayout = QVBoxLayout(self.layoutWidget)
@@ -751,87 +752,134 @@ class Ui_SimpleMask(object):
         self.tab_4.setObjectName(u"tab_4")
         self.gridLayout_21 = QGridLayout(self.tab_4)
         self.gridLayout_21.setObjectName(u"gridLayout_21")
-        self.groupBox_9 = QGroupBox(self.tab_4)
-        self.groupBox_9.setObjectName(u"groupBox_9")
-        self.gridLayout_15 = QGridLayout(self.groupBox_9)
-        self.gridLayout_15.setObjectName(u"gridLayout_15")
-        self.binary_threshold_high = QDoubleSpinBox(self.groupBox_9)
-        self.binary_threshold_high.setObjectName(u"binary_threshold_high")
-        self.binary_threshold_high.setMaximum(9999.000000000000000)
-        self.binary_threshold_high.setSingleStep(100.000000000000000)
-        self.binary_threshold_high.setValue(9999.000000000000000)
-
-        self.gridLayout_15.addWidget(self.binary_threshold_high, 0, 3, 1, 1)
-
-        self.label_26 = QLabel(self.groupBox_9)
-        self.label_26.setObjectName(u"label_26")
-
-        self.gridLayout_15.addWidget(self.label_26, 0, 0, 1, 1)
-
-        self.binary_threshold_low = QDoubleSpinBox(self.groupBox_9)
-        self.binary_threshold_low.setObjectName(u"binary_threshold_low")
-        self.binary_threshold_low.setMaximum(10000.000000000000000)
-
-        self.gridLayout_15.addWidget(self.binary_threshold_low, 0, 1, 1, 1)
-
-        self.binary_scale = QComboBox(self.groupBox_9)
-        self.binary_scale.addItem("")
-        self.binary_scale.addItem("")
-        self.binary_scale.setObjectName(u"binary_scale")
-
-        self.gridLayout_15.addWidget(self.binary_scale, 0, 4, 1, 1)
-
-        self.btn_mask_threshold_evaluate = QPushButton(self.groupBox_9)
-        self.btn_mask_threshold_evaluate.setObjectName(u"btn_mask_threshold_evaluate")
-
-        self.gridLayout_15.addWidget(self.btn_mask_threshold_evaluate, 0, 5, 1, 1)
-
-        self.label_27 = QLabel(self.groupBox_9)
-        self.label_27.setObjectName(u"label_27")
-        sizePolicy1.setHeightForWidth(self.label_27.sizePolicy().hasHeightForWidth())
-        self.label_27.setSizePolicy(sizePolicy1)
-
-        self.gridLayout_15.addWidget(self.label_27, 0, 2, 1, 1)
-
-        self.btn_mask_threshold_apply = QPushButton(self.groupBox_9)
+        self.btn_mask_threshold_apply = QPushButton(self.tab_4)
         self.btn_mask_threshold_apply.setObjectName(u"btn_mask_threshold_apply")
 
-        self.gridLayout_15.addWidget(self.btn_mask_threshold_apply, 0, 6, 1, 1)
-
-
-        self.gridLayout_21.addWidget(self.groupBox_9, 0, 0, 1, 1)
+        self.gridLayout_21.addWidget(self.btn_mask_threshold_apply, 4, 1, 1, 1)
 
         self.groupBox_10 = QGroupBox(self.tab_4)
         self.groupBox_10.setObjectName(u"groupBox_10")
         self.groupBox_10.setEnabled(False)
         self.gridLayout_20 = QGridLayout(self.groupBox_10)
         self.gridLayout_20.setObjectName(u"gridLayout_20")
-        self.pushButton_5 = QPushButton(self.groupBox_10)
-        self.pushButton_5.setObjectName(u"pushButton_5")
-
-        self.gridLayout_20.addWidget(self.pushButton_5, 0, 0, 1, 1)
-
         self.pushButton_9 = QPushButton(self.groupBox_10)
         self.pushButton_9.setObjectName(u"pushButton_9")
 
         self.gridLayout_20.addWidget(self.pushButton_9, 0, 1, 1, 1)
 
-        self.pushButton_16 = QPushButton(self.groupBox_10)
-        self.pushButton_16.setObjectName(u"pushButton_16")
+        self.pushButton_5 = QPushButton(self.groupBox_10)
+        self.pushButton_5.setObjectName(u"pushButton_5")
 
-        self.gridLayout_20.addWidget(self.pushButton_16, 0, 2, 1, 1)
+        self.gridLayout_20.addWidget(self.pushButton_5, 0, 0, 1, 1)
 
         self.pushButton_15 = QPushButton(self.groupBox_10)
         self.pushButton_15.setObjectName(u"pushButton_15")
 
         self.gridLayout_20.addWidget(self.pushButton_15, 0, 3, 1, 1)
 
+        self.pushButton_16 = QPushButton(self.groupBox_10)
+        self.pushButton_16.setObjectName(u"pushButton_16")
 
-        self.gridLayout_21.addWidget(self.groupBox_10, 1, 0, 1, 1)
+        self.gridLayout_20.addWidget(self.pushButton_16, 0, 2, 1, 1)
 
-        self.verticalSpacer_4 = QSpacerItem(20, 77, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
-        self.gridLayout_21.addItem(self.verticalSpacer_4, 2, 0, 1, 1)
+        self.gridLayout_21.addWidget(self.groupBox_10, 3, 0, 1, 2)
+
+        self.btn_mask_threshold_evaluate = QPushButton(self.tab_4)
+        self.btn_mask_threshold_evaluate.setObjectName(u"btn_mask_threshold_evaluate")
+
+        self.gridLayout_21.addWidget(self.btn_mask_threshold_evaluate, 4, 0, 1, 1)
+
+        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.gridLayout_21.addItem(self.verticalSpacer_3, 5, 1, 1, 1)
+
+        self.verticalSpacer_4 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.gridLayout_21.addItem(self.verticalSpacer_4, 5, 0, 1, 1)
+
+        self.groupBox_9 = QGroupBox(self.tab_4)
+        self.groupBox_9.setObjectName(u"groupBox_9")
+        self.gridLayout_15 = QGridLayout(self.groupBox_9)
+        self.gridLayout_15.setObjectName(u"gridLayout_15")
+        self.label_26 = QLabel(self.groupBox_9)
+        self.label_26.setObjectName(u"label_26")
+
+        self.gridLayout_15.addWidget(self.label_26, 0, 2, 1, 1)
+
+        self.checkBox_threshold_low_enable = QCheckBox(self.groupBox_9)
+        self.checkBox_threshold_low_enable.setObjectName(u"checkBox_threshold_low_enable")
+        self.checkBox_threshold_low_enable.setChecked(True)
+
+        self.gridLayout_15.addWidget(self.checkBox_threshold_low_enable, 0, 3, 1, 1)
+
+        self.binary_threshold_high = QDoubleSpinBox(self.groupBox_9)
+        self.binary_threshold_high.setObjectName(u"binary_threshold_high")
+        self.binary_threshold_high.setDecimals(2)
+        self.binary_threshold_high.setMaximum(4294967296.000000000000000)
+        self.binary_threshold_high.setValue(1024.000000000000000)
+
+        self.gridLayout_15.addWidget(self.binary_threshold_high, 1, 6, 1, 1)
+
+        self.checkBox_threshold_high_preset = QComboBox(self.groupBox_9)
+        self.checkBox_threshold_high_preset.addItem("")
+        self.checkBox_threshold_high_preset.addItem("")
+        self.checkBox_threshold_high_preset.addItem("")
+        self.checkBox_threshold_high_preset.addItem("")
+        self.checkBox_threshold_high_preset.addItem("")
+        self.checkBox_threshold_high_preset.addItem("")
+        self.checkBox_threshold_high_preset.addItem("")
+        self.checkBox_threshold_high_preset.addItem("")
+        self.checkBox_threshold_high_preset.addItem("")
+        self.checkBox_threshold_high_preset.setObjectName(u"checkBox_threshold_high_preset")
+
+        self.gridLayout_15.addWidget(self.checkBox_threshold_high_preset, 1, 4, 1, 1)
+
+        self.binary_threshold_low = QDoubleSpinBox(self.groupBox_9)
+        self.binary_threshold_low.setObjectName(u"binary_threshold_low")
+        self.binary_threshold_low.setMinimum(-9999.000000000000000)
+        self.binary_threshold_low.setMaximum(10000.000000000000000)
+
+        self.gridLayout_15.addWidget(self.binary_threshold_low, 0, 6, 1, 1)
+
+        self.label_27 = QLabel(self.groupBox_9)
+        self.label_27.setObjectName(u"label_27")
+        sizePolicy1.setHeightForWidth(self.label_27.sizePolicy().hasHeightForWidth())
+        self.label_27.setSizePolicy(sizePolicy1)
+
+        self.gridLayout_15.addWidget(self.label_27, 1, 2, 1, 1)
+
+        self.checkBox_threshold_high_enable = QCheckBox(self.groupBox_9)
+        self.checkBox_threshold_high_enable.setObjectName(u"checkBox_threshold_high_enable")
+        self.checkBox_threshold_high_enable.setChecked(True)
+
+        self.gridLayout_15.addWidget(self.checkBox_threshold_high_enable, 1, 3, 1, 1)
+
+        self.checkBox_threshold_low_preset = QComboBox(self.groupBox_9)
+        self.checkBox_threshold_low_preset.addItem("")
+        self.checkBox_threshold_low_preset.addItem("")
+        self.checkBox_threshold_low_preset.addItem("")
+        self.checkBox_threshold_low_preset.addItem("")
+        self.checkBox_threshold_low_preset.setObjectName(u"checkBox_threshold_low_preset")
+
+        self.gridLayout_15.addWidget(self.checkBox_threshold_low_preset, 0, 4, 1, 1)
+
+        self.label_25 = QLabel(self.groupBox_9)
+        self.label_25.setObjectName(u"label_25")
+        sizePolicy6.setHeightForWidth(self.label_25.sizePolicy().hasHeightForWidth())
+        self.label_25.setSizePolicy(sizePolicy6)
+
+        self.gridLayout_15.addWidget(self.label_25, 0, 5, 1, 1)
+
+        self.label_33 = QLabel(self.groupBox_9)
+        self.label_33.setObjectName(u"label_33")
+        sizePolicy6.setHeightForWidth(self.label_33.sizePolicy().hasHeightForWidth())
+        self.label_33.setSizePolicy(sizePolicy6)
+
+        self.gridLayout_15.addWidget(self.label_33, 1, 5, 1, 1)
+
+
+        self.gridLayout_21.addWidget(self.groupBox_9, 0, 0, 1, 2)
 
         self.MaskWidget.addTab(self.tab_4, "")
         self.tab_3 = QWidget()
@@ -1412,7 +1460,7 @@ class Ui_SimpleMask(object):
         self.mask_list_include.toggled.connect(self.mask_list_variation.setEnabled)
 
         self.tabWidget_2.setCurrentIndex(0)
-        self.MaskWidget.setCurrentIndex(5)
+        self.MaskWidget.setCurrentIndex(2)
         self.tabWidget.setCurrentIndex(0)
 
 
@@ -1517,19 +1565,35 @@ class Ui_SimpleMask(object):
         self.label_39.setText(QCoreApplication.translate("SimpleMask", u"num_edges:", None))
         self.btn_mask_draw_add.setText(QCoreApplication.translate("SimpleMask", u"Add", None))
         self.MaskWidget.setTabText(self.MaskWidget.indexOf(self.tab_2), QCoreApplication.translate("SimpleMask", u"Draw", None))
-        self.groupBox_9.setTitle(QCoreApplication.translate("SimpleMask", u"Threshold: (acts on the scattering image)", None))
-        self.label_26.setText(QCoreApplication.translate("SimpleMask", u"low:", None))
-        self.binary_scale.setItemText(0, QCoreApplication.translate("SimpleMask", u"linear scale", None))
-        self.binary_scale.setItemText(1, QCoreApplication.translate("SimpleMask", u"log scale", None))
-
-        self.btn_mask_threshold_evaluate.setText(QCoreApplication.translate("SimpleMask", u"Evaluate", None))
-        self.label_27.setText(QCoreApplication.translate("SimpleMask", u"high:", None))
         self.btn_mask_threshold_apply.setText(QCoreApplication.translate("SimpleMask", u"Apply", None))
         self.groupBox_10.setTitle(QCoreApplication.translate("SimpleMask", u"Binary operation: (acts on the mask)", None))
-        self.pushButton_5.setText(QCoreApplication.translate("SimpleMask", u"erode", None))
         self.pushButton_9.setText(QCoreApplication.translate("SimpleMask", u"dilate", None))
-        self.pushButton_16.setText(QCoreApplication.translate("SimpleMask", u"open", None))
+        self.pushButton_5.setText(QCoreApplication.translate("SimpleMask", u"erode", None))
         self.pushButton_15.setText(QCoreApplication.translate("SimpleMask", u"close", None))
+        self.pushButton_16.setText(QCoreApplication.translate("SimpleMask", u"open", None))
+        self.btn_mask_threshold_evaluate.setText(QCoreApplication.translate("SimpleMask", u"Evaluate", None))
+        self.groupBox_9.setTitle(QCoreApplication.translate("SimpleMask", u"Threshold: (acts on the scattering image)", None))
+        self.label_26.setText(QCoreApplication.translate("SimpleMask", u"low:", None))
+        self.checkBox_threshold_low_enable.setText(QCoreApplication.translate("SimpleMask", u"Enable", None))
+        self.checkBox_threshold_high_preset.setItemText(0, QCoreApplication.translate("SimpleMask", u"None", None))
+        self.checkBox_threshold_high_preset.setItemText(1, QCoreApplication.translate("SimpleMask", u"uint8", None))
+        self.checkBox_threshold_high_preset.setItemText(2, QCoreApplication.translate("SimpleMask", u"int8", None))
+        self.checkBox_threshold_high_preset.setItemText(3, QCoreApplication.translate("SimpleMask", u"uint16", None))
+        self.checkBox_threshold_high_preset.setItemText(4, QCoreApplication.translate("SimpleMask", u"int16", None))
+        self.checkBox_threshold_high_preset.setItemText(5, QCoreApplication.translate("SimpleMask", u"uint24", None))
+        self.checkBox_threshold_high_preset.setItemText(6, QCoreApplication.translate("SimpleMask", u"int24", None))
+        self.checkBox_threshold_high_preset.setItemText(7, QCoreApplication.translate("SimpleMask", u"uint32", None))
+        self.checkBox_threshold_high_preset.setItemText(8, QCoreApplication.translate("SimpleMask", u"int32", None))
+
+        self.label_27.setText(QCoreApplication.translate("SimpleMask", u"high:", None))
+        self.checkBox_threshold_high_enable.setText(QCoreApplication.translate("SimpleMask", u"Enable", None))
+        self.checkBox_threshold_low_preset.setItemText(0, QCoreApplication.translate("SimpleMask", u"None", None))
+        self.checkBox_threshold_low_preset.setItemText(1, QCoreApplication.translate("SimpleMask", u"-1", None))
+        self.checkBox_threshold_low_preset.setItemText(2, QCoreApplication.translate("SimpleMask", u"0", None))
+        self.checkBox_threshold_low_preset.setItemText(3, QCoreApplication.translate("SimpleMask", u"1", None))
+
+        self.label_25.setText(QCoreApplication.translate("SimpleMask", u">=", None))
+        self.label_33.setText(QCoreApplication.translate("SimpleMask", u"<", None))
         self.MaskWidget.setTabText(self.MaskWidget.indexOf(self.tab_4), QCoreApplication.translate("SimpleMask", u"Binary", None))
         self.groupBox_12.setTitle(QCoreApplication.translate("SimpleMask", u"Import from a file", None))
         self.mask_list_1based.setText(QCoreApplication.translate("SimpleMask", u"1-based", None))

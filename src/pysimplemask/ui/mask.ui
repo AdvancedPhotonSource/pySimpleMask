@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1451</width>
+    <width>1526</width>
     <height>861</height>
    </rect>
   </property>
@@ -35,6 +35,9 @@
    <layout class="QGridLayout" name="gridLayout_16">
     <item row="0" column="0">
      <widget class="QSplitter" name="splitter">
+      <property name="orientation">
+       <enum>Qt::Orientation::Horizontal</enum>
+      </property>
       <widget class="QWidget" name="layoutWidget">
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
@@ -798,7 +801,7 @@
               </sizepolicy>
              </property>
              <property name="currentIndex">
-              <number>5</number>
+              <number>2</number>
              </property>
              <widget class="QWidget" name="tab_6">
               <attribute name="title">
@@ -1278,61 +1281,182 @@
                <string>Binary</string>
               </attribute>
               <layout class="QGridLayout" name="gridLayout_21">
-               <item row="0" column="0">
+               <item row="4" column="1">
+                <widget class="QPushButton" name="btn_mask_threshold_apply">
+                 <property name="text">
+                  <string>Apply</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0" colspan="2">
+                <widget class="QGroupBox" name="groupBox_10">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="title">
+                  <string>Binary operation: (acts on the mask)</string>
+                 </property>
+                 <layout class="QGridLayout" name="gridLayout_20">
+                  <item row="0" column="1">
+                   <widget class="QPushButton" name="pushButton_9">
+                    <property name="text">
+                     <string>dilate</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="0">
+                   <widget class="QPushButton" name="pushButton_5">
+                    <property name="text">
+                     <string>erode</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="3">
+                   <widget class="QPushButton" name="pushButton_15">
+                    <property name="text">
+                     <string>close</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QPushButton" name="pushButton_16">
+                    <property name="text">
+                     <string>open</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item row="4" column="0">
+                <widget class="QPushButton" name="btn_mask_threshold_evaluate">
+                 <property name="text">
+                  <string>Evaluate</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1">
+                <spacer name="verticalSpacer_3">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="5" column="0">
+                <spacer name="verticalSpacer_4">
+                 <property name="orientation">
+                  <enum>Qt::Orientation::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="0" column="0" colspan="2">
                 <widget class="QGroupBox" name="groupBox_9">
                  <property name="title">
                   <string>Threshold: (acts on the scattering image)</string>
                  </property>
                  <layout class="QGridLayout" name="gridLayout_15">
-                  <item row="0" column="3">
-                   <widget class="QDoubleSpinBox" name="binary_threshold_high">
-                    <property name="maximum">
-                     <double>9999.000000000000000</double>
-                    </property>
-                    <property name="singleStep">
-                     <double>100.000000000000000</double>
-                    </property>
-                    <property name="value">
-                     <double>9999.000000000000000</double>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="0">
+                  <item row="0" column="2">
                    <widget class="QLabel" name="label_26">
                     <property name="text">
                      <string>low:</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="0" column="1">
+                  <item row="0" column="3">
+                   <widget class="QCheckBox" name="checkBox_threshold_low_enable">
+                    <property name="text">
+                     <string>Enable</string>
+                    </property>
+                    <property name="checked">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="6">
+                   <widget class="QDoubleSpinBox" name="binary_threshold_high">
+                    <property name="decimals">
+                     <number>2</number>
+                    </property>
+                    <property name="maximum">
+                     <double>4294967296.000000000000000</double>
+                    </property>
+                    <property name="value">
+                     <double>1024.000000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="4">
+                   <widget class="QComboBox" name="checkBox_threshold_high_preset">
+                    <item>
+                     <property name="text">
+                      <string>None</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>uint8</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>int8</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>uint16</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>int16</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>uint24</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>int24</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>uint32</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>int32</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="0" column="6">
                    <widget class="QDoubleSpinBox" name="binary_threshold_low">
+                    <property name="minimum">
+                     <double>-9999.000000000000000</double>
+                    </property>
                     <property name="maximum">
                      <double>10000.000000000000000</double>
                     </property>
                    </widget>
                   </item>
-                  <item row="0" column="4">
-                   <widget class="QComboBox" name="binary_scale">
-                    <item>
-                     <property name="text">
-                      <string>linear scale</string>
-                     </property>
-                    </item>
-                    <item>
-                     <property name="text">
-                      <string>log scale</string>
-                     </property>
-                    </item>
-                   </widget>
-                  </item>
-                  <item row="0" column="5">
-                   <widget class="QPushButton" name="btn_mask_threshold_evaluate">
-                    <property name="text">
-                     <string>Evaluate</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="2">
+                  <item row="1" column="2">
                    <widget class="QLabel" name="label_27">
                     <property name="sizePolicy">
                      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -1345,68 +1469,68 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="0" column="6">
-                   <widget class="QPushButton" name="btn_mask_threshold_apply">
+                  <item row="1" column="3">
+                   <widget class="QCheckBox" name="checkBox_threshold_high_enable">
                     <property name="text">
-                     <string>Apply</string>
+                     <string>Enable</string>
+                    </property>
+                    <property name="checked">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="4">
+                   <widget class="QComboBox" name="checkBox_threshold_low_preset">
+                    <item>
+                     <property name="text">
+                      <string>None</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>-1</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>0</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>1</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="0" column="5">
+                   <widget class="QLabel" name="label_25">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>&gt;=</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="5">
+                   <widget class="QLabel" name="label_33">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>&lt;</string>
                     </property>
                    </widget>
                   </item>
                  </layout>
                 </widget>
-               </item>
-               <item row="1" column="0">
-                <widget class="QGroupBox" name="groupBox_10">
-                 <property name="enabled">
-                  <bool>false</bool>
-                 </property>
-                 <property name="title">
-                  <string>Binary operation: (acts on the mask)</string>
-                 </property>
-                 <layout class="QGridLayout" name="gridLayout_20">
-                  <item row="0" column="0">
-                   <widget class="QPushButton" name="pushButton_5">
-                    <property name="text">
-                     <string>erode</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="1">
-                   <widget class="QPushButton" name="pushButton_9">
-                    <property name="text">
-                     <string>dilate</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="2">
-                   <widget class="QPushButton" name="pushButton_16">
-                    <property name="text">
-                     <string>open</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="3">
-                   <widget class="QPushButton" name="pushButton_15">
-                    <property name="text">
-                     <string>close</string>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
-               </item>
-               <item row="2" column="0">
-                <spacer name="verticalSpacer_4">
-                 <property name="orientation">
-                  <enum>Qt::Orientation::Vertical</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>20</width>
-                   <height>77</height>
-                  </size>
-                 </property>
-                </spacer>
                </item>
               </layout>
              </widget>
@@ -1906,6 +2030,22 @@
            <string>Scattering, Mask and Partitions</string>
           </property>
           <layout class="QGridLayout" name="gridLayout">
+           <item row="0" column="2">
+            <widget class="QLineEdit" name="infobar"/>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLabel" name="label_11">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>coordinates:</string>
+             </property>
+            </widget>
+           </item>
            <item row="0" column="0">
             <widget class="QComboBox" name="plot_index">
              <property name="sizePolicy">
@@ -1945,22 +2085,6 @@
               </property>
              </item>
             </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QLabel" name="label_11">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="text">
-              <string>coordinates:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="2">
-            <widget class="QLineEdit" name="infobar"/>
            </item>
            <item row="1" column="0" colspan="3">
             <widget class="ImageViewROI" name="mp1" native="true">
@@ -2321,7 +2445,7 @@
   <customwidget>
    <class>ImageViewROI</class>
    <extends>QWidget</extends>
-   <header>pyqtgraph_mod</header>
+   <header>.pyqtgraph_mod</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
