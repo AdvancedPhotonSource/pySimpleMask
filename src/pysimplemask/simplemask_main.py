@@ -119,6 +119,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
             lambda: self.mask_evaluate('mask_threshold'))
         self.btn_mask_threshold_apply.clicked.connect(
             lambda: self.mask_apply('mask_threshold'))
+        self.checkBox_threshold_low_preset.currentIndexChanged.connect(
+            lambda: self.update_threshold_preset('low'))
+        self.checkBox_threshold_high_preset.currentIndexChanged.connect(
+            lambda: self.update_threshold_preset('high'))
+
 
         # btn_mask_outlier_evaluate
         self.btn_mask_outlier_evaluate.clicked.connect(
@@ -274,8 +279,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
             kwargs = {
                 'low': self.binary_threshold_low.value(),
                 'high': self.binary_threshold_high.value(),
-                'scale': ['linear', 'log'][self.binary_scale.currentIndex()]
+                'low_enable': self.checkBox_threshold_low_enable.isChecked(),
+                'high_enable': self.checkBox_threshold_high_enable.isChecked(),
             }
+
         elif target == 'mask_outlier':
             num = self.outlier_num_roi.value()
             cutoff = self.outlier_cutoff.value()
@@ -308,13 +315,27 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(5)
         return
+    
+    def update_threshold_preset(self, target='low'):
+        preset_value_mapping = {
+            'None': None, '0': 0, '1': 1, '-1': -1, 'uint8': 255, 'int8': 127, 
+            'uint16': 65535, 'int16': 32767, 'uint32': 4294967295,
+            'int32': 2147483647, 'uint24': 16777215, 'int24': 8388607,
+        }
+        if target == 'low':
+            key = self.checkBox_threshold_low_preset.currentText()
+            if key != 'None':
+                self.binary_threshold_low.setValue(preset_value_mapping[key])
+        elif target == 'high':
+            key = self.checkBox_threshold_high_preset.currentText()
+            if key != 'None':
+                self.binary_threshold_high.setValue(preset_value_mapping[key])
 
     def mask_apply(self, target):
         if not self.is_ready():
             return
 
         self.sm.mask_apply(target)
-
         # perform evaluate again so the saxs1d shows the new results;
         if target == 'mask_outlier':
             self.mask_evaluate(target=target)

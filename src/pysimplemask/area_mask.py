@@ -115,11 +115,13 @@ class MaskThreshold(MaskBase):
     def __init__(self, shape=(512, 1024)) -> None:
         super().__init__(shape=shape)
 
-    def evaluate(self,  saxs_log=None, low=0, high=1e8, scale='linear'):
-        if scale == 'linear':
-            low = np.log10(max(1e-12, low))
-            high = np.log10(max(1e-12, high))
-        mask = (saxs_log > low) * (saxs_log < high)
+    def evaluate(self,  saxs_lin=None, low=0, high=1e8, low_enable=True,
+                 high_enable=True):
+        mask = np.ones_like(saxs_lin, dtype=bool)
+        if low_enable:
+            mask = mask * (saxs_lin >= low)
+        if high_enable:
+            mask = mask * (saxs_lin < high)
         mask = np.logical_not(mask)
         self.zero_loc = np.array(np.nonzero(mask))
 
@@ -162,7 +164,7 @@ class MaskArray(MaskBase):
 
 
 class MaskAssemble():
-    def __init__(self, shape=(128, 128), saxs_log=None, qmap=None) -> None:
+    def __init__(self, shape=(128, 128), saxs_lin=None, qmap=None) -> None:
         self.workers = {
             'mask_blemish': MaskFile(shape),
             'mask_file': MaskFile(shape),
@@ -173,9 +175,9 @@ class MaskAssemble():
             'mask_parameter': MaskParameter(shape)
         }
         self.shape = shape
-        self.saxs_log = saxs_log
+        self.saxs_lin = saxs_lin
         self.qmap = qmap
-        self.mask_record = [np.ones_like(saxs_log, dtype=bool)]
+        self.mask_record = [np.ones_like(saxs_lin, dtype=bool)]
         self.mask_ptr = 0
         # 0: no mask; 1: apply the default mask
         self.mask_ptr_min = 0
@@ -232,7 +234,7 @@ class MaskAssemble():
 
     def evaluate(self, target, **kwargs):
         if target == 'mask_threshold':
-            self.workers[target].evaluate(self.saxs_log, **kwargs)
+            self.workers[target].evaluate(self.saxs_lin, **kwargs)
         elif target == 'mask_parameter':
             self.workers[target].evaluate(qmap=self.qmap, **kwargs)
         else:

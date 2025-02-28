@@ -183,7 +183,7 @@ class SimpleMask(object):
         for offset, val in enumerate(self.qmap.values()):
             self.data_raw[6 + offset] = val
 
-        self.mask_kernel = MaskAssemble(self.shape, self.saxs_log)
+        self.mask_kernel = MaskAssemble(self.shape, self.saxs_lin)
         # self.mask_kernel.update_qmap(self.qmap)
         self.extent = self.compute_extent()
 
