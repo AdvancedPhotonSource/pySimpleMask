@@ -29,7 +29,7 @@ class Ui_SimpleMask(object):
     def setupUi(self, SimpleMask):
         if not SimpleMask.objectName():
             SimpleMask.setObjectName(u"SimpleMask")
-        SimpleMask.resize(1418, 660)
+        SimpleMask.resize(1517, 999)
         sizePolicy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -1079,42 +1079,6 @@ class Ui_SimpleMask(object):
         self.tab6.setObjectName(u"tab6")
         self.gridLayout_28 = QGridLayout(self.tab6)
         self.gridLayout_28.setObjectName(u"gridLayout_28")
-        self.comboBox_param_logic = QComboBox(self.tab6)
-        self.comboBox_param_logic.addItem("")
-        self.comboBox_param_logic.addItem("")
-        self.comboBox_param_logic.addItem("")
-        self.comboBox_param_logic.setObjectName(u"comboBox_param_logic")
-
-        self.gridLayout_28.addWidget(self.comboBox_param_logic, 2, 0, 1, 1)
-
-        self.btn_mask_param_add = QPushButton(self.tab6)
-        self.btn_mask_param_add.setObjectName(u"btn_mask_param_add")
-        sizePolicy3.setHeightForWidth(self.btn_mask_param_add.sizePolicy().hasHeightForWidth())
-        self.btn_mask_param_add.setSizePolicy(sizePolicy3)
-
-        self.gridLayout_28.addWidget(self.btn_mask_param_add, 2, 1, 1, 1)
-
-        self.btn_mask_param_delete = QPushButton(self.tab6)
-        self.btn_mask_param_delete.setObjectName(u"btn_mask_param_delete")
-        sizePolicy3.setHeightForWidth(self.btn_mask_param_delete.sizePolicy().hasHeightForWidth())
-        self.btn_mask_param_delete.setSizePolicy(sizePolicy3)
-
-        self.gridLayout_28.addWidget(self.btn_mask_param_delete, 2, 2, 1, 1)
-
-        self.btn_mask_param_evaluate = QPushButton(self.tab6)
-        self.btn_mask_param_evaluate.setObjectName(u"btn_mask_param_evaluate")
-        sizePolicy3.setHeightForWidth(self.btn_mask_param_evaluate.sizePolicy().hasHeightForWidth())
-        self.btn_mask_param_evaluate.setSizePolicy(sizePolicy3)
-
-        self.gridLayout_28.addWidget(self.btn_mask_param_evaluate, 2, 3, 1, 1)
-
-        self.btn_mask_param_apply = QPushButton(self.tab6)
-        self.btn_mask_param_apply.setObjectName(u"btn_mask_param_apply")
-        sizePolicy3.setHeightForWidth(self.btn_mask_param_apply.sizePolicy().hasHeightForWidth())
-        self.btn_mask_param_apply.setSizePolicy(sizePolicy3)
-
-        self.gridLayout_28.addWidget(self.btn_mask_param_apply, 2, 4, 1, 1)
-
         self.tableView = QTableView(self.tab6)
         self.tableView.setObjectName(u"tableView")
         sizePolicy10 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -1123,7 +1087,36 @@ class Ui_SimpleMask(object):
         sizePolicy10.setHeightForWidth(self.tableView.sizePolicy().hasHeightForWidth())
         self.tableView.setSizePolicy(sizePolicy10)
 
-        self.gridLayout_28.addWidget(self.tableView, 1, 0, 1, 5)
+        self.gridLayout_28.addWidget(self.tableView, 2, 0, 1, 5)
+
+        self.comboBox_param_logic = QComboBox(self.tab6)
+        self.comboBox_param_logic.addItem("")
+        self.comboBox_param_logic.addItem("")
+        self.comboBox_param_logic.addItem("")
+        self.comboBox_param_logic.setObjectName(u"comboBox_param_logic")
+
+        self.gridLayout_28.addWidget(self.comboBox_param_logic, 3, 0, 1, 1)
+
+        self.btn_mask_param_evaluate = QPushButton(self.tab6)
+        self.btn_mask_param_evaluate.setObjectName(u"btn_mask_param_evaluate")
+        sizePolicy3.setHeightForWidth(self.btn_mask_param_evaluate.sizePolicy().hasHeightForWidth())
+        self.btn_mask_param_evaluate.setSizePolicy(sizePolicy3)
+
+        self.gridLayout_28.addWidget(self.btn_mask_param_evaluate, 3, 3, 1, 1)
+
+        self.btn_mask_param_apply = QPushButton(self.tab6)
+        self.btn_mask_param_apply.setObjectName(u"btn_mask_param_apply")
+        sizePolicy3.setHeightForWidth(self.btn_mask_param_apply.sizePolicy().hasHeightForWidth())
+        self.btn_mask_param_apply.setSizePolicy(sizePolicy3)
+
+        self.gridLayout_28.addWidget(self.btn_mask_param_apply, 3, 4, 1, 1)
+
+        self.btn_mask_param_delete = QPushButton(self.tab6)
+        self.btn_mask_param_delete.setObjectName(u"btn_mask_param_delete")
+        sizePolicy3.setHeightForWidth(self.btn_mask_param_delete.sizePolicy().hasHeightForWidth())
+        self.btn_mask_param_delete.setSizePolicy(sizePolicy3)
+
+        self.gridLayout_28.addWidget(self.btn_mask_param_delete, 3, 2, 1, 1)
 
         self.horizontalLayout_4 = QHBoxLayout()
         self.horizontalLayout_4.setObjectName(u"horizontalLayout_4")
@@ -1176,6 +1169,18 @@ class Ui_SimpleMask(object):
 
 
         self.gridLayout_28.addLayout(self.horizontalLayout_4, 0, 0, 1, 5)
+
+        self.btn_mask_param_add = QPushButton(self.tab6)
+        self.btn_mask_param_add.setObjectName(u"btn_mask_param_add")
+        sizePolicy3.setHeightForWidth(self.btn_mask_param_add.sizePolicy().hasHeightForWidth())
+        self.btn_mask_param_add.setSizePolicy(sizePolicy3)
+
+        self.gridLayout_28.addWidget(self.btn_mask_param_add, 3, 1, 1, 1)
+
+        self.label_42 = QLabel(self.tab6)
+        self.label_42.setObjectName(u"label_42")
+
+        self.gridLayout_28.addWidget(self.label_42, 1, 0, 1, 5)
 
         self.MaskWidget.addTab(self.tab6, "")
 
@@ -1472,7 +1477,7 @@ class Ui_SimpleMask(object):
         self.mask_list_include.toggled.connect(self.mask_list_variation.setEnabled)
 
         self.tabWidget_2.setCurrentIndex(0)
-        self.MaskWidget.setCurrentIndex(2)
+        self.MaskWidget.setCurrentIndex(5)
         self.tabWidget.setCurrentIndex(0)
 
 
@@ -1633,13 +1638,14 @@ class Ui_SimpleMask(object):
         self.comboBox_param_logic.setItemText(1, QCoreApplication.translate("SimpleMask", u"OR", None))
         self.comboBox_param_logic.setItemText(2, QCoreApplication.translate("SimpleMask", u"NOT", None))
 
-        self.btn_mask_param_add.setText(QCoreApplication.translate("SimpleMask", u"Add", None))
-        self.btn_mask_param_delete.setText(QCoreApplication.translate("SimpleMask", u"Delete", None))
         self.btn_mask_param_evaluate.setText(QCoreApplication.translate("SimpleMask", u"Evaluate", None))
         self.btn_mask_param_apply.setText(QCoreApplication.translate("SimpleMask", u"Apply", None))
+        self.btn_mask_param_delete.setText(QCoreApplication.translate("SimpleMask", u"Delete", None))
         self.label_29.setText(QCoreApplication.translate("SimpleMask", u"map_name", None))
         self.label_param_minval.setText(QCoreApplication.translate("SimpleMask", u"Min:", None))
         self.label_param_maxval.setText(QCoreApplication.translate("SimpleMask", u"Max:", None))
+        self.btn_mask_param_add.setText(QCoreApplication.translate("SimpleMask", u"Add", None))
+        self.label_42.setText(QCoreApplication.translate("SimpleMask", u"Mask_parametrization = [Mask_all_True] [logic_1] [mask_1] ... [logic_n] [mask_n]", None))
         self.MaskWidget.setTabText(self.MaskWidget.indexOf(self.tab6), QCoreApplication.translate("SimpleMask", u"Parametrization", None))
         self.groupBox_5.setTitle(QCoreApplication.translate("SimpleMask", u"Scattering, Mask and Partitions", None))
         self.label_11.setText(QCoreApplication.translate("SimpleMask", u"coordinates:", None))

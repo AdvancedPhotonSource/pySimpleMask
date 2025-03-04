@@ -136,7 +136,7 @@ class MaskParameter(MaskBase):
 
     def evaluate(self, qmap=None, constraints=None):
         mask = np.ones(self.shape, dtype=bool)
-        for xmap_name, unit, vbeg, vend, logic in constraints:
+        for xmap_name, logic, unit, vbeg, vend in constraints:
             xmap = qmap[xmap_name]
             if xmap_name in ['phi', 'chi', 'alpha'] and unit == 'deg':
                 # deal with the periodicity of the angle,

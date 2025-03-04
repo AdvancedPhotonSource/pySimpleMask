@@ -341,6 +341,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.mask_evaluate(target=target)
         elif target == 'mask_list':
             self.mask_list_clear()
+        elif target == 'mask_parameter':
+            self.model.clear()
 
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(1)
@@ -519,7 +521,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.doubleSpinBox_param_vend.setValue(vend)
         logic = self.comboBox_param_logic.currentText()
         unit = self.sm.qmap_unit[xmap_name]
-        self.model.addRow([xmap_name, unit, vbeg, vend, logic])
+        self.model.addRow([xmap_name, logic, unit, vbeg, vend])
     
     def delete_param_constraint(self):
         idx = self.tableView.currentIndex().row()

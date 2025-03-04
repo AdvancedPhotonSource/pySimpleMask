@@ -6,7 +6,7 @@ class XmapConstraintsTableModel(QtCore.QAbstractTableModel):
     def __init__(self, data=None, parent=None):
         super().__init__(parent)
         self._data = data or []  # Renamed from `self.data` to `self._data`
-        self.headers = ('map_name', 'unit', 'val_begin', 'val_end', 'logic')
+        self.headers = ('map_name', 'logic', 'unit', 'val_begin', 'val_end')
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int):
         """Returns the headers for the table."""
@@ -16,7 +16,7 @@ class XmapConstraintsTableModel(QtCore.QAbstractTableModel):
                 if section < len(self.headers):
                     return self.headers[section]
             else:
-                return f"constraint_{section + 1}"
+                return f"mask_{section + 1}"
         return None
 
     def columnCount(self, parent=None):
@@ -69,3 +69,11 @@ class XmapConstraintsTableModel(QtCore.QAbstractTableModel):
                 del self._data[row]  # Remove the row
                 self.endRemoveRows()
                 self.layoutChanged.emit() 
+    
+    def clear(self):
+        """Clears all rows from the model."""
+        if not self._data:
+            return
+        self.beginResetModel()  # Signals views to reset the model
+        self._data.clear()
+        self.endResetModel()  # Notifies views of the change

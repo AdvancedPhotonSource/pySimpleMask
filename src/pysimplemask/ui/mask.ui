@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1418</width>
-    <height>660</height>
+    <width>1517</width>
+    <height>999</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -801,7 +801,7 @@
               </sizepolicy>
              </property>
              <property name="currentIndex">
-              <number>2</number>
+              <number>5</number>
              </property>
              <widget class="QWidget" name="tab_6">
               <attribute name="title">
@@ -1842,7 +1842,17 @@
                <string>Parametrization</string>
               </attribute>
               <layout class="QGridLayout" name="gridLayout_28">
-               <item row="2" column="0">
+               <item row="2" column="0" colspan="5">
+                <widget class="QTableView" name="tableView">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                   <horstretch>0</horstretch>
+                   <verstretch>1</verstretch>
+                  </sizepolicy>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
                 <widget class="QComboBox" name="comboBox_param_logic">
                  <item>
                   <property name="text">
@@ -1861,33 +1871,7 @@
                  </item>
                 </widget>
                </item>
-               <item row="2" column="1">
-                <widget class="QPushButton" name="btn_mask_param_add">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="text">
-                  <string>Add</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="2">
-                <widget class="QPushButton" name="btn_mask_param_delete">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="text">
-                  <string>Delete</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="3">
+               <item row="3" column="3">
                 <widget class="QPushButton" name="btn_mask_param_evaluate">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -1900,7 +1884,7 @@
                  </property>
                 </widget>
                </item>
-               <item row="2" column="4">
+               <item row="3" column="4">
                 <widget class="QPushButton" name="btn_mask_param_apply">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -1913,13 +1897,16 @@
                  </property>
                 </widget>
                </item>
-               <item row="1" column="0" colspan="5">
-                <widget class="QTableView" name="tableView">
+               <item row="3" column="2">
+                <widget class="QPushButton" name="btn_mask_param_delete">
                  <property name="sizePolicy">
-                  <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                    <horstretch>0</horstretch>
-                   <verstretch>1</verstretch>
+                   <verstretch>0</verstretch>
                   </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Delete</string>
                  </property>
                 </widget>
                </item>
@@ -2000,6 +1987,26 @@
                   </widget>
                  </item>
                 </layout>
+               </item>
+               <item row="3" column="1">
+                <widget class="QPushButton" name="btn_mask_param_add">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Add</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0" colspan="5">
+                <widget class="QLabel" name="label_42">
+                 <property name="text">
+                  <string>Mask_parametrization = [Mask_all_True] [logic_1] [mask_1] ... [logic_n] [mask_n]</string>
+                 </property>
+                </widget>
                </item>
               </layout>
              </widget>
