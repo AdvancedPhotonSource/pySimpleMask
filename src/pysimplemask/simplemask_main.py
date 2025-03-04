@@ -543,6 +543,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
 
+        def least_multiple(a: int, b: int) -> int:
+            return ((b + a - 1) // a) * a
+
         if self.tabWidget.currentIndex() == 0:
             kwargs = {
                 'mode': 'q-phi',
@@ -552,6 +555,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 'dp_num': self.sb_dpnum.value(),
                 'phi_offset': self.doubleSpinBox_phi_offset.value(),
                 'style': self.partition_style.currentText(),
+                'symmetry_fold': self.spinBox_symmetry_fold.value()
             }
         elif self.tabWidget.currentIndex() == 1:
             kwargs = {
@@ -561,6 +565,22 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 'dq_num': self.sb_dxnum.value(),
                 'dp_num': self.sb_dynum.value(),
             }
+
+        sq_num = least_multiple(kwargs['dq_num'], kwargs['sq_num'])
+        sp_num = least_multiple(kwargs['dp_num'], kwargs['sp_num'])
+        if sq_num != kwargs['sq_num']:
+            if self.tabWidget.currentIndex() == 0:
+                self.sb_sqnum.setValue(sq_num)
+            else:
+                self.sb_sxnum.setValue(sq_num)
+            kwargs['sq_num'] = sq_num
+        if sp_num != kwargs['sp_num']:
+            if self.tabWidget.currentIndex() == 0:
+                self.sb_spnum.setValue(sp_num)
+            else:
+                self.sb_synum.setValue(sp_num)
+            kwargs['sp_num'] = sp_num
+
         self.btn_compute_qpartition.setDisabled(True)
         self.statusbar.showMessage('Computing partition ... ', 10000)
         self.centralwidget.repaint()
