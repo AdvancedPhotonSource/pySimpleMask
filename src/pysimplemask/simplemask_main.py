@@ -12,6 +12,7 @@ from .simplemask_kernel import SimpleMask
 from PySide6.QtWidgets import QMessageBox
 from PySide6.QtWidgets import QFileDialog, QApplication, QMainWindow, QHeaderView
 from .table_model import XmapConstraintsTableModel
+from . import __version__
 
 
 home_dir = os.path.join(os.path.expanduser('~'), '.simple-mask')
@@ -57,6 +58,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         super(SimpleMaskGUI, self).__init__()
 
         self.setupUi(self)
+        self.setWindowTitle(f"pySimpleMask {__version__}")
         self.btn_load.clicked.connect(self.load)
         self.btn_plot.clicked.connect(self.plot)
         self.btn_compute_qpartition.clicked.connect(self.compute_partition)
