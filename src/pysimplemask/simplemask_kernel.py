@@ -514,7 +514,8 @@ class SimpleMask(object):
     def compute_partition_general(self, map_names=('q', 'phi'),
                                   dq_num=10, sq_num=100, style='linear',
                                   dp_num=36, sp_num=360,
-                                  phi_offset=0.0):
+                                  phi_offset=0.0,
+                                  symmetry_fold=1):
         if self.meta is None or self.data_raw is None:
             return
 
@@ -524,14 +525,18 @@ class SimpleMask(object):
         pack_dq = generate_partition(name0, self.mask, self.qmap[name0],
                                      dq_num, style=style, phi_offset=None)
         pack_dp = generate_partition(name1, self.mask, self.qmap[name1],
-                                     dp_num, style=style, phi_offset=phi_offset)
+                                     dp_num, style=style,
+                                     phi_offset=phi_offset,
+                                     symmetry_fold=symmetry_fold)
         dynamic_map = combine_partitions(pack_dq, pack_dp, prefix='dynamic')
 
         # generate static partition
         pack_sq = generate_partition(name0, self.mask, self.qmap[name0],
                                      sq_num, style=style, phi_offset=None)
         pack_sp = generate_partition(name1, self.mask, self.qmap[name1],
-                                     sp_num, style=style, phi_offset=phi_offset)
+                                     sp_num, style=style,
+                                     phi_offset=phi_offset,
+                                     symmetry_fold=symmetry_fold)
         static_map = combine_partitions(pack_sq, pack_sp, prefix='static')
 
         # dump result to file;

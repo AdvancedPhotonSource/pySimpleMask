@@ -87,11 +87,18 @@ def generate_partition(
     xmap: np.ndarray,
     num_pts: int,
     style: str = 'linear',
-    phi_offset: Union[float, None] = None
+    phi_offset: Union[float, None] = None,
+    symmetry_fold: int = 1,
 ) -> Dict[str, Union[str, int, np.ndarray]]:
     """
     Generates a partition map for X-ray scattering analysis.
     """
+    if map_name == 'phi' and phi_offset is not None:
+        xmap = np.rad2deg(np.angle(np.exp(1j * np.deg2rad(xmap + phi_offset))))
+    if map_name == 'phi' and symmetry_fold > 1:
+        xmap = xmap + 180.0  # [0, 360]
+        xmap = np.mod(xmap, 360.0 / symmetry_fold)
+
     roi = mask > 0
     v_min = np.nanmin(xmap[roi])
     v_max = np.nanmax(xmap[roi])
@@ -110,8 +117,6 @@ def generate_partition(
         v_span = np.linspace(v_min, v_max, num_pts + 1)
         v_list = (v_span[1:] + v_span[:-1]) / 2.0
 
-    if map_name == 'phi' and phi_offset is not None:
-        xmap = np.rad2deg(np.angle(np.exp(1j * np.deg2rad(xmap + phi_offset))))
 
     partition = np.digitize(xmap, v_span).astype(np.uint32) * mask
     partition[partition > num_pts] = 0
@@ -235,6 +240,7 @@ def check_consistency(dqmap: np.ndarray, sqmap: np.ndarray) -> bool:
     for sq_value, dq_value in zip(sq_flat, dq_flat):
         if sq_value in sq_to_dq:
             if sq_to_dq[sq_value] != dq_value:
+                print(sq_value, dq_value)
                 return False  # Inconsistent mapping found
         else:
             sq_to_dq[sq_value] = dq_value
