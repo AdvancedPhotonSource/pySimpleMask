@@ -93,11 +93,14 @@ def generate_partition(
     """
     Generates a partition map for X-ray scattering analysis.
     """
-    if map_name == 'phi' and phi_offset is not None:
-        xmap = np.rad2deg(np.angle(np.exp(1j * np.deg2rad(xmap + phi_offset))))
-    if map_name == 'phi' and symmetry_fold > 1:
-        xmap = xmap + 180.0  # [0, 360]
-        xmap = np.mod(xmap, 360.0 / symmetry_fold)
+    if map_name == 'phi':
+        xmap_phi = xmap.copy()
+        if phi_offset is not None:
+            xmap = np.rad2deg(np.angle(np.exp(1j * np.deg2rad(xmap + phi_offset))))
+        if symmetry_fold > 1:
+            unit_xmap =  (xmap < (360 / symmetry_fold)) * (xmap >= 0)
+            xmap = xmap + 180.0  # [0, 360]
+            xmap = np.mod(xmap, 360.0 / symmetry_fold)
 
     roi = mask > 0
     v_min = np.nanmin(xmap[roi])
@@ -117,11 +120,18 @@ def generate_partition(
         v_span = np.linspace(v_min, v_max, num_pts + 1)
         v_list = (v_span[1:] + v_span[:-1]) / 2.0
 
-
     partition = np.digitize(xmap, v_span).astype(np.uint32) * mask
     partition[partition > num_pts] = 0
     # Ensure the maximum value (excluding unmasked) is assigned to the last bin
     partition[(xmap == v_max) * mask] = num_pts
+
+    if map_name == 'phi' and symmetry_fold > 1:
+        # get the average phi value for each partition, at the first fold
+        idx_map = unit_xmap * partition
+        sum_value = np.bincount(idx_map.flatten(), weights=xmap_phi.flatten()) 
+        norm_factor = np.bincount(idx_map.flatten())
+        v_list = sum_value / np.clip(norm_factor, 1, None)
+        v_list = v_list[1:]
 
     return {'map_name': map_name, 'num_pts': num_pts, 'partition': partition,
             'v_list': v_list}
