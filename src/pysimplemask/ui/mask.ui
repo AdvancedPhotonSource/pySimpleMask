@@ -801,7 +801,7 @@
               </sizepolicy>
              </property>
              <property name="currentIndex">
-              <number>5</number>
+              <number>4</number>
              </property>
              <widget class="QWidget" name="tab_6">
               <attribute name="title">
@@ -1766,30 +1766,6 @@
               <layout class="QGridLayout" name="gridLayout_14">
                <item row="0" column="0">
                 <layout class="QGridLayout" name="gridLayout_13">
-                 <item row="0" column="0">
-                  <widget class="QLabel" name="label_16">
-                   <property name="text">
-                    <string>num. circular ROI:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="1">
-                  <widget class="QSpinBox" name="outlier_num_roi">
-                   <property name="maximum">
-                    <number>2000</number>
-                   </property>
-                   <property name="value">
-                    <number>400</number>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="2">
-                  <widget class="QLabel" name="label_15">
-                   <property name="text">
-                    <string>cutoff (±std):</string>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="0" column="3">
                   <widget class="QDoubleSpinBox" name="outlier_cutoff">
                    <property name="maximum">
@@ -1804,17 +1780,62 @@
                   </widget>
                  </item>
                  <item row="0" column="4">
+                  <widget class="QLabel" name="label_44">
+                   <property name="text">
+                    <string>method</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="label_16">
+                   <property name="text">
+                    <string>num. circular ROI:</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="7">
+                  <widget class="QPushButton" name="btn_mask_outlier_apply">
+                   <property name="text">
+                    <string>Apply</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="6">
                   <widget class="QPushButton" name="btn_mask_outlier_evaluate">
                    <property name="text">
                     <string>Evaluate</string>
                    </property>
                   </widget>
                  </item>
-                 <item row="0" column="5">
-                  <widget class="QPushButton" name="btn_mask_outlier_apply">
+                 <item row="0" column="2">
+                  <widget class="QLabel" name="label_15">
                    <property name="text">
-                    <string>Apply</string>
+                    <string>cutoff (±std):</string>
                    </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="1">
+                  <widget class="QSpinBox" name="outlier_num_roi">
+                   <property name="maximum">
+                    <number>2000</number>
+                   </property>
+                   <property name="value">
+                    <number>400</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="5">
+                  <widget class="QComboBox" name="comboBox_outlier_method">
+                   <item>
+                    <property name="text">
+                     <string>median_absolute_deviation</string>
+                    </property>
+                   </item>
+                   <item>
+                    <property name="text">
+                     <string>percentile</string>
+                    </property>
+                   </item>
                   </widget>
                  </item>
                 </layout>

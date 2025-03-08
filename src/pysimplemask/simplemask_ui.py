@@ -1025,23 +1025,6 @@ class Ui_SimpleMask(object):
         self.gridLayout_14.setObjectName(u"gridLayout_14")
         self.gridLayout_13 = QGridLayout()
         self.gridLayout_13.setObjectName(u"gridLayout_13")
-        self.label_16 = QLabel(self.tab_5)
-        self.label_16.setObjectName(u"label_16")
-
-        self.gridLayout_13.addWidget(self.label_16, 0, 0, 1, 1)
-
-        self.outlier_num_roi = QSpinBox(self.tab_5)
-        self.outlier_num_roi.setObjectName(u"outlier_num_roi")
-        self.outlier_num_roi.setMaximum(2000)
-        self.outlier_num_roi.setValue(400)
-
-        self.gridLayout_13.addWidget(self.outlier_num_roi, 0, 1, 1, 1)
-
-        self.label_15 = QLabel(self.tab_5)
-        self.label_15.setObjectName(u"label_15")
-
-        self.gridLayout_13.addWidget(self.label_15, 0, 2, 1, 1)
-
         self.outlier_cutoff = QDoubleSpinBox(self.tab_5)
         self.outlier_cutoff.setObjectName(u"outlier_cutoff")
         self.outlier_cutoff.setMaximum(999.000000000000000)
@@ -1050,15 +1033,44 @@ class Ui_SimpleMask(object):
 
         self.gridLayout_13.addWidget(self.outlier_cutoff, 0, 3, 1, 1)
 
-        self.btn_mask_outlier_evaluate = QPushButton(self.tab_5)
-        self.btn_mask_outlier_evaluate.setObjectName(u"btn_mask_outlier_evaluate")
+        self.label_44 = QLabel(self.tab_5)
+        self.label_44.setObjectName(u"label_44")
 
-        self.gridLayout_13.addWidget(self.btn_mask_outlier_evaluate, 0, 4, 1, 1)
+        self.gridLayout_13.addWidget(self.label_44, 0, 4, 1, 1)
+
+        self.label_16 = QLabel(self.tab_5)
+        self.label_16.setObjectName(u"label_16")
+
+        self.gridLayout_13.addWidget(self.label_16, 0, 0, 1, 1)
 
         self.btn_mask_outlier_apply = QPushButton(self.tab_5)
         self.btn_mask_outlier_apply.setObjectName(u"btn_mask_outlier_apply")
 
-        self.gridLayout_13.addWidget(self.btn_mask_outlier_apply, 0, 5, 1, 1)
+        self.gridLayout_13.addWidget(self.btn_mask_outlier_apply, 0, 7, 1, 1)
+
+        self.btn_mask_outlier_evaluate = QPushButton(self.tab_5)
+        self.btn_mask_outlier_evaluate.setObjectName(u"btn_mask_outlier_evaluate")
+
+        self.gridLayout_13.addWidget(self.btn_mask_outlier_evaluate, 0, 6, 1, 1)
+
+        self.label_15 = QLabel(self.tab_5)
+        self.label_15.setObjectName(u"label_15")
+
+        self.gridLayout_13.addWidget(self.label_15, 0, 2, 1, 1)
+
+        self.outlier_num_roi = QSpinBox(self.tab_5)
+        self.outlier_num_roi.setObjectName(u"outlier_num_roi")
+        self.outlier_num_roi.setMaximum(2000)
+        self.outlier_num_roi.setValue(400)
+
+        self.gridLayout_13.addWidget(self.outlier_num_roi, 0, 1, 1, 1)
+
+        self.comboBox_outlier_method = QComboBox(self.tab_5)
+        self.comboBox_outlier_method.addItem("")
+        self.comboBox_outlier_method.addItem("")
+        self.comboBox_outlier_method.setObjectName(u"comboBox_outlier_method")
+
+        self.gridLayout_13.addWidget(self.comboBox_outlier_method, 0, 5, 1, 1)
 
 
         self.gridLayout_14.addLayout(self.gridLayout_13, 0, 0, 1, 1)
@@ -1477,7 +1489,7 @@ class Ui_SimpleMask(object):
         self.mask_list_include.toggled.connect(self.mask_list_variation.setEnabled)
 
         self.tabWidget_2.setCurrentIndex(0)
-        self.MaskWidget.setCurrentIndex(5)
+        self.MaskWidget.setCurrentIndex(4)
         self.tabWidget.setCurrentIndex(0)
 
 
@@ -1629,10 +1641,14 @@ class Ui_SimpleMask(object):
         self.label_24.setText(QCoreApplication.translate("SimpleMask", u"Intensity Variation (%):", None))
         self.label_19.setText(QCoreApplication.translate("SimpleMask", u"Radius:", None))
         self.MaskWidget.setTabText(self.MaskWidget.indexOf(self.tab_3), QCoreApplication.translate("SimpleMask", u"Manual", None))
+        self.label_44.setText(QCoreApplication.translate("SimpleMask", u"method", None))
         self.label_16.setText(QCoreApplication.translate("SimpleMask", u"num. circular ROI:", None))
-        self.label_15.setText(QCoreApplication.translate("SimpleMask", u"cutoff (\u00b1std):", None))
-        self.btn_mask_outlier_evaluate.setText(QCoreApplication.translate("SimpleMask", u"Evaluate", None))
         self.btn_mask_outlier_apply.setText(QCoreApplication.translate("SimpleMask", u"Apply", None))
+        self.btn_mask_outlier_evaluate.setText(QCoreApplication.translate("SimpleMask", u"Evaluate", None))
+        self.label_15.setText(QCoreApplication.translate("SimpleMask", u"cutoff (\u00b1std):", None))
+        self.comboBox_outlier_method.setItemText(0, QCoreApplication.translate("SimpleMask", u"median_absolute_deviation", None))
+        self.comboBox_outlier_method.setItemText(1, QCoreApplication.translate("SimpleMask", u"percentile", None))
+
         self.MaskWidget.setTabText(self.MaskWidget.indexOf(self.tab_5), QCoreApplication.translate("SimpleMask", u"Outlier", None))
         self.comboBox_param_logic.setItemText(0, QCoreApplication.translate("SimpleMask", u"AND", None))
         self.comboBox_param_logic.setItemText(1, QCoreApplication.translate("SimpleMask", u"OR", None))

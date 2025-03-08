@@ -10,13 +10,13 @@ import logging
 import time
 from .utils import (hash_numpy_dict, optimize_integer_array,
                     generate_partition, combine_partitions, check_consistency)
+from .outlier_removal import outlier_removal_with_saxs
 
 
 pg.setConfigOptions(imageAxisOrder='row-major')
 
 
 logger = logging.getLogger(__name__)
-
 
 
 class SimpleMask(object):
@@ -305,10 +305,6 @@ class SimpleMask(object):
         else:
             self.data_raw[0] = self.saxs_log
 
-        # if invert:
-        #     temp = np.max(self.data[0]) - self.data[0]
-        #     self.data[0] = temp
-
         self.hdl.setImage(self.data_raw)
         self.hdl.adjust_viewbox()
         self.hdl.set_colormap(cmap)
@@ -447,57 +443,17 @@ class SimpleMask(object):
     def remove_roi(self, roi_key):
         self.hdl.remove_item(roi_key)
 
-    def compute_saxs1d(self, cutoff=3.0, episilon=1e-16, num=180):
+    def compute_saxs1d(self, method='percentile', cutoff=3.0, num=180):
+        t0 = time.perf_counter()
         saxs_pack = generate_partition('q', self.mask, self.qmap['q'], num,
                                        style='linear')
         qlist, partition = saxs_pack['v_list'], saxs_pack['partition']
-
-        self.data_raw[5] = partition
-        num_q = qlist.size
-        saxs1d = np.zeros((5, num_q), dtype=np.float64)
-
-        rows = []
-        cols = []
-
-        for n in range(num_q):
-            roi = (partition == n + 1)
-            if np.sum(roi) == 0:
-                continue
-            idx = np.nonzero(roi)
-            values = self.saxs_lin[idx]
-
-            x0 = np.percentile(values, 5)
-            x1 = np.percentile(values, 95)
-
-            val_min, val_max = np.min(values), np.max(values)
-            # make sure the edge case works when x0 == x1;
-            if x0 == x1:
-                x0 = val_min - episilon
-                x1 = val_max + episilon
-
-            val_roi = values[(values >= x0) * (values <= x1)]
-            avg = np.mean(val_roi)
-            std = np.std(val_roi)
-            avg_raw = np.mean(values)
-            # the median value cannot be used for xpcs at high angles; because
-            # the number is likely to be zero
-
-            saxs1d[:, n] = np.array([qlist[n],
-                                     avg,                   # avg reference
-                                     avg + cutoff * std,    # threshold
-                                     val_max,               # max value in roi
-                                     avg_raw])              # avg raw
-
-            bad_pixel = np.abs(values - avg) >= cutoff * std
-            rows.append(idx[0][bad_pixel])
-            cols.append(idx[1][bad_pixel])
-
-        saxs1d = saxs1d[:, saxs1d[1] > 0]
-
-        rows = np.hstack(rows)
-        cols = np.hstack(cols)
-        zero_loc = np.vstack([rows, cols])
-
+        saxs1d, zero_loc = outlier_removal_with_saxs(qlist, partition,
+                                                     self.saxs_lin,
+                                                     method=method,
+                                                     cutoff=cutoff)
+        t1 = time.perf_counter()
+        logger.info("outlier removal with azimuthal average finished in %f seconds" %(t1 - t0))
         return saxs1d, zero_loc
 
     def compute_partition(self, mode='q-phi', **kwargs):

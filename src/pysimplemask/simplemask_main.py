@@ -15,16 +15,12 @@ from .table_model import XmapConstraintsTableModel
 from . import __version__
 
 
-home_dir = os.path.join(os.path.expanduser('~'), '.simple-mask')
+home_dir = os.path.join(os.path.expanduser('~'), '.pysimplemask')
 if not os.path.isdir(home_dir):
     os.mkdir(home_dir)
-log_filename = os.path.join(home_dir, 'simple-mask.log')
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(name)-24s: %(message)s',
-                    handlers=[
-                        logging.FileHandler(log_filename, mode='a'),
-                        logging.StreamHandler()
-                    ])
+                    handlers=[logging.StreamHandler()])
 
 logger = logging.getLogger(__name__)
 
@@ -288,16 +284,18 @@ class SimpleMaskGUI(QMainWindow, Ui):
         elif target == 'mask_outlier':
             num = self.outlier_num_roi.value()
             cutoff = self.outlier_cutoff.value()
-            # iterations = self.outlier_iterations.value()
-            saxs1d, zero_loc = self.sm.compute_saxs1d(num=num, cutoff=cutoff)
-
+            method = self.comboBox_outlier_method.currentText()
+            method = {'percentile': 'percentile',
+                      'median_absolute_deviation': 'mad'}[method]
+            saxs1d, zero_loc = self.sm.compute_saxs1d(num=num, cutoff=cutoff,
+                                                      method=method)
             self.mask_outlier_hdl.clear()
             p = self.mask_outlier_hdl
             p.addLegend()
             p.plot(saxs1d[0], saxs1d[1], name='average_ref',
                    pen=pg.mkPen(color='g', width=2))
-            p.plot(saxs1d[0], saxs1d[4], name='average_raw',
-                   pen=pg.mkPen(color='m', width=2))
+            # p.plot(saxs1d[0], saxs1d[4], name='average_raw',
+            #        pen=pg.mkPen(color='m', width=2))
             p.plot(saxs1d[0], saxs1d[2], name='cutoff',
                    pen=pg.mkPen(color='b', width=2))
             p.plot(saxs1d[0], saxs1d[3], name='maximum value',
