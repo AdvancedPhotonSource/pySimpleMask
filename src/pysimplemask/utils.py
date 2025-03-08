@@ -256,3 +256,132 @@ def check_consistency(dqmap: np.ndarray, sqmap: np.ndarray) -> bool:
             sq_to_dq[sq_value] = dq_value
 
     return True
+
+
+def outlier_removal_with_saxs_percentile(
+    qlist,
+    partition,
+    saxs_lin,
+    cutoff=3.0,
+    epsilon=1e-16,
+    percentile=(5, 95)
+):
+    """
+    Removes outliers for each region in 'partition' based on a percentile filter 
+    and a standard-deviation cutoff. Returns a 'saxs1d' array with columns:
+        [q-value, mean_clipped, threshold, max_val, mean_raw]
+    and an array of 'bad_pixel_all' indices for outliers.
+
+    Parameters
+    ----------
+    qlist : 1D array
+        The q-values that correspond to each region label (1..N).
+    partition : 2D (or ND) array of integers
+        The same shape as `saxs_lin`. Each element is an integer region label.
+        Labels should range from 0..N, with 0 indicating "ignore".
+    saxs_lin : 2D (or ND) array
+        Same shape as `partition`. Holds the intensity or SAXS values.
+    cutoff : float, optional
+        Multiplier of std dev. Points with |value - mean| >= cutoff*std
+        are considered outliers. Default is 3.0.
+    epsilon : float, optional
+        A small number to shift min/max if percentile range collapses 
+        (i.e., if x0 == x1). Default is 1e-16.
+    percentile : tuple of floats, optional
+        The lower/upper percentile bounds used to clip extreme values 
+        before computing mean/stdev. Default is (5, 95).
+
+    Returns
+    -------
+    saxs1d : 2D array of shape (5, K)
+        Rows:
+            0. qlist[n]
+            1. average of clipped values
+            2. threshold (avg_clipped + cutoff * std_clipped)
+            3. max value in the region
+            4. average of all raw values in the region (no clipping)
+        The array is filtered to remove columns where the clipped average <= 0.
+    bad_pixel_all : 2 x M array of integer indices
+        Each column is the (row_index, col_index) of one outlier pixel 
+        in `saxs_lin`.
+    """
+
+    num_q = qlist.size
+    
+    # We'll store these 5 metrics for each region:
+    #   [q_value, mean_clipped, threshold, max_val, mean_raw]
+    # We'll remove columns later if mean_clipped <= 0
+    saxs1d = np.zeros((5, num_q), dtype=np.float64)
+    
+    bad_pixel_all = []
+    for n in range(num_q):
+        # Partition labels are assumed 1..num_q, so region = n+1
+        roi = (partition == n + 1)
+
+        if not np.any(roi):
+            # No pixels in this region, skip
+            continue
+
+        idx_2d = np.nonzero(roi)         # idx_2d is a tuple (row_idxs, col_idxs)
+        values = saxs_lin[idx_2d]        # Extract the pixel values for this region
+
+        # Clip extremes in this region based on the given percentiles
+        x0, x1 = np.percentile(values, percentile)
+        val_min, val_max = np.min(values), np.max(values)
+
+        # Guard against the edge case x0 == x1
+        if x0 == x1:
+            x0 = val_min - epsilon
+            x1 = val_max + epsilon
+
+        # val_roi is the subset of values inside [x0, x1]
+        val_roi = values[(values >= x0) & (values <= x1)]
+
+        if val_roi.size == 0:
+            # If everything was outside those percentiles (extremely rare), skip
+            continue
+
+        avg_clipped = np.mean(val_roi)
+        std_clipped = np.std(val_roi)
+
+        # If std_clipped is extremely small, outlier detection won't make sense
+        # We can either skip or do something special. Here we skip.
+        if std_clipped < epsilon:
+            continue
+
+        avg_raw = np.mean(values)
+
+        # Fill in the 5 metrics for this region
+        threshold_val = avg_clipped + cutoff * std_clipped
+        saxs1d[:, n] = np.array([qlist[n],
+                                 avg_clipped,
+                                 threshold_val,
+                                 val_max,
+                                 avg_raw])
+
+        # Identify outliers in the original region (no percentile clipping)
+        # Outlier if |value - avg_clipped| >= cutoff * std_clipped
+        outlier_mask = np.abs(values - avg_clipped) >= (cutoff * std_clipped)
+
+        # Gather their indices
+        # shape of idx_2d is (2, #pixels_in_region), so we select the columns 
+        # where outlier_mask == True
+        bad_pixel_roi = np.array(idx_2d)[:, outlier_mask]
+
+        if bad_pixel_roi.size > 0:
+            bad_pixel_all.append(bad_pixel_roi)
+
+    # Filter out columns where the clipped average <= 0
+    # (based on your existing condition `saxs1d[1] > 0`)
+    valid_cols = saxs1d[1] > 0
+    saxs1d = saxs1d[:, valid_cols]
+
+    # Combine all outlier coordinates
+    if len(bad_pixel_all) > 0:
+        # Each element is shape (2, K_i), so we can concatenate along axis=1
+        bad_pixel_all = np.hstack(bad_pixel_all)
+    else:
+        # No outliers found
+        bad_pixel_all = np.empty((2, 0), dtype=int)
+
+    return saxs1d, bad_pixel_all
