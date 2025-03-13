@@ -186,15 +186,17 @@ class MaskAssemble():
         self.qmap = qmap_all
     
     def apply_default_mask(self,
-                           default_blemish_path="~/Documents/Miaoqi/areaDetectorBlemish"):
+                           default_blemish_path="~/Documents/areaDetectorBlemish"):
         basename = os.path.expanduser(default_blemish_path)
 
         if tuple(self.shape) == (1813, 1558):
-            fname = os.path.join(basename, 'lambda2M_latest_blemish')
+            fname = os.path.join(basename, '8idLambda2m/latest_blemish.tif')
         elif tuple(self.shape) == (2162, 2068):
-            fname = os.path.join(basename, 'eiger4M_latest_blemish')
+            fname = os.path.join(basename, '8idEiger4m/latest_blemish.tif')
         elif tuple(self.shape) == (1676, 2100):
-            fname = os.path.join(basename, 'rigaku3M_latest_blemish')
+            fname = os.path.join(basename, '8idRigaku3m/latest_blemish.tif')
+        elif tuple(self.shape) == (4362, 4148):
+            fname = os.path.join(basename, '9idEiger16m/latest_blemish.tif')
         else:
             logger.warning('detector shape/type not supported')
             self.mask_ptr_min = 0
@@ -202,18 +204,16 @@ class MaskAssemble():
 
         if os.path.isfile(fname):  # returns True for symbolic links too
             realpath = os.path.realpath(fname)
-            logger.info(f'apply default blemish {realpath}')
-            ext = os.path.splitext(realpath)[-1]
-            if ext in ('.tif', '.tiff'):
-                self.evaluate('mask_blemish', fname=realpath)
-            elif ext in ('.h5', '.hdf5', '.hdf'):
-                self.evaluate('mask_blemish', fname=realpath, key='/data/mask')
-            else:
+            logger.info(f'apply blemish: {realpath}')
+            # default blemish is tif format with lzw compression
+            try:
+                self.evaluate('mask_blemish', fname=fname)
+                self.apply('mask_blemish')
+                self.mask_ptr_min = 1
+            except:
                 logger.warning(f'default blemish {fname} not supported')
                 self.mask_ptr_min = 0
                 return self.get_mask()
-            self.apply('mask_blemish')
-            self.mask_ptr_min = 1
         else:
             logger.warning(f'default blemish {fname} not found')
         return self.get_mask()
