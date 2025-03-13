@@ -36,7 +36,8 @@ dependencies = [
     "matplotlib",
     "pyqtgraph",
     "PySide6",
-    "astropy"
+    "astropy",
+    "imagecodecs"
 ]
 
 [project.optional-dependencies]
