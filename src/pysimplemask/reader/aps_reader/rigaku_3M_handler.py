@@ -1,10 +1,9 @@
 import numpy as np
-from scipy.sparse import coo_matrix
 import logging
 from .xpcs_dataset import XpcsDataset
 from .rigaku_handler import RigakuDataset
-import glob
 import os
+import struct
 
 
 logger = logging.getLogger(__name__)
@@ -13,12 +12,40 @@ logger = logging.getLogger(__name__)
 def convert_sparse(a):
     output = np.zeros(shape=(3, a.size), dtype=np.uint32)
     # index
-    output[0] = ((a >> 16) & (2 ** 21 - 1)).astype(np.uint32)
+    output[0] = ((a >> 16) & (2**21 - 1)).astype(np.uint32)
     # frame
     output[1] = (a >> 40).astype(np.uint32)
     # count
-    output[2] = (a & (2 ** 12 - 1)).astype(np.uint8)
+    output[2] = (a & (2**12 - 1)).astype(np.uint8)
     return output
+
+
+def get_number_of_frames_from_binfile(filepath, endianness="<"):
+    """Reads the last 8 bytes of a binary file and converts them to a NumPy uint64.
+    Args:
+        filepath: The path to the binary file.
+        endianness:  '>' for big-endian, '<' for little-endian. Defaults to big-endian.
+    Returns:
+        Number of frames for a Rigaku binary file
+    """
+    file_size = os.path.getsize(filepath)
+    if file_size < 8:
+        raise ValueError(
+            "File size is less than 8 bytes. Cannot read the last 8 bytes."
+        )
+
+    with open(filepath, "rb") as f:
+        f.seek(file_size - 8)
+        last_8_bytes = f.read(8)
+
+    format_string = endianness + "Q"  # Q for unsigned long long (8 bytes)
+    value = struct.unpack(format_string, last_8_bytes)[0]
+    # Convert to NumPy uint64.  This is important for consistent type handling!
+    uint64_value = np.array(np.uint64(value)).reshape(1)
+    # number of frames is the second element of the output of convert_sparse
+    # add 1 to get the number of frames out of zero-indexing
+    number_frames = int(convert_sparse(uint64_value)[1] + 1)
+    return number_frames
 
 
 class Rigaku3MDataset(XpcsDataset):
@@ -28,8 +55,8 @@ class Rigaku3MDataset(XpcsDataset):
     filename: string
         path to Rigaku3M binary.000 file
     """
-    def __init__(self, *args, dtype=np.uint8, gap=(70, 52), layout=(3, 2),
-                 **kwargs):
+
+    def __init__(self, *args, dtype=np.uint8, gap=(70, 52), layout=(3, 2), **kwargs):
         super(Rigaku3MDataset, self).__init__(*args, dtype=dtype, **kwargs)
         self.dataset_type = "Rigaku 64bit Binary"
         self.is_sparse = True
@@ -38,23 +65,39 @@ class Rigaku3MDataset(XpcsDataset):
         self.gap = gap
         self.layout = layout
         self.update_info()
-    
+
     def get_modules(self, dtype, **kwargs):
         # this is the order for the 6 modules
         index_list = (5, 0, 4, 1, 3, 2)
-        flist = [self.fname[:-3] + f'00{n}' for n in index_list]
+        flist = [self.fname[:-3] + f"00{n}" for n in index_list]
         for f in flist:
             assert os.path.isfile(f)
+
+        total_frames = [get_number_of_frames_from_binfile(f) for f in flist]
+        for n, f in enumerate(flist):
+            logger.info(f"{f}: {total_frames[n]}")
+        total_frames = max(total_frames)
+
+        kwargs.pop("mask_crop", None)
+        return [
+            RigakuDataset(
+                f, dtype=dtype, mask_crop=None, total_frames=total_frames, **kwargs
+            )
+            for f in flist
+        ]
         return [RigakuDataset(f, dtype=dtype, **kwargs) for f in flist]
-    
+
     def update_info(self):
         frame_num = [x.frame_num for x in self.container]
-        assert len(list(set(frame_num))) == 1, 'check frame numbers'
+        assert len(list(set(frame_num))) == 1, "check frame numbers"
         self.update_batch_info(frame_num[0])
-        shape_one = self.container[0].det_size 
-        shape = [shape_one[n] * self.layout[n] + self.gap[n] * (self.layout[n] - 1) for n in range(2)]
+        shape_one = self.container[0].det_size
+        shape = [
+            shape_one[n] * self.layout[n] + self.gap[n] * (self.layout[n] - 1)
+            for n in range(2)
+        ]
         self.det_size = shape
-    
+
     def patch_data(self, scat_list):
         gap = self.gap
         layout = self.layout
@@ -72,12 +115,13 @@ class Rigaku3MDataset(XpcsDataset):
                 sl_h = slice(st_h, st_h + shape_one[1])
                 canvas[sl_v, sl_h] = scat_list[row * layout[1] + col]
         return canvas
-    
+
     def get_scattering(self, num_frames=-1, begin_idx=0):
         scat_list = []
         for module in self.container:
-            scat_list.append(module.get_scattering(num_frames=num_frames,
-                                                   begin_idx=begin_idx))
+            scat_list.append(
+                module.get_scattering(num_frames=num_frames, begin_idx=begin_idx)
+            )
         saxs = self.patch_data(scat_list)
         return saxs
 
@@ -104,5 +148,5 @@ def test():
     ds = RigakuDataset(fname)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test()
