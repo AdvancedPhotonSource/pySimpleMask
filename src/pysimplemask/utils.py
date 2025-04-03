@@ -24,8 +24,11 @@ def hash_numpy_dict(input_dictionary):
         if isinstance(value, np.ndarray):
             # Ensure consistent dtype & memory layout
             value = np.ascontiguousarray(value)
-            hasher.update(value.astype(value.dtype.newbyteorder('='))  # Force consistent endianness
-                         .tobytes())
+            hasher.update(
+                value.astype(
+                    value.dtype.newbyteorder("=")
+                ).tobytes()  # Force consistent endianness
+            )
 
         elif isinstance(value, list):
             # Convert list of strings to JSON for consistent encoding
@@ -86,19 +89,19 @@ def generate_partition(
     mask: np.ndarray,
     xmap: np.ndarray,
     num_pts: int,
-    style: str = 'linear',
+    style: str = "linear",
     phi_offset: Union[float, None] = None,
     symmetry_fold: int = 1,
 ) -> Dict[str, Union[str, int, np.ndarray]]:
     """
     Generates a partition map for X-ray scattering analysis.
     """
-    if map_name == 'phi':
+    if map_name == "phi":
         xmap_phi = xmap.copy()
         if phi_offset is not None:
             xmap = np.rad2deg(np.angle(np.exp(1j * np.deg2rad(xmap + phi_offset))))
         if symmetry_fold > 1:
-            unit_xmap =  (xmap < (360 / symmetry_fold)) * (xmap >= 0)
+            unit_xmap = (xmap < (360 / symmetry_fold)) * (xmap >= 0)
             xmap = xmap + 180.0  # [0, 360]
             xmap = np.mod(xmap, 360.0 / symmetry_fold)
 
@@ -106,15 +109,16 @@ def generate_partition(
     v_min = np.nanmin(xmap[roi])
     v_max = np.nanmax(xmap[roi])
 
-    if map_name == 'q' and style == 'logarithmic':
+    if map_name == "q" and style == "logarithmic":
         mask = mask * (xmap > 0)
         valid_xmap = xmap[mask > 0]
         if valid_xmap.size == 0 or np.all(np.isnan(valid_xmap)):
-            raise ValueError("Invalid `xmap` values for logarithmic binning. All values are non-positive.")
+            raise ValueError(
+                "Invalid `xmap` values for logarithmic binning. All values are non-positive."
+            )
         v_min = np.nanmin(valid_xmap)
         xmap = np.where(xmap > 0, xmap, np.nan)  # Avoid modifying input
-        v_span = np.logspace(np.log10(v_min), np.log10(v_max), num_pts + 1,
-                             base=10)
+        v_span = np.logspace(np.log10(v_min), np.log10(v_max), num_pts + 1, base=10)
         v_list = np.sqrt(v_span[1:] * v_span[:-1])
     else:
         v_span = np.linspace(v_min, v_max, num_pts + 1)
@@ -125,22 +129,26 @@ def generate_partition(
     # Ensure the maximum value (excluding unmasked) is assigned to the last bin
     partition[(xmap == v_max) * mask] = num_pts
 
-    if map_name == 'phi' and symmetry_fold > 1:
+    if map_name == "phi" and symmetry_fold > 1:
         # get the average phi value for each partition, at the first fold
         idx_map = unit_xmap * partition
-        sum_value = np.bincount(idx_map.flatten(), weights=xmap_phi.flatten()) 
+        sum_value = np.bincount(idx_map.flatten(), weights=xmap_phi.flatten())
         norm_factor = np.bincount(idx_map.flatten())
         v_list = sum_value / np.clip(norm_factor, 1, None)
         v_list = v_list[1:]
 
-    return {'map_name': map_name, 'num_pts': num_pts, 'partition': partition,
-            'v_list': v_list}
+    return {
+        "map_name": map_name,
+        "num_pts": num_pts,
+        "partition": partition,
+        "v_list": v_list,
+    }
 
 
 def combine_partitions(
     pack1: Dict[str, Union[str, int, np.ndarray]],
     pack2: Dict[str, Union[str, int, np.ndarray]],
-    prefix: str = 'dynamic'
+    prefix: str = "dynamic",
 ) -> Dict[str, Union[list, np.ndarray]]:
     """
     Combines two partition maps into a single partition space.
@@ -187,33 +195,47 @@ def combine_partitions(
         - ('q', 'phi')
         - ('x', 'y')
     """
-    assert (pack1['map_name'], pack2['map_name']) in [('q', 'phi'), ('x', 'y')], \
-        "Invalid partition pair. Allowed pairs: ('q', 'phi') or ('x', 'y')"
+    assert (pack1["map_name"], pack2["map_name"]) in [
+        ("q", "phi"),
+        ("x", "y"),
+    ], "Invalid partition pair. Allowed pairs: ('q', 'phi') or ('x', 'y')"
 
     # Convert partitions to zero-based indexing, then merge
-    partition = (pack1['partition'].astype(np.int64) - 1) * pack2['num_pts'] + \
-                (pack2['partition'].astype(np.int64) - 1) + 1  # Convert back to one-based
+    partition = (
+        (pack1["partition"].astype(np.int64) - 1) * pack2["num_pts"]
+        + (pack2["partition"].astype(np.int64) - 1)
+        + 1
+    )  # Convert back to one-based
 
     # Ensure valid range
     partition = np.clip(partition, a_min=0, a_max=None).astype(np.uint32)
 
+    # some qmap may not have any bad pixels, so the partition may start from 1
+    start_index = np.min(partition)
     # Get unique values and remap indices
     unique_idx, inverse = np.unique(partition, return_inverse=True)
     partition_natural_order = inverse.reshape(partition.shape).astype(np.uint32)
 
+    # if start_index is 0, then the partition_natural_order is already correct
+    # otherwise, we need to shift the partition_natural_order by 1, so that the
+    # first index is 0. otherwise the first index will be 0, which marks this
+    # partition as bad pixels.
+    if start_index > 0:
+        partition_natural_order += 1
+
     # Construct output dictionary with correct prefix
     partition_pack = {
-        f'{prefix}_num_pts': [pack1['num_pts'], pack2['num_pts']],
-        f'{prefix}_roi_map': partition_natural_order,
-        f'{prefix}_v_list_dim0': pack1['v_list'],
-        f'{prefix}_v_list_dim1': pack2['v_list'],
-        f'{prefix}_index_mapping': unique_idx[unique_idx >= 1] - 1,
+        f"{prefix}_num_pts": [pack1["num_pts"], pack2["num_pts"]],
+        f"{prefix}_roi_map": partition_natural_order,
+        f"{prefix}_v_list_dim0": pack1["v_list"],
+        f"{prefix}_v_list_dim1": pack2["v_list"],
+        f"{prefix}_index_mapping": unique_idx[unique_idx >= 1] - 1,
     }
 
     return partition_pack
 
 
-def check_consistency(dqmap: np.ndarray, sqmap: np.ndarray) -> bool:
+def check_consistency(dqmap: np.ndarray, sqmap: np.ndarray, mask: np.ndarray) -> bool:
     """
     Check the consistency of dqmap and sqmap efficiently.
 
@@ -225,6 +247,8 @@ def check_consistency(dqmap: np.ndarray, sqmap: np.ndarray) -> bool:
         A 2D NumPy array representing the dqmap.
     sqmap : np.ndarray
         A 2D NumPy array representing the sqmap.
+    mask : np.ndarray
+        A 2D NumPy array representing the mask.
 
     Returns
     -------
@@ -239,6 +263,15 @@ def check_consistency(dqmap: np.ndarray, sqmap: np.ndarray) -> bool:
     """
     if dqmap.shape != sqmap.shape:
         raise ValueError("dqmap and sqmap must have the same shape")
+    if dqmap.shape != mask.shape:
+        raise ValueError("dqmap and mask must have the same shape")
+
+    assert np.all(
+        (mask > 0) == (dqmap > 0)
+    ), "mask and dqmap must have the same valid pixels"
+    assert np.all(
+        (mask > 0) == (sqmap > 0)
+    ), "mask and sqmap must have the same valid pixels"
 
     # Flatten arrays for efficient processing
     sq_flat = sqmap.ravel()
@@ -256,4 +289,3 @@ def check_consistency(dqmap: np.ndarray, sqmap: np.ndarray) -> bool:
             sq_to_dq[sq_value] = dq_value
 
     return True
-
