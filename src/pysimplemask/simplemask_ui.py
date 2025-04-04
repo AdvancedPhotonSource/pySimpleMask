@@ -1349,11 +1349,6 @@ class Ui_SimpleMask(object):
 
         self.gridLayout_6.addWidget(self.sb_dpnum, 1, 4, 2, 1)
 
-        self.btn_compute_qpartition = QPushButton(self.tab_9)
-        self.btn_compute_qpartition.setObjectName(u"btn_compute_qpartition")
-
-        self.gridLayout_6.addWidget(self.btn_compute_qpartition, 0, 7, 1, 2)
-
         self.label_41 = QLabel(self.tab_9)
         self.label_41.setObjectName(u"label_41")
 
@@ -1366,6 +1361,11 @@ class Ui_SimpleMask(object):
 
         self.gridLayout_6.addWidget(self.spinBox_symmetry_fold, 1, 8, 2, 1)
 
+        self.btn_compute_qpartition = QPushButton(self.tab_9)
+        self.btn_compute_qpartition.setObjectName(u"btn_compute_qpartition")
+
+        self.gridLayout_6.addWidget(self.btn_compute_qpartition, 0, 7, 1, 2)
+
 
         self.gridLayout_32.addLayout(self.gridLayout_6, 0, 0, 1, 1)
 
@@ -1376,10 +1376,13 @@ class Ui_SimpleMask(object):
         self.gridLayout_34.setObjectName(u"gridLayout_34")
         self.gridLayout_33 = QGridLayout()
         self.gridLayout_33.setObjectName(u"gridLayout_33")
-        self.label_36 = QLabel(self.tab_10)
-        self.label_36.setObjectName(u"label_36")
+        self.sb_dynum = QSpinBox(self.tab_10)
+        self.sb_dynum.setObjectName(u"sb_dynum")
+        self.sb_dynum.setMinimum(1)
+        self.sb_dynum.setMaximum(999)
+        self.sb_dynum.setValue(1)
 
-        self.gridLayout_33.addWidget(self.label_36, 1, 3, 1, 1)
+        self.gridLayout_33.addWidget(self.sb_dynum, 1, 4, 1, 1)
 
         self.sb_synum = QSpinBox(self.tab_10)
         self.sb_synum.setObjectName(u"sb_synum")
@@ -1389,6 +1392,11 @@ class Ui_SimpleMask(object):
 
         self.gridLayout_33.addWidget(self.sb_synum, 1, 2, 1, 1)
 
+        self.label_34 = QLabel(self.tab_10)
+        self.label_34.setObjectName(u"label_34")
+
+        self.gridLayout_33.addWidget(self.label_34, 0, 1, 1, 1)
+
         self.sb_dxnum = QSpinBox(self.tab_10)
         self.sb_dxnum.setObjectName(u"sb_dxnum")
         self.sb_dxnum.setMinimum(1)
@@ -1396,19 +1404,6 @@ class Ui_SimpleMask(object):
         self.sb_dxnum.setValue(1)
 
         self.gridLayout_33.addWidget(self.sb_dxnum, 0, 4, 1, 1)
-
-        self.sb_dynum = QSpinBox(self.tab_10)
-        self.sb_dynum.setObjectName(u"sb_dynum")
-        self.sb_dynum.setMinimum(1)
-        self.sb_dynum.setMaximum(999)
-        self.sb_dynum.setValue(1)
-
-        self.gridLayout_33.addWidget(self.sb_dynum, 1, 4, 1, 1)
-
-        self.label_37 = QLabel(self.tab_10)
-        self.label_37.setObjectName(u"label_37")
-
-        self.gridLayout_33.addWidget(self.label_37, 0, 3, 1, 1)
 
         self.sb_sxnum = QSpinBox(self.tab_10)
         self.sb_sxnum.setObjectName(u"sb_sxnum")
@@ -1423,10 +1418,20 @@ class Ui_SimpleMask(object):
 
         self.gridLayout_33.addWidget(self.label_38, 1, 1, 1, 1)
 
-        self.label_34 = QLabel(self.tab_10)
-        self.label_34.setObjectName(u"label_34")
+        self.label_37 = QLabel(self.tab_10)
+        self.label_37.setObjectName(u"label_37")
 
-        self.gridLayout_33.addWidget(self.label_34, 0, 1, 1, 1)
+        self.gridLayout_33.addWidget(self.label_37, 0, 3, 1, 1)
+
+        self.label_36 = QLabel(self.tab_10)
+        self.label_36.setObjectName(u"label_36")
+
+        self.gridLayout_33.addWidget(self.label_36, 1, 3, 1, 1)
+
+        self.btn_compute_qpartition2 = QPushButton(self.tab_10)
+        self.btn_compute_qpartition2.setObjectName(u"btn_compute_qpartition2")
+
+        self.gridLayout_33.addWidget(self.btn_compute_qpartition2, 1, 5, 1, 1)
 
 
         self.gridLayout_34.addLayout(self.gridLayout_33, 0, 0, 1, 1)
@@ -1490,7 +1495,7 @@ class Ui_SimpleMask(object):
 
         self.tabWidget_2.setCurrentIndex(0)
         self.MaskWidget.setCurrentIndex(4)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(SimpleMask)
@@ -1682,13 +1687,14 @@ class Ui_SimpleMask(object):
         self.label_12.setText(QCoreApplication.translate("SimpleMask", u"static phi partition:", None))
         self.label_10.setText(QCoreApplication.translate("SimpleMask", u"dynamic q partition:", None))
         self.label_20.setText(QCoreApplication.translate("SimpleMask", u"q-style:", None))
-        self.btn_compute_qpartition.setText(QCoreApplication.translate("SimpleMask", u"compute", None))
         self.label_41.setText(QCoreApplication.translate("SimpleMask", u"symmetry", None))
+        self.btn_compute_qpartition.setText(QCoreApplication.translate("SimpleMask", u"compute", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_9), QCoreApplication.translate("SimpleMask", u"q-phi", None))
-        self.label_36.setText(QCoreApplication.translate("SimpleMask", u"dynamic y:", None))
-        self.label_37.setText(QCoreApplication.translate("SimpleMask", u"dynamic x:", None))
-        self.label_38.setText(QCoreApplication.translate("SimpleMask", u"static y:", None))
         self.label_34.setText(QCoreApplication.translate("SimpleMask", u"static x:", None))
+        self.label_38.setText(QCoreApplication.translate("SimpleMask", u"static y:", None))
+        self.label_37.setText(QCoreApplication.translate("SimpleMask", u"dynamic x:", None))
+        self.label_36.setText(QCoreApplication.translate("SimpleMask", u"dynamic y:", None))
+        self.btn_compute_qpartition2.setText(QCoreApplication.translate("SimpleMask", u"compute", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_10), QCoreApplication.translate("SimpleMask", u"xy-mesh", None))
         self.groupBox_6.setTitle(QCoreApplication.translate("SimpleMask", u"Output", None))
         self.pushButton.setText(QCoreApplication.translate("SimpleMask", u"save", None))
