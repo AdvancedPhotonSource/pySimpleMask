@@ -394,12 +394,14 @@ class SimpleMask(object):
         movable=True,
     ):
         # label: label of roi; default is None, which is for roi-draw
-
         if label is not None and label in self.hdl.roi:
             self.hdl.remove_item(label)
 
-        # cen = (shape[1] // 2, shape[2] // 2)
         cen = (self.meta["bcx"], self.meta["bcy"])
+        if cen[0] < 0 or cen[1] < 0 or cen[0] > self.shape[1] or cen[1] > self.shape[0]:
+            logger.warning("beam center is out of range, use image center instead")
+            cen = (self.shape[1] // 2, self.shape[0] // 2)
+
         if sl_mode == "inclusive":
             pen = pg.mkPen(color=color, width=width, style=QtCore.Qt.DotLine)
         else:
