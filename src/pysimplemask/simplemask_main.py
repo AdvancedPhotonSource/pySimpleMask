@@ -505,7 +505,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
         if self.MaskWidget.currentIndex() == 1:
-            color = ("g", "y", "b", "r", "c", "m", "k", "w")[
+            color = ("r", "g", "y", "b", "c", "m", "k", "w")[
                 self.cb_selector_color.currentIndex()
             ]
             kwargs = {
@@ -515,17 +515,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 "width": self.plot_width.value(),
                 "num_edges": self.spinBox_num_edges.value(),
             }
-        # elif self.MaskWidget.currentIndex() == 6:
-        #     color = ('g', 'y', 'b', 'r', 'c', 'm', 'k', 'w')[
-        #         self.cb_selector_color_corr.currentIndex()]
-        #     kwargs = {
-        #         'color': color,
-        #         'sl_type': self.cb_selector_type_corr.currentText(),
-        #         'sl_mode': 'inclusive',
-        #         'width': self.plot_width_corr.value()
-        #     }
-        # else:
-        #     return
         self.sm.add_drawing(**kwargs)
         return
 
