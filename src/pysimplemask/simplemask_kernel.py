@@ -208,15 +208,14 @@ class SimpleMask(object):
         h = np.arange(self.shape[1], dtype=np.uint32) - self.meta["bcx"]
         vg, hg = np.meshgrid(v, h, indexing="ij")
 
-        r = np.sqrt(vg * vg + hg * hg) * self.meta["pix_dim"]
-
+        r = np.hypot(vg, hg) * self.meta["pix_dim"]
         phi = np.arctan2(vg, hg) * (-1)
         alpha = np.arctan(r / self.meta["det_dist"])
+
         qr = np.sin(alpha) * k0
-        qr = 2 * np.sin(alpha / 2) * k0
+        # qr = 2 * np.sin(alpha / 2) * k0
         qx = qr * np.cos(phi)
         qy = qr * np.sin(phi)
-
         phi = np.rad2deg(phi)
 
         # keep phi and q as np.float64 to keep the precision.
@@ -233,9 +232,9 @@ class SimpleMask(object):
         qmap_unit = {
             "phi": "deg",
             "alpha": "deg",
-            "q": "1/Å",
-            "qx": "1/Å",
-            "qy": "1/Å",
+            "q": "Å⁻¹",
+            "qx": "Å⁻¹",
+            "qy": "Å⁻¹",
             "x": "pixel",
             "y": "pixel",
         }
