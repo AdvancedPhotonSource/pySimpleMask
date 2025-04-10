@@ -2418,63 +2418,32 @@
            <string>Output</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_7">
-           <item row="0" column="3">
-            <spacer name="horizontalSpacer_4">
-             <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>171</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="0" column="2">
+           <item row="0" column="1">
             <widget class="QPushButton" name="pushButton">
              <property name="text">
               <string>save</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="1">
-            <widget class="QComboBox" name="comboBox_2">
+           <item row="0" column="0">
+            <widget class="QComboBox" name="comboBox_output_type">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
              <item>
               <property name="text">
-               <string>8IDI Format</string>
+               <string>Nexus-XPCS</string>
               </property>
              </item>
              <item>
               <property name="text">
-               <string>Mask Only (tif)</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>QPartition Only (tif)</string>
+               <string>Mask-Only</string>
               </property>
              </item>
             </widget>
-           </item>
-           <item row="0" column="0">
-            <spacer name="horizontalSpacer_5">
-             <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>172</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
            </item>
           </layout>
          </widget>

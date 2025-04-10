@@ -2,6 +2,8 @@ import h5py
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore
+from pysimplemask import __version__
+import tifffile
 from .area_mask import MaskAssemble
 from .find_center import find_center
 from .pyqtgraph_mod import LineROI
@@ -117,7 +119,11 @@ class SimpleMask(object):
         pos = np.roll(pos, shift=1, axis=0)
         return pos.T
 
-    def save_partition(self, save_fname, root="/qmap", version="0.1"):
+    def save_mask(self, save_name):
+        mask = self.mask.astype(np.uint8)
+        tifffile.imwrite(save_name, mask, compression="LZW")
+
+    def save_partition(self, save_fname, root="/qmap"):
         # if no partition is computed yet
         if self.new_partition is None:
             return
@@ -149,7 +155,7 @@ class SimpleMask(object):
                     dset.attrs["size"] = val.size
 
             group_handle.attrs["hash"] = hash_val
-            group_handle.attrs["version"] = "0.1"
+            group_handle.attrs["version"] = __version__
 
     # generate 2d saxs
     def read_data(self, fname=None, **kwargs):

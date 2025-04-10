@@ -1452,28 +1452,19 @@ class Ui_SimpleMask(object):
         self.groupBox_6.setSizePolicy(sizePolicy15)
         self.gridLayout_7 = QGridLayout(self.groupBox_6)
         self.gridLayout_7.setObjectName(u"gridLayout_7")
-        self.horizontalSpacer_4 = QSpacerItem(171, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.gridLayout_7.addItem(self.horizontalSpacer_4, 0, 3, 1, 1)
-
         self.pushButton = QPushButton(self.groupBox_6)
         self.pushButton.setObjectName(u"pushButton")
 
-        self.gridLayout_7.addWidget(self.pushButton, 0, 2, 1, 1)
+        self.gridLayout_7.addWidget(self.pushButton, 0, 1, 1, 1)
 
-        self.comboBox_2 = QComboBox(self.groupBox_6)
-        self.comboBox_2.addItem("")
-        self.comboBox_2.addItem("")
-        self.comboBox_2.addItem("")
-        self.comboBox_2.setObjectName(u"comboBox_2")
-        sizePolicy1.setHeightForWidth(self.comboBox_2.sizePolicy().hasHeightForWidth())
-        self.comboBox_2.setSizePolicy(sizePolicy1)
+        self.comboBox_output_type = QComboBox(self.groupBox_6)
+        self.comboBox_output_type.addItem("")
+        self.comboBox_output_type.addItem("")
+        self.comboBox_output_type.setObjectName(u"comboBox_output_type")
+        sizePolicy3.setHeightForWidth(self.comboBox_output_type.sizePolicy().hasHeightForWidth())
+        self.comboBox_output_type.setSizePolicy(sizePolicy3)
 
-        self.gridLayout_7.addWidget(self.comboBox_2, 0, 1, 1, 1)
-
-        self.horizontalSpacer_5 = QSpacerItem(172, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-
-        self.gridLayout_7.addItem(self.horizontalSpacer_5, 0, 0, 1, 1)
+        self.gridLayout_7.addWidget(self.comboBox_output_type, 0, 0, 1, 1)
 
 
         self.verticalLayout_2.addWidget(self.groupBox_6)
@@ -1698,9 +1689,8 @@ class Ui_SimpleMask(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_10), QCoreApplication.translate("SimpleMask", u"xy-mesh", None))
         self.groupBox_6.setTitle(QCoreApplication.translate("SimpleMask", u"Output", None))
         self.pushButton.setText(QCoreApplication.translate("SimpleMask", u"save", None))
-        self.comboBox_2.setItemText(0, QCoreApplication.translate("SimpleMask", u"8IDI Format", None))
-        self.comboBox_2.setItemText(1, QCoreApplication.translate("SimpleMask", u"Mask Only (tif)", None))
-        self.comboBox_2.setItemText(2, QCoreApplication.translate("SimpleMask", u"QPartition Only (tif)", None))
+        self.comboBox_output_type.setItemText(0, QCoreApplication.translate("SimpleMask", u"Nexus-XPCS", None))
+        self.comboBox_output_type.setItemText(1, QCoreApplication.translate("SimpleMask", u"Mask-Only", None))
 
     # retranslateUi
 

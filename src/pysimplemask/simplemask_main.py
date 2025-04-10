@@ -621,22 +621,29 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def save_mask(self):
         if not self.is_ready():
             return
-
-        if self.sm.new_partition is None:
-            self.compute_partition()
-        save_fname = QFileDialog.getSaveFileName(
-            self, caption="Save mask/qmap as", filter="HDF (*.h5 *.hdf *.hdf5)"
-        )[0]
-
-        ext = os.path.splitext(save_fname)[-1]
-        if ext not in (".h5", ".hdf", ".hdf5"):
-            save_fname += ".hdf"
+        save_type = self.comboBox_output_type.currentText()
+        if save_type == "Nexus-XPCS":
+            save_fname = QFileDialog.getSaveFileName(
+                self, caption="Save mask/qmap as", filter="HDF (*.hdf)")[0]
+            ext = os.path.splitext(save_fname)[-1]
+            if ext not in (".hdf"):
+                save_fname += ".hdf"
+            if self.sm.new_partition is None:
+                self.compute_partition()
+            target_function = self.sm.save_partition
+        elif save_type == "Mask-Only":
+            save_fname = QFileDialog.getSaveFileName(
+                self, caption="Save mask as tif", filter="TIF (*.tif)")[0]
+            target_function = self.sm.save_mask
 
         try:
-            self.sm.save_partition(save_fname)
+            target_function(save_fname)
             success_dialog = QMessageBox(self)
             success_dialog.setIcon(QMessageBox.Information)
-            success_dialog.setText("Successfully saved qmap to file")
+            if save_type == "Nexus-XPCS":
+                success_dialog.setText("Successfully saved mask/qmap to file")
+            else:
+                success_dialog.setText("Successfully saved mask to file")
             success_dialog.setDetailedText(save_fname)
             success_dialog.setWindowTitle("Success")
             success_dialog.exec()
@@ -645,7 +652,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             traceback.print_exc()
             error_dialog = QMessageBox(self)
             error_dialog.setIcon(QMessageBox.Critical)
-            error_dialog.setText("Failed to save qmap to file")
+            error_dialog.setText("Failed to save mask/qmap to file")
             error_dialog.setDetailedText(error_message)
             error_dialog.setWindowTitle("Error")
             error_dialog.exec()

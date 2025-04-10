@@ -37,7 +37,8 @@ dependencies = [
     "pyqtgraph",
     "PySide6",
     "astropy",
-    "imagecodecs"
+    "imagecodecs",
+    "tiffile"
 ]
 
 [project.optional-dependencies]
