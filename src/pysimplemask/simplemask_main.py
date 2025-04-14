@@ -624,16 +624,19 @@ class SimpleMaskGUI(QMainWindow, Ui):
         save_type = self.comboBox_output_type.currentText()
         if save_type == "Nexus-XPCS":
             save_fname = QFileDialog.getSaveFileName(
-                self, caption="Save mask/qmap as", filter="HDF (*.hdf)")[0]
-            ext = os.path.splitext(save_fname)[-1]
-            if ext not in (".hdf"):
+                self, caption="Save mask/qmap as", filter="HDF (*.hdf)"
+            )[0]
+            if not save_fname.endswith(".hdf"):
                 save_fname += ".hdf"
             if self.sm.new_partition is None:
                 self.compute_partition()
             target_function = self.sm.save_partition
         elif save_type == "Mask-Only":
             save_fname = QFileDialog.getSaveFileName(
-                self, caption="Save mask as tif", filter="TIF (*.tif)")[0]
+                self, caption="Save mask as tif", filter="TIF (*.tif)"
+            )[0]
+            if not save_fname.endswith(".tif") and not save_fname.endswith(".tiff"):
+                save_fname += ".tif"
             target_function = self.sm.save_mask
 
         try:
@@ -641,9 +644,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
             success_dialog = QMessageBox(self)
             success_dialog.setIcon(QMessageBox.Information)
             if save_type == "Nexus-XPCS":
-                success_dialog.setText("Successfully saved mask/qmap to file")
+                success_dialog.setText(
+                    f"Successfully saved mask/qmap to file: {save_fname}"
+                )
             else:
-                success_dialog.setText("Successfully saved mask to file")
+                success_dialog.setText(f"Successfully saved mask to file: {save_fname}")
             success_dialog.setDetailedText(save_fname)
             success_dialog.setWindowTitle("Success")
             success_dialog.exec()
