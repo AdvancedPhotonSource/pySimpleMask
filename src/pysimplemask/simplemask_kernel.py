@@ -7,7 +7,7 @@ import tifffile
 from .area_mask import MaskAssemble
 from .find_center import find_center
 from .pyqtgraph_mod import LineROI
-from .file_reader import read_raw_file
+from .file_handler import get_handler
 import logging
 import time
 from .utils import (
@@ -158,11 +158,12 @@ class SimpleMask(object):
             group_handle.attrs["version"] = __version__
 
     # generate 2d saxs
-    def read_data(self, fname=None, **kwargs):
-        reader = read_raw_file(fname)
+    def read_data(self, fname=None, beamline="APS_8IDI", **kwargs):
+        reader = get_handler(fname)
         if reader is None:
             logger.error(f"failed to create a dataset handler for {fname}")
             return False
+
         t0 = time.perf_counter()
         saxs = reader.get_scattering(**kwargs)
         t1 = time.perf_counter()

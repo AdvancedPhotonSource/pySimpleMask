@@ -32,8 +32,5 @@ class APS8IDIReader(FileReader):
     def get_scattering(self, **kwargs):
         return self.handler.get_scattering(**kwargs)
 
-    def get_data(self, roi_list):
-        return self.handler.get_data(roi_list)
-
-    def load_meta(self):
+    def _get_metadata(self):
         return self.handler.get_metadata(self.fname)

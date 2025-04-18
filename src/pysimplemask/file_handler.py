@@ -4,7 +4,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def get_reader(beamline, fname, **kwargs):
+def get_handler(beamline, fname, **kwargs):
     Reader = None
     if beamline == "APS_8IDI":
         from .reader.APS_8IDI.aps_8idi_reader import APS8IDIReader as Reader 

@@ -462,6 +462,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         kwargs = {
             "begin_idx": self.spinBox_3.value(),
             "num_frames": self.spinBox_4.value(),
+            "beamline": self.comboBox_beamline.currentText(),
         }
         if not self.sm.read_data(fname, **kwargs):
             return
