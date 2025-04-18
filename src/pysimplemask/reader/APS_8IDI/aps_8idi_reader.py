@@ -33,4 +33,4 @@ class APS8IDIReader(FileReader):
         return self.handler.get_scattering(**kwargs)
 
     def _get_metadata(self):
-        return self.handler.get_metadata(self.fname)
+        return self.handler._get_metadata()

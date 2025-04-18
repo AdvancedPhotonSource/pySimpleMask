@@ -9,8 +9,6 @@ logger = logging.getLogger(__name__)
 
 
 class XpcsDataset(object):
-    """ """
-
     def __init__(
         self,
         fname,
@@ -225,7 +223,7 @@ class XpcsDataset(object):
 
         return x
 
-    def get_metadata(self):
+    def _get_metadata(self):
         return get_hdf_metadata(self.fname)
 
 

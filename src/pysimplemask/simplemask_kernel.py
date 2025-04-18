@@ -28,25 +28,19 @@ logger = logging.getLogger(__name__)
 
 class SimpleMask(object):
     def __init__(self, pg_hdl, infobar):
+        self.dset_handler = None
         self.data_raw = None
         self.shape = None
         self.qmap = None
         self.mask = None
         self.mask_kernel = None
-        self.saxs_lin = None
-        self.saxs_log = None
-        self.saxs_log_min = None
-        self.plot_log = True
-
         self.new_partition = None
         self.meta = None
 
         self.hdl = pg_hdl
         self.infobar = infobar
-        self.extent = None
         self.hdl.scene.sigMouseMoved.connect(self.show_location)
         self.bad_pixel_set = set()
-        self.corr_roi = None
 
         self.idx_map = {
             0: "scattering",
@@ -64,12 +58,15 @@ class SimpleMask(object):
             return True
 
     def find_center(self):
-        if self.saxs_lin is None:
+        if self.dset_handler is None:
             return
 
         center_guess = (self.meta["bcy"], self.meta["bcx"])
         center = find_center(
-            self.saxs_lin, mask=self.mask, center_guess=center_guess, scale="log"
+            self.dset_handle.scat,
+            mask=self.mask,
+            center_guess=center_guess,
+            scale="log",
         )
         return center
 
@@ -91,33 +88,12 @@ class SimpleMask(object):
             # if target is None, apply will return the current mask
             self.mask = self.mask_kernel.apply(target)
 
-        self.data_raw[1] = self.saxs_log * self.mask
         self.data_raw[2] = self.mask
-
-        if self.plot_log:
-            min_mask = (self.saxs_lin > 0) * self.mask
-            nz_min = np.min(self.saxs_lin[min_mask > 0])
-            self.data_raw[1][np.logical_not(min_mask)] = np.log10(nz_min)
-        else:
-            lin_min = np.min(self.saxs_lin[self.mask > 0])
-            self.data_raw[1][np.logical_not(self.mask)] = lin_min
-
+        self.data_raw[1] = self.dset_handler.get_scat_with_mask(self.mask, mode="log")
         self.hdl.setImage(self.data_raw)
 
     def get_pts_with_similar_intensity(self, cen=None, radius=50, variation=50):
-        vmin = max(0, int(cen[0] - radius))
-        vmax = min(self.shape[0], int(cen[0] + radius))
-
-        hmin = max(0, int(cen[1] - radius))
-        hmax = min(self.shape[1], int(cen[1] + radius))
-        crop = self.saxs_lin[vmin:vmax, hmin:hmax]
-        val = self.saxs_lin[cen]
-        idx = np.abs(crop - val) <= variation / 100.0 * val
-        pos = np.array(np.nonzero(idx))
-        pos[0] += vmin
-        pos[1] += hmin
-        pos = np.roll(pos, shift=1, axis=0)
-        return pos.T
+        return self.dset_handler.get_pts_with_similar_intensity(cen, radius, variation)
 
     def save_mask(self, save_name):
         mask = self.mask.astype(np.uint8)
@@ -159,49 +135,31 @@ class SimpleMask(object):
 
     # generate 2d saxs
     def read_data(self, fname=None, beamline="APS_8IDI", **kwargs):
-        reader = get_handler(fname)
-        if reader is None:
+        self.dset_handler = get_handler(beamline, fname)
+        if self.dset_handler is None:
             logger.error(f"failed to create a dataset handler for {fname}")
             return False
 
         t0 = time.perf_counter()
-        saxs = reader.get_scattering(**kwargs)
+        self.dset_handler.prepare_data(**kwargs)
         t1 = time.perf_counter()
         logger.info(f"data loaded in {t1 - t0: .1f} seconds")
+        self.meta = self.dset_handler.metadata
 
-        if saxs is None:
-            logger.error("failed to read scattering signal from the dataset.")
-            return False
-
-        self.reader = reader
-        self.meta = reader.load_meta()
-
-        self.shape = saxs.shape
-        self.mask = np.ones(saxs.shape, dtype=bool)
-
-        saxs_nonzero = saxs[saxs > 0]
-        # use percentile instead of min to be robust
-        self.saxs_lin_min = np.percentile(saxs_nonzero, 1)
-        self.saxs_log_min = np.log10(self.saxs_lin_min)
-
-        self.saxs_lin = saxs.astype(np.float32)
-        self.min_val = np.min(saxs[saxs > 0])
-        self.saxs_log = np.log10(saxs + self.min_val)
+        self.shape = self.dset_handler.shape
+        self.mask = np.ones(self.shape, dtype=bool)
 
         self.qmap, self.qmap_unit = self.compute_qmap()
         num_qmaps = len(self.qmap)
-        self.data_raw = np.zeros(shape=(6 + num_qmaps, *saxs.shape))
+        self.data_raw = np.zeros(shape=(6 + num_qmaps, *self.shape))
 
         for offset, val in enumerate(self.qmap.values()):
             self.data_raw[6 + offset] = val
 
-        self.mask_kernel = MaskAssemble(self.shape, self.saxs_lin)
-        # self.mask_kernel.update_qmap(self.qmap)
-        self.extent = self.compute_extent()
+        self.mask_kernel = MaskAssemble(self.shape, self.dset_handler.scat)
 
-        # self.meta['saxs'] = saxs
-        self.data_raw[0] = self.saxs_log
-        self.data_raw[1] = self.saxs_log * self.mask
+        self.data_raw[0] = self.dset_handler.scat
+        self.data_raw[1] = self.dset_handler.get_scat_with_mask(self.mask)
         self.data_raw[2] = self.mask
 
         self.mask_apply(target="default_mask")
@@ -257,18 +215,6 @@ class SimpleMask(object):
         else:
             return None, None
 
-    def compute_extent(self):
-        k0 = 2 * np.pi / (12.3980 / self.meta["energy"])
-        x_range = np.array([0, self.shape[1]]) - self.meta["bcx"]
-        y_range = np.array([-self.shape[0], 0]) + self.meta["bcy"]
-        x_range = x_range * self.meta["pix_dim"] / self.meta["det_dist"] * k0
-        y_range = y_range * self.meta["pix_dim"] / self.meta["det_dist"] * k0
-        # the extent for matplotlib imshow is:
-        # self._extent = xmin, xmax, ymin, ymax = extent
-        # convert to a tuple of 4 elements;
-
-        return (*x_range, *y_range)
-
     def show_location(self, pos):
 
         if not self.hdl.scene.itemsBoundingRect().contains(pos) or self.shape is None:
@@ -318,11 +264,10 @@ class SimpleMask(object):
 
         center = (self.meta["bcx"], self.meta["bcy"])
 
-        self.plot_log = log
         if not log:
-            self.data_raw[0] = self.saxs_lin
+            self.data_raw[0] = self.dset_handler.scat
         else:
-            self.data_raw[0] = self.saxs_log
+            self.data_raw[0] = self.dset_handler.scat_log
 
         self.hdl.setImage(self.data_raw)
         self.hdl.adjust_viewbox()
@@ -483,7 +428,7 @@ class SimpleMask(object):
         )
         qlist, partition = saxs_pack["v_list"], saxs_pack["partition"]
         saxs1d, zero_loc = outlier_removal_with_saxs(
-            qlist, partition, self.saxs_lin, method=method, cutoff=cutoff
+            qlist, partition, self.dset_handler.scat, method=method, cutoff=cutoff
         )
         t1 = time.perf_counter()
         logger.info(
@@ -590,12 +535,6 @@ class SimpleMask(object):
         for key in ["bcx", "bcy", "energy", "pix_dim", "det_dist"]:
             val.append(self.meta[key])
         return val
-
-    def set_corr_roi(self, roi):
-        self.corr_roi = roi
-
-    def perform_correlation(self, angle_list):
-        pass
 
 
 def test01():
