@@ -89,6 +89,25 @@
            <item row="1" column="0">
             <layout class="QHBoxLayout" name="horizontalLayout">
              <item>
+              <widget class="QComboBox" name="comboBox_beamline">
+               <item>
+                <property name="text">
+                 <string>APS_8IDI</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>APS_9IDD</string>
+                </property>
+               </item>
+               <item>
+                <property name="text">
+                 <string>NativeFiles</string>
+                </property>
+               </item>
+              </widget>
+             </item>
+             <item>
               <widget class="QLabel" name="label_9">
                <property name="text">
                 <string>begin index:</string>

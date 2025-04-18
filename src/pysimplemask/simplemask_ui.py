@@ -86,6 +86,14 @@ class Ui_SimpleMask(object):
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.comboBox_beamline = QComboBox(self.groupBox)
+        self.comboBox_beamline.addItem("")
+        self.comboBox_beamline.addItem("")
+        self.comboBox_beamline.addItem("")
+        self.comboBox_beamline.setObjectName(u"comboBox_beamline")
+
+        self.horizontalLayout.addWidget(self.comboBox_beamline)
+
         self.label_9 = QLabel(self.groupBox)
         self.label_9.setObjectName(u"label_9")
 
@@ -1498,6 +1506,10 @@ class Ui_SimpleMask(object):
         self.label_17.setText(QCoreApplication.translate("SimpleMask", u"Scattering File:", None))
         self.fname.setPlaceholderText(QCoreApplication.translate("SimpleMask", u"filename", None))
         self.btn_select_raw.setText(QCoreApplication.translate("SimpleMask", u"...", None))
+        self.comboBox_beamline.setItemText(0, QCoreApplication.translate("SimpleMask", u"APS_8IDI", None))
+        self.comboBox_beamline.setItemText(1, QCoreApplication.translate("SimpleMask", u"APS_9IDD", None))
+        self.comboBox_beamline.setItemText(2, QCoreApplication.translate("SimpleMask", u"NativeFiles", None))
+
         self.label_9.setText(QCoreApplication.translate("SimpleMask", u"begin index:", None))
         self.label_28.setText(QCoreApplication.translate("SimpleMask", u"num_frames", None))
         self.btn_load.setText(QCoreApplication.translate("SimpleMask", u"load data", None))
