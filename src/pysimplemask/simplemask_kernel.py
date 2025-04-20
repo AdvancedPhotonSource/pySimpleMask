@@ -8,6 +8,7 @@ from .area_mask import MaskAssemble
 from .find_center import find_center
 from .pyqtgraph_mod import LineROI
 from .file_handler import get_handler
+from .qmap import compute_transmission_qmap
 import logging
 import time
 from .utils import (
@@ -168,43 +169,13 @@ class SimpleMask(object):
         return True
 
     def compute_qmap(self):
-        k0 = 2 * np.pi / (12.398 / self.meta["energy"])
-        v = np.arange(self.shape[0], dtype=np.uint32) - self.meta["bcy"]
-        h = np.arange(self.shape[1], dtype=np.uint32) - self.meta["bcx"]
-        vg, hg = np.meshgrid(v, h, indexing="ij")
-
-        r = np.hypot(vg, hg) * self.meta["pix_dim"]
-        phi = np.arctan2(vg, hg) * (-1)
-        alpha = np.arctan(r / self.meta["det_dist"])
-
-        qr = np.sin(alpha) * k0
-        # qr = 2 * np.sin(alpha / 2) * k0
-        qx = qr * np.cos(phi)
-        qy = qr * np.sin(phi)
-        phi = np.rad2deg(phi)
-
-        # keep phi and q as np.float64 to keep the precision.
-        qmap = {
-            "phi": phi,
-            "alpha": alpha.astype(np.float32),
-            "q": qr,
-            "qx": qx.astype(np.float32),
-            "qy": qy.astype(np.float32),
-            "x": hg,
-            "y": vg,
-        }
-
-        qmap_unit = {
-            "phi": "deg",
-            "alpha": "deg",
-            "q": "Å⁻¹",
-            "qx": "Å⁻¹",
-            "qy": "Å⁻¹",
-            "x": "pixel",
-            "y": "pixel",
-        }
-
-        return qmap, qmap_unit
+        return compute_transmission_qmap(
+            self.meta["energy"],
+            (self.meta["bcy"], self.meta["bcx"]),
+            self.shape,
+            self.meta["pix_dim"],
+            self.meta["det_dist"],
+        )
 
     def get_qp_value(self, x, y):
         x = int(x)
@@ -216,7 +187,6 @@ class SimpleMask(object):
             return None, None
 
     def show_location(self, pos):
-
         if not self.hdl.scene.itemsBoundingRect().contains(pos) or self.shape is None:
             return
 
