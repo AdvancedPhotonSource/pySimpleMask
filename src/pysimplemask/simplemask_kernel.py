@@ -29,7 +29,6 @@ logger = logging.getLogger(__name__)
 class SimpleMask(object):
     def __init__(self, pg_hdl, infobar):
         self.dset_handler = None
-        self.data_raw = None
         self.shape = None
         self.qmap = None
         self.mask = None
@@ -42,20 +41,8 @@ class SimpleMask(object):
         self.hdl.scene.sigMouseMoved.connect(self.show_location)
         self.bad_pixel_set = set()
 
-        self.idx_map = {
-            0: "scattering",
-            1: "scattering * mask",
-            2: "mask",
-            3: "dqmap_partition",
-            4: "sqmap_partition",
-            5: "preview",
-        }
-
     def is_ready(self):
-        if self.meta is None or self.data_raw is None:
-            return False
-        else:
-            return True
+        return self.dset_handler is not None
 
     def find_center(self):
         if self.dset_handler is None:
@@ -74,7 +61,7 @@ class SimpleMask(object):
         msg = self.mask_kernel.evaluate(target, **kwargs)
         # preview the mask
         mask = self.mask_kernel.get_one_mask(target)
-        self.data_raw[5][:, :] = mask
+        self.dset_handler.set_preview(mask)
         return msg
 
     def mask_action(self, action="undo"):
@@ -87,10 +74,7 @@ class SimpleMask(object):
         else:
             # if target is None, apply will return the current mask
             self.mask = self.mask_kernel.apply(target)
-
-        self.data_raw[2] = self.mask
-        self.data_raw[1] = self.dset_handler.get_scat_with_mask(self.mask, mode="log")
-        self.hdl.setImage(self.data_raw)
+        self.dset_handler.update_mask(self.mask)
 
     def get_pts_with_similar_intensity(self, cen=None, radius=50, variation=50):
         return self.dset_handler.get_pts_with_similar_intensity(cen, radius, variation)
@@ -149,65 +133,26 @@ class SimpleMask(object):
         self.shape = self.dset_handler.shape
         self.mask = np.ones(self.shape, dtype=bool)
 
-        self.qmap, self.qmap_unit = self.compute_qmap()
-        num_qmaps = len(self.qmap)
-        self.data_raw = np.zeros(shape=(6 + num_qmaps, *self.shape))
-
-        for offset, val in enumerate(self.qmap.values()):
-            self.data_raw[6 + offset] = val
-
+        self.qmap, self.qmap_unit, _ = self.compute_qmap()
         self.mask_kernel = MaskAssemble(self.shape, self.dset_handler.scat)
-
-        self.data_raw[0] = self.dset_handler.scat
-        self.data_raw[1] = self.dset_handler.get_scat_with_mask(self.mask)
-        self.data_raw[2] = self.mask
-
         self.mask_apply(target="default_mask")
         self.mask_kernel.update_qmap(self.qmap)
-
         return True
 
     def compute_qmap(self):
         return self.dset_handler.get_qmap()
 
-    def get_qp_value(self, x, y):
-        x = int(x)
-        y = int(y)
-        shape = self.qmap["q"].shape
-        if 0 <= x < shape[1] and 0 <= y < shape[0]:
-            return self.qmap["q"][y, x], self.qmap["phi"][y, x]
-        else:
-            return None, None
-
     def show_location(self, pos):
         if not self.hdl.scene.itemsBoundingRect().contains(pos) or self.shape is None:
             return
-
-        shape = self.shape
         mouse_point = self.hdl.getView().mapSceneToView(pos)
+        idx = self.hdl.currentIndex
         col = int(mouse_point.x())
         row = int(mouse_point.y())
-
-        if col < 0 or col >= shape[1]:
-            return
-        if row < 0 or row >= shape[0]:
-            return
-
-        qx = self.qmap["qx"][row, col]
-        qy = self.qmap["qy"][row, col]
-        phi = self.qmap["phi"][row, col]
-        val = self.data_raw[self.hdl.currentIndex][row, col]
-
-        # msg = f'{self.idx_map[self.hdl.currentIndex]}: ' + \
-        msg = (
-            f"[x={col:4d}, y={row:4d}, "
-            + f"qx={qx:.3e}Å⁻¹, qy={qy:.3e}Å⁻¹, phi={phi:.1f}deg], "
-            + f"val={val:.03e}"
-        )
-
-        self.infobar.clear()
-        self.infobar.setText(msg)
-
+        msg = self.dset_handler.get_coordinates(col, row, idx)
+        if msg:
+            self.infobar.clear()
+            self.infobar.setText(msg)
         return None
 
     def show_saxs(
@@ -218,20 +163,12 @@ class SimpleMask(object):
         plot_index=0,
         **kwargs,
     ):
-        if self.meta is None or self.data_raw is None:
+        if self.dset_handler is None:
             return
-        # self.hdl.reset_limits()
         self.hdl.clear()
-        # self.data = np.copy(self.data_raw)
-
         center = (self.meta["bcx"], self.meta["bcy"])
 
-        if not log:
-            self.data_raw[0] = self.dset_handler.scat
-        else:
-            self.data_raw[0] = self.dset_handler.scat_log
-
-        self.hdl.setImage(self.data_raw)
+        self.hdl.setImage(self.dset_handler.data_display)
         self.hdl.adjust_viewbox()
         self.hdl.set_colormap(cmap)
 
@@ -246,11 +183,9 @@ class SimpleMask(object):
         return
 
     def apply_drawing(self):
-        if self.meta is None or self.data_raw is None:
+        if self.dset_handler is None:
             return
-
-        # ones = np.ones(self.data_raw[0].shape, dtype=np.bool)
-        shape = self.data_raw[0].shape
+        shape = self.dset_handler.shape
         ones = np.ones((shape[0] + 1, shape[1] + 1), dtype=bool)
         mask_n = np.zeros_like(ones, dtype=bool)
         mask_e = np.zeros_like(mask_n)
@@ -262,7 +197,9 @@ class SimpleMask(object):
 
             mask_temp = np.zeros_like(ones, dtype=bool)
             # return slice and transfrom
-            sl, _ = x.getArraySlice(self.data_raw[1], self.hdl.imageItem)
+            sl, _ = x.getArraySlice(
+                self.dset_handler.data_display[1], self.hdl.imageItem
+            )
             y = x.getArrayRegion(ones, self.hdl.imageItem)
 
             # sometimes the roi size returned from getArraySlice and
@@ -418,7 +355,7 @@ class SimpleMask(object):
         phi_offset=0.0,
         symmetry_fold=1,
     ):
-        if self.meta is None or self.data_raw is None:
+        if self.dset_handler is None:
             return
 
         # assert map_names in (("q", "phi"), ("x", "y"))
@@ -454,8 +391,9 @@ class SimpleMask(object):
         static_map = combine_partitions(pack_sq, pack_sp, prefix="static")
 
         # dump result to file;
-        self.data_raw[3] = dynamic_map["dynamic_roi_map"]
-        self.data_raw[4] = static_map["static_roi_map"]
+        self.dset_handler.update_partitions(
+            dynamic_map["dynamic_roi_map"], static_map["static_roi_map"]
+        )
         self.hdl.setCurrentIndex(3)
 
         flag_consistency = check_consistency(
@@ -484,10 +422,6 @@ class SimpleMask(object):
         for idx, key in enumerate(["bcx", "bcy", "energy", "pix_dim", "det_dist"]):
             self.meta[key] = val[idx]
         self.qmap, self.qmap_unit = self.compute_qmap()
-
-        for offset, val in enumerate(self.qmap.values()):
-            self.data_raw[6 + offset] = val
-
         self.mask_kernel.update_qmap(self.qmap)
 
     def get_parameters(self):
