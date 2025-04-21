@@ -35,7 +35,6 @@ def parameter_to_dict(parameter):
     return result
 
 
-
 def get_fake_metadata():
     metadata = {
         # 'datetime': "2022-05-08 14:00:51,799",
@@ -112,6 +111,9 @@ class FileReader(object):
 
     def get_parametertree_structure(self):
         return dict_to_params("metadata", self.metadata)
-    
-    def update_metadata_from_parametertree(self, params):
-        self.metadata = parameter_to_dict(params)
+
+    def update_metadata_from_changes(self, changes):
+        for changed_param, change_type, new_value in changes:
+            # change_type can be 'value', 'name', 'parent', 'children', 'flags'
+            # not used
+            self.metadata[changed_param.name()] = new_value

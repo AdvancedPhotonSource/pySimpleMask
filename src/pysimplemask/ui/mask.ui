@@ -59,6 +59,18 @@
          <string>Input</string>
         </property>
         <layout class="QGridLayout" name="gridLayout_2">
+         <property name="leftMargin">
+          <number>1</number>
+         </property>
+         <property name="topMargin">
+          <number>1</number>
+         </property>
+         <property name="rightMargin">
+          <number>1</number>
+         </property>
+         <property name="bottomMargin">
+          <number>1</number>
+         </property>
          <item row="1" column="0">
           <layout class="QHBoxLayout" name="horizontalLayout">
            <item>
@@ -138,7 +150,7 @@
             </sizepolicy>
            </property>
            <property name="currentIndex">
-            <number>0</number>
+            <number>1</number>
            </property>
            <widget class="QWidget" name="tab">
             <attribute name="title">
@@ -403,8 +415,8 @@
                  <rect>
                   <x>0</x>
                   <y>0</y>
-                  <width>522</width>
-                  <height>148</height>
+                  <width>544</width>
+                  <height>278</height>
                  </rect>
                 </property>
                 <layout class="QGridLayout" name="gridLayout_29">
@@ -477,7 +489,7 @@
         <property name="maximumSize">
          <size>
           <width>600</width>
-          <height>16777215</height>
+          <height>400</height>
          </size>
         </property>
         <property name="title">
@@ -498,6 +510,13 @@
            </property>
           </widget>
          </item>
+         <item row="0" column="0">
+          <widget class="QPushButton" name="btn_mask_reset">
+           <property name="text">
+            <string>Reset</string>
+           </property>
+          </widget>
+         </item>
          <item row="1" column="0" colspan="3">
           <widget class="QTabWidget" name="MaskWidget">
            <property name="sizePolicy">
@@ -513,7 +532,7 @@
             </size>
            </property>
            <property name="currentIndex">
-            <number>5</number>
+            <number>0</number>
            </property>
            <widget class="QWidget" name="tab_6">
             <attribute name="title">
@@ -526,6 +545,18 @@
                 <string>Blemish File:</string>
                </property>
                <layout class="QGridLayout" name="gridLayout_24">
+                <property name="leftMargin">
+                 <number>2</number>
+                </property>
+                <property name="topMargin">
+                 <number>2</number>
+                </property>
+                <property name="rightMargin">
+                 <number>2</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>2</number>
+                </property>
                 <item row="0" column="0">
                  <layout class="QGridLayout" name="gridLayout_9">
                   <item row="0" column="0">
@@ -651,6 +682,18 @@
                 <string>Additional File (hdf/tiff/mat):</string>
                </property>
                <layout class="QGridLayout" name="gridLayout_17">
+                <property name="leftMargin">
+                 <number>2</number>
+                </property>
+                <property name="topMargin">
+                 <number>2</number>
+                </property>
+                <property name="rightMargin">
+                 <number>2</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>2</number>
+                </property>
                 <item row="1" column="0">
                  <layout class="QGridLayout" name="gridLayout_12">
                   <item row="0" column="0">
@@ -996,6 +1039,18 @@
                 <string>Binary operation: (acts on the mask)</string>
                </property>
                <layout class="QGridLayout" name="gridLayout_20">
+                <property name="leftMargin">
+                 <number>2</number>
+                </property>
+                <property name="topMargin">
+                 <number>2</number>
+                </property>
+                <property name="rightMargin">
+                 <number>2</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>2</number>
+                </property>
                 <item row="0" column="1">
                  <widget class="QPushButton" name="pushButton_9">
                   <property name="text">
@@ -1066,6 +1121,18 @@
                 <string>Threshold: (acts on the scattering image)</string>
                </property>
                <layout class="QGridLayout" name="gridLayout_15">
+                <property name="leftMargin">
+                 <number>2</number>
+                </property>
+                <property name="topMargin">
+                 <number>2</number>
+                </property>
+                <property name="rightMargin">
+                 <number>2</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>2</number>
+                </property>
                 <item row="0" column="2">
                  <widget class="QLabel" name="label_26">
                   <property name="text">
@@ -1250,6 +1317,18 @@
                 <string>Import from a file</string>
                </property>
                <layout class="QGridLayout" name="gridLayout_18">
+                <property name="leftMargin">
+                 <number>2</number>
+                </property>
+                <property name="topMargin">
+                 <number>2</number>
+                </property>
+                <property name="rightMargin">
+                 <number>2</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>2</number>
+                </property>
                 <item row="0" column="0">
                  <widget class="QCheckBox" name="mask_list_1based">
                   <property name="text">
@@ -1274,20 +1353,32 @@
                </layout>
               </widget>
              </item>
-             <item row="3" column="0">
-              <widget class="QGroupBox" name="groupBox_11">
+             <item row="0" column="1">
+              <widget class="QGroupBox" name="groupBox_13">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
                </property>
                <property name="title">
-                <string>xy list</string>
+                <string>Input coordinates</string>
                </property>
-               <layout class="QGridLayout" name="gridLayout_22">
-                <item row="3" column="2">
-                 <widget class="QPushButton" name="btn_mask_list_clear">
+               <layout class="QGridLayout" name="gridLayout_19">
+                <property name="leftMargin">
+                 <number>2</number>
+                </property>
+                <property name="topMargin">
+                 <number>2</number>
+                </property>
+                <property name="rightMargin">
+                 <number>2</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>2</number>
+                </property>
+                <item row="0" column="1">
+                 <widget class="QPushButton" name="btn_mask_list_add">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                     <horstretch>0</horstretch>
@@ -1295,56 +1386,36 @@
                    </sizepolicy>
                   </property>
                   <property name="text">
-                   <string>Clear List</string>
+                   <string>Add </string>
                   </property>
                  </widget>
                 </item>
-                <item row="3" column="3">
-                 <widget class="QPushButton" name="btn_mask_list_evaluate">
+                <item row="0" column="0">
+                 <widget class="QLineEdit" name="mask_list_input">
                   <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                     <horstretch>0</horstretch>
                     <verstretch>0</verstretch>
                    </sizepolicy>
                   </property>
-                  <property name="text">
-                   <string>Evaluate</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="0" rowspan="3" colspan="6">
-                 <widget class="QListWidget" name="mask_list_xylist">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="maximumSize">
+                  <property name="minimumSize">
                    <size>
-                    <width>16777215</width>
-                    <height>16777215</height>
+                    <width>120</width>
+                    <height>0</height>
                    </size>
                   </property>
-                 </widget>
-                </item>
-                <item row="3" column="5">
-                 <widget class="QPushButton" name="btn_mask_list_apply">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
                   <property name="text">
-                   <string>Apply</string>
+                   <string/>
+                  </property>
+                  <property name="placeholderText">
+                   <string>(x1, y1), (x2, y2), ...</string>
                   </property>
                  </widget>
                 </item>
                </layout>
               </widget>
              </item>
-             <item row="2" column="0">
+             <item row="2" column="0" colspan="2">
               <widget class="QGroupBox" name="groupBox_14">
                <property name="sizePolicy">
                 <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
@@ -1356,6 +1427,18 @@
                 <string>Select with double-click</string>
                </property>
                <layout class="QGridLayout" name="gridLayout_27">
+                <property name="leftMargin">
+                 <number>2</number>
+                </property>
+                <property name="topMargin">
+                 <number>2</number>
+                </property>
+                <property name="rightMargin">
+                 <number>2</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>2</number>
+                </property>
                 <item row="0" column="1" colspan="2">
                  <widget class="QCheckBox" name="mask_list_include">
                   <property name="text">
@@ -1406,20 +1489,48 @@
                </layout>
               </widget>
              </item>
-             <item row="1" column="0">
-              <widget class="QGroupBox" name="groupBox_13">
+             <item row="3" column="0" colspan="2">
+              <widget class="QGroupBox" name="groupBox_11">
                <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                  <horstretch>0</horstretch>
                  <verstretch>0</verstretch>
                 </sizepolicy>
                </property>
                <property name="title">
-                <string>Input coordinates</string>
+                <string>xy list</string>
                </property>
-               <layout class="QGridLayout" name="gridLayout_19">
-                <item row="0" column="1">
-                 <widget class="QPushButton" name="btn_mask_list_add">
+               <layout class="QGridLayout" name="gridLayout_22">
+                <property name="leftMargin">
+                 <number>2</number>
+                </property>
+                <property name="topMargin">
+                 <number>2</number>
+                </property>
+                <property name="rightMargin">
+                 <number>2</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>2</number>
+                </property>
+                <item row="0" column="0" rowspan="3" colspan="6">
+                 <widget class="QListWidget" name="mask_list_xylist">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="5">
+                 <widget class="QPushButton" name="btn_mask_list_apply">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                     <horstretch>0</horstretch>
@@ -1427,29 +1538,33 @@
                    </sizepolicy>
                   </property>
                   <property name="text">
-                   <string>Add points</string>
+                   <string>Apply</string>
                   </property>
                  </widget>
                 </item>
-                <item row="0" column="0">
-                 <widget class="QLineEdit" name="mask_list_input">
+                <item row="3" column="0">
+                 <widget class="QPushButton" name="btn_mask_list_evaluate">
                   <property name="sizePolicy">
-                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                     <horstretch>0</horstretch>
                     <verstretch>0</verstretch>
                    </sizepolicy>
                   </property>
-                  <property name="minimumSize">
-                   <size>
-                    <width>200</width>
-                    <height>0</height>
-                   </size>
+                  <property name="text">
+                   <string>Evaluate</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="3" column="1">
+                 <widget class="QPushButton" name="btn_mask_list_clear">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
                   </property>
                   <property name="text">
-                   <string/>
-                  </property>
-                  <property name="placeholderText">
-                   <string>(x1, y1), (x2, y2), ...</string>
+                   <string>Clear List</string>
                   </property>
                  </widget>
                 </item>
@@ -1732,13 +1847,6 @@
            </widget>
           </widget>
          </item>
-         <item row="0" column="0">
-          <widget class="QPushButton" name="btn_mask_reset">
-           <property name="text">
-            <string>Reset</string>
-           </property>
-          </widget>
-         </item>
         </layout>
        </widget>
       </widget>
@@ -1762,6 +1870,18 @@
            <string>Scattering, Mask and Partitions</string>
           </property>
           <layout class="QGridLayout" name="gridLayout">
+           <property name="leftMargin">
+            <number>1</number>
+           </property>
+           <property name="topMargin">
+            <number>1</number>
+           </property>
+           <property name="rightMargin">
+            <number>1</number>
+           </property>
+           <property name="bottomMargin">
+            <number>1</number>
+           </property>
            <item row="0" column="0">
             <widget class="QComboBox" name="plot_index">
              <property name="sizePolicy">
@@ -1846,6 +1966,18 @@
               <string>Plot</string>
              </property>
              <layout class="QGridLayout" name="gridLayout_3">
+              <property name="leftMargin">
+               <number>1</number>
+              </property>
+              <property name="topMargin">
+               <number>1</number>
+              </property>
+              <property name="rightMargin">
+               <number>1</number>
+              </property>
+              <property name="bottomMargin">
+               <number>1</number>
+              </property>
               <item row="0" column="0">
                <widget class="QCheckBox" name="plot_center">
                 <property name="text">
@@ -1966,7 +2098,7 @@
            <item row="1" column="0">
             <widget class="QTabWidget" name="tabWidget">
              <property name="currentIndex">
-              <number>0</number>
+              <number>1</number>
              </property>
              <widget class="QWidget" name="tab_9">
               <attribute name="title">

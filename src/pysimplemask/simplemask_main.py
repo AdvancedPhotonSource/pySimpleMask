@@ -84,6 +84,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         # simple mask kernep
         self.sm = SimpleMask(self.mp1, self.infobar)
+        self.metadata_parameter = None
         self.mp1.sigTimeChanged.connect(self.update_index)
         self.state = "lock"
 
@@ -479,8 +480,12 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.groupBox.repaint()
 
         param_struct = self.sm.dset_handler.get_parametertree_structure()
-        params = Parameter.create(**param_struct)
-        self.metadata_tree.setParameters(params, showTop=False)
+        self.metadata_parameter = Parameter.create(**param_struct)
+        self.metadata_parameter.sigTreeStateChanged.connect(self.update_parameter_to_dset)
+        self.metadata_tree.setParameters(self.metadata_parameter, showTop=False)
+    
+    def update_parameter_to_dset(self, param, changes):
+        self.sm.dset_handler.update_metadata_from_changes(changes)
 
     def plot(self):
         kwargs = {
