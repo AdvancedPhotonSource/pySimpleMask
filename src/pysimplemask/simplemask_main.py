@@ -185,8 +185,18 @@ class SimpleMaskGUI(QMainWindow, Ui):
         header.setSectionResizeMode(QHeaderView.Stretch)
         self.tabWidget.setCurrentIndex(0)
 
+        self.comboBox_partition_mapname0.currentIndexChanged.connect(self.update_partition_mapname)
+        self.comboBox_partition_mapname1.currentIndexChanged.connect(self.update_partition_mapname)
         self.save_load_settings(mode="load")
         self.show()
+
+    def update_partition_mapname(self):
+        idx0 = self.comboBox_partition_mapname0.currentIndex()
+        idx1 = self.comboBox_partition_mapname1.currentIndex()
+        if idx0 == idx1:
+            total_size = self.comboBox_partition_mapname1.count()
+            new_idx = (idx0 + 1) % total_size
+            self.comboBox_partition_mapname1.setCurrentIndex(new_idx)
 
     def mouse_clicked(self, event):
         if not event.double():
@@ -464,9 +474,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.sm.read_data(fname, **kwargs):
             return
 
-        for key in ("comboBox_param_xmap_name",
-                    "comboBox_partition_mapname0",
-                    "comboBox_partition_mapname1"):
+        for key in (
+            "comboBox_param_xmap_name",
+            "comboBox_partition_mapname0",
+            "comboBox_partition_mapname1",
+        ):
             widget = getattr(self, key)
             widget.clear()
             widget.addItems(list(self.sm.qmap.keys()))
