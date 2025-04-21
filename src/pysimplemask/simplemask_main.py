@@ -1,24 +1,28 @@
-import os
-import sys
 import json
 import logging
+import os
+import sys
 import traceback
+
 import numpy as np
 import pyqtgraph as pg
-
-
-from .simplemask_ui import Ui_SimpleMask as Ui
-from .simplemask_kernel import SimpleMask
-from PySide6.QtWidgets import QMessageBox
-from PySide6.QtWidgets import QFileDialog, QApplication, QMainWindow, QHeaderView
-from .table_model import XmapConstraintsTableModel
 from pyqtgraph.parametertree import Parameter
+from PySide6.QtCore import QByteArray
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox,
+                               QDoubleSpinBox, QFileDialog,
+                               QHeaderView, QLineEdit, QMainWindow,
+                               QMessageBox, QRadioButton, QSpinBox, QTabWidget)
+
 from . import __version__
+from .simplemask_kernel import SimpleMask
+from .simplemask_ui import Ui_SimpleMask as Ui
+from .table_model import XmapConstraintsTableModel
+from pathlib import Path
 
+HOME_DIR = Path.home()
+CONFIG_FILE = HOME_DIR / ".pysimplemask" / "config.json"
+CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
-home_dir = os.path.join(os.path.expanduser("~"), ".pysimplemask")
-if not os.path.isdir(home_dir):
-    os.mkdir(home_dir)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(name)-24s: %(message)s",
@@ -166,35 +170,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.MaskWidget.setCurrentIndex(0)
         header = self.tableView.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
-        self.setting_fname = os.path.join(home_dir, "default_setting.json")
-        self.lastconfig_fname = os.path.join(home_dir, "last_config.json")
-
         self.tabWidget.setCurrentIndex(0)
-        self.load_default_settings()
-        self.load_last_config()
+
+        self.save_load_settings(mode="load")
         self.show()
-
-    def load_default_settings(self):
-        # copy the default values
-        if not os.path.isfile(self.setting_fname):
-            config = {"window_size_w": 1400, "window_size_h": 740}
-            with open(self.setting_fname, "w") as f:
-                json.dump(config, f, indent=4)
-
-        # the display size might too big for some laptops
-        with open(self.setting_fname, "r") as f:
-            config = json.load(f)
-            if "window_size_h" in config:
-                new_size = (config["window_size_w"], config["window_size_h"])
-                logger.info("set mainwindow to size %s", new_size)
-                self.resize(*new_size)
-
-        return
 
     def mouse_clicked(self, event):
         if not event.double():
             return
-
         current_idx = self.MaskWidget.currentIndex()
         if current_idx not in [3, 5]:
             return
@@ -731,32 +714,70 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.mask_list_xylist.clear()
         self.groupBox_11.setTitle("xy list")
 
-    def load_last_config(
-        self,
-    ):
-        if not os.path.isfile(self.lastconfig_fname):
-            logger.info("no configure file found. skip")
-            return
 
-        try:
-            with open(self.lastconfig_fname, "r") as fhdl:
-                logger.info("load the last configure.")
-                config = json.load(fhdl)
-                for key, val in config.items():
-                    self.__dict__[key].setText(val)
-        except Exception:
-            os.remove(self.lastconfig_fname)
-            logger.info("configuration file damaged. delete it now")
-        return
+    def save_load_settings(self, mode="save"):
+        keys = [
+            "comboBox_beamline",
+        ]
 
-    def closeEvent(self, e) -> None:
-        keys = ["blemish_fname", "blemish_path", "maskfile_fname", "maskfile_path"]
-        config = {}
-        for key in keys:
-            config[key] = self.__dict__[key].text()
+        if mode == "save":
+            config = {}
+            # Save widget states
+            for key in keys:
+                widget = getattr(self, key, None)
+                if isinstance(widget, QLineEdit):
+                    config[key] = widget.text()
+                elif isinstance(widget, QRadioButton):
+                    config[key] = widget.isChecked()
+                elif isinstance(widget, (QDoubleSpinBox, QSpinBox)):
+                    config[key] = widget.value()
+                elif isinstance(widget, QComboBox):
+                    config[key] = widget.currentIndex()
+                elif isinstance(widget, QCheckBox):
+                    config[key] = widget.isChecked()
+                elif isinstance(widget, QTabWidget):
+                    config[key] = widget.currentIndex()
 
-        with open(self.lastconfig_fname, "w") as fhdl:
-            json.dump(config, fhdl)
+            with open(CONFIG_FILE, "w") as f:
+                json.dump(config, f, indent=4)
+            logger.info(f"Saved configuration to [{CONFIG_FILE}]")
+
+        elif mode == "load":
+            if CONFIG_FILE.is_file():
+                logger.info(f"Loading configuration from [{CONFIG_FILE}]")
+                with open(CONFIG_FILE, "r") as f:
+                    config = json.load(f)
+
+                for key, value in config.items():
+                    widget = getattr(self, key, None)
+                    if key == "main_geometry":
+                        self.restoreGeometry(QByteArray.fromBase64(value.encode()))
+                    elif key == "splitter_state" and hasattr(self, "splitter"):
+                        self.splitter.restoreState(
+                            QByteArray.fromBase64(value.encode())
+                        )
+                    elif key == "splitter_2_state" and hasattr(self, "splitter_2"):
+                        self.splitter_2.restoreState(
+                            QByteArray.fromBase64(value.encode())
+                        )
+                    elif isinstance(widget, QLineEdit):
+                        widget.setText(value)
+                    elif isinstance(widget, QRadioButton):
+                        widget.setChecked(value)
+                    elif isinstance(widget, (QDoubleSpinBox, QSpinBox)):
+                        widget.setValue(value)
+                    elif isinstance(widget, QComboBox):
+                        widget.setCurrentIndex(value)
+                    elif isinstance(widget, QCheckBox):
+                        widget.setChecked(value)
+                    elif isinstance(widget, QTabWidget):
+                        widget.setCurrentIndex(value)
+            else:
+                logger.error(f"Configuration file [{CONFIG_FILE}] not found.")
+
+    def closeEvent(self, event):
+        self.save_load_settings(mode="save")
+        event.accept()
 
 
 def main_gui(path=None):
