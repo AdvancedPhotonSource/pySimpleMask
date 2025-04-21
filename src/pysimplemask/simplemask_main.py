@@ -12,6 +12,7 @@ from .simplemask_kernel import SimpleMask
 from PySide6.QtWidgets import QMessageBox
 from PySide6.QtWidgets import QFileDialog, QApplication, QMainWindow, QHeaderView
 from .table_model import XmapConstraintsTableModel
+from pyqtgraph.parametertree import Parameter
 from . import __version__
 
 
@@ -479,6 +480,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
         for key in self.sm.qmap.keys():
             self.plot_index.addItem(key)
 
+        self.display_metadata()
+        self.plot()
+        self.statusbar.showMessage("data is loaded", 500)
+        self.btn_load.setText("load data")
+        self.btn_load.repaint()
+
+    def display_metadata(self):
         self.db_cenx.setValue(self.sm.meta["bcx"])
         self.db_ceny.setValue(self.sm.meta["bcy"])
         self.db_energy.setValue(self.sm.meta["energy"])
@@ -486,17 +494,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.db_det_dist.setValue(self.sm.meta["det_dist"])
         self.le_shape.setText(str(self.sm.shape))
         self.groupBox.repaint()
-        self.plot()
-        self.statusbar.showMessage("data is loaded", 500)
-        self.btn_load.setText("load data")
-        self.btn_load.repaint()
+
+        param_struct = self.sm.dset_handler.get_parametertree_structure()
+        params = Parameter.create(**param_struct)
+        self.metadata_tree.setParameters(params, showTop=False)
 
     def plot(self):
         kwargs = {
             "cmap": self.plot_cmap.currentText(),
             "log": self.plot_log.isChecked(),
-            "invert": self.plot_invert.isChecked(),
-            # 'rotate': self.plot_rotate.isChecked(),
             "plot_center": self.plot_center.isChecked(),
         }
         self.sm.show_saxs(**kwargs)

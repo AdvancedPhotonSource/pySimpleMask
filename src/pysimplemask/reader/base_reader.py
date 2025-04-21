@@ -5,6 +5,37 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
+def dict_to_params(name, d):
+    """Recursively convert a Python dictionary to ParameterTree structure."""
+    children = []
+    for key, value in d.items():
+        if isinstance(value, dict):
+            children.append(dict_to_params(key, value))
+        else:
+            param_type = "str"  # default
+            if isinstance(value, int):
+                param_type = "int"
+            elif isinstance(value, float):
+                param_type = "float"
+            elif isinstance(value, bool):
+                param_type = "bool"
+            children.append({"name": key, "type": param_type, "value": value})
+    return {"name": name, "type": "group", "children": children}
+
+
+def parameter_to_dict(parameter):
+    """Recursively extract parameter values into a dictionary."""
+    result = {}
+    for child in parameter.children():
+        if child.children():
+            # Nested group — recurse
+            result[child.name()] = parameter_to_dict(child)
+        else:
+            result[child.name()] = child.value()
+    return result
+
+
+
 def get_fake_metadata():
     metadata = {
         # 'datetime': "2022-05-08 14:00:51,799",
@@ -78,3 +109,9 @@ class FileReader(object):
 
     def _get_metadata(self, *args, **kwargs):
         raise NotImplementedError
+
+    def get_parametertree_structure(self):
+        return dict_to_params("metadata", self.metadata)
+    
+    def update_metadata_from_parametertree(self, params):
+        self.metadata = parameter_to_dict(params)
