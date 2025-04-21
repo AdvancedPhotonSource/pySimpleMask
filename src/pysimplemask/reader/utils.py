@@ -52,7 +52,12 @@ def sum_frames_parallel(
     # Open file to get shape information
     with h5py.File(file_path, "r") as f:
         dataset = f[dataset_name]
+        assert dataset.ndim in [2, 3], "Dataset must be 2D or 3D"
+        if dataset.ndim == 2:
+            return dataset[()]
+        
         total_frames = dataset.shape[0]
+        logger.info(f"Total frames in dataset: {total_frames}")
 
         # Validate inputs
         if start_frame < 0 or start_frame >= total_frames:
