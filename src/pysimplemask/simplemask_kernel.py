@@ -64,7 +64,7 @@ class SimpleMask(object):
 
         center_guess = (self.meta["bcy"], self.meta["bcx"])
         center = find_center(
-            self.dset_handle.scat,
+            self.dset_handler.scat,
             mask=self.mask,
             center_guess=center_guess,
             scale="log",
@@ -221,7 +221,6 @@ class SimpleMask(object):
         self,
         cmap="jet",
         log=True,
-        invert=False,
         plot_center=True,
         plot_index=0,
         **kwargs,
