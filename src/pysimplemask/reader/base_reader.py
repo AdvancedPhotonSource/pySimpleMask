@@ -36,6 +36,9 @@ def parameter_to_dict(parameter):
 
 
 def get_fake_metadata():
+    """
+    Generate a fake metadata dictionary for testing purposes.
+    """
     metadata = {
         # 'datetime': "2022-05-08 14:00:51,799",
         "energy": 12.3,  # keV
@@ -48,6 +51,27 @@ def get_fake_metadata():
     return metadata
 
 
+def smart_float(x, precision=2):
+    """
+    Convert a float to a string, either in scientific notation or fixed-point notation.
+    The precision is the number of digits after the decimal point.
+    """
+    if x == 0 or (1e-4 <= abs(x) < 1e4):
+        return f"{x:.{precision}f}".rstrip("0").rstrip(".")  # clean float
+    else:
+        return f"{x:.{precision}e}"  # scientific
+
+
+DISPLAY_FIELD = [
+    "scattering",
+    "scattering * mask",
+    "mask",
+    "dqmap_partition",
+    "sqmap_partition",
+    "preview",
+]
+
+
 class FileReader(object):
     def __init__(self, fname) -> None:
         self.fname = fname
@@ -55,13 +79,20 @@ class FileReader(object):
         self.stype = "Transmission"
         self.metadata = None
         self.shape = None
+        self.qmap = None
+        self.qmap_unit = None
+        self.data_display = None
 
     def prepare_data(self, *args, **kwargs):
         self.metadata = self.get_metadata()
         self.scat = self.get_scattering(*args, **kwargs).astype(np.float32)
         self.shape = self.scat.shape
         self.metadata["shape"] = self.shape
+        len_qmap = 7 if self.stype == "Transmission" else 11
+        self.data_display = np.zeros((len(DISPLAY_FIELD) + len_qmap, *self.shape))
         self.scat_log = self.get_scat_with_mask(mask=None, mode="log")
+        self.data_display[DISPLAY_FIELD.index("scattering")] = self.scat_log
+        self.update_mask()
 
     def get_scat_with_mask(self, mask=None, mode="log"):
         if mask is None:
@@ -78,6 +109,18 @@ class FileReader(object):
             return np.log10(temp)
         else:
             return temp
+
+    def update_mask(self, mask=None):
+        mask_loc = DISPLAY_FIELD.index("mask")
+        if mask is None:
+            mask = np.ones(self.shape, dtype=bool)
+        self.data_display[mask_loc] = mask
+        scat_mask_loc = DISPLAY_FIELD.index("scattering * mask")
+        self.data_display[scat_mask_loc] = self.get_scat_with_mask(mask)
+
+    def update_partitions(self, dqmap, sqmap):
+        self.data_display[DISPLAY_FIELD.index("dqmap_partition")] = dqmap
+        self.data_display[DISPLAY_FIELD.index("sqmap_partition")] = sqmap
 
     def get_pts_with_similar_intensity(self, cen=None, radius=50, variation=50):
         vmin = max(0, int(cen[0] - radius))
@@ -120,4 +163,48 @@ class FileReader(object):
             self.metadata[changed_param.name()] = new_value
 
     def get_qmap(self):
-        return compute_qmap(self.stype, self.metadata)
+        self.qmap, self.qmap_unit = compute_qmap(self.stype, self.metadata)
+        for index, (k, v) in enumerate(self.qmap.items()):
+            self.data_display[len(DISPLAY_FIELD) + index] = v
+        labels = list(DISPLAY_FIELD) + list(self.qmap.keys())
+        return self.qmap, self.qmap_unit, labels
+
+    def get_coordinates(self, col, row, index):
+        shape = self.shape
+        if col < 0 or col >= shape[1]:
+            return None
+        if row < 0 or row >= shape[0]:
+            return None
+
+        begin = len(DISPLAY_FIELD)
+
+        if self.stype == "Reflection":
+            labels = ["phi", "TTH", "tth", "alpha_f", "qx", "qy", "qz", "qr", "q"]
+        elif self.stype == "Transmission":
+            labels = ["phi", "TTH", "qx", "qy", "q"]
+
+        qmap_labels = list(self.qmap.keys())
+        selection = [begin + qmap_labels.index(k) for k in labels]
+        if index in selection:
+            selection.remove(index)
+        selection.append(index)
+        labels.append("data")
+
+        values = self.data_display[:, row, col][selection]
+        values = [smart_float(v) for v in values]
+
+        msg = f"xy=[{col:d},{row:d}] "
+        for k, v in zip(labels, values):
+            if k in ["qx", "qy", "qz", "q", "qr"]:
+                v = f"{v}Å⁻¹"
+            elif k in ["tth", "alpha_f", "phi", "TTH"]:
+                v = f"{v}°"
+            elif k == "data":
+                v = f"{v}"
+            msg += f"{k}={v}, "
+
+        return msg[:-2]
+
+    def set_preview(self, img):
+        self.data_display[DISPLAY_FIELD.index("preview")] = img
+        return
