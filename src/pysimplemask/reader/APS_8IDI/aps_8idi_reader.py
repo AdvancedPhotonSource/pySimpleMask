@@ -9,7 +9,8 @@ class APS8IDIReader(FileReader):
     def __init__(self, fname) -> None:
         super(APS8IDIReader, self).__init__(fname)
         self.handler = None
-        self.ftype = "Base Class"
+        self.ftype = "APS_8IDI"
+        self.stype = "Transmission"
         rigaku_endings = tuple(f".bin.00{i}" for i in range(6))
 
         if fname.endswith(".bin"):

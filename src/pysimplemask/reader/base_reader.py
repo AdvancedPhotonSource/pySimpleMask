@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-
+from ..qmap import compute_qmap
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +60,7 @@ class FileReader(object):
         self.metadata = self.get_metadata()
         self.scat = self.get_scattering(*args, **kwargs).astype(np.float32)
         self.shape = self.scat.shape
+        self.metadata["shape"] = self.shape
         self.scat_log = self.get_scat_with_mask(mask=None, mode="log")
 
     def get_scat_with_mask(self, mask=None, mode="log"):
@@ -117,3 +118,6 @@ class FileReader(object):
             # change_type can be 'value', 'name', 'parent', 'children', 'flags'
             # not used
             self.metadata[changed_param.name()] = new_value
+
+    def get_qmap(self):
+        return compute_qmap(self.stype, self.metadata)

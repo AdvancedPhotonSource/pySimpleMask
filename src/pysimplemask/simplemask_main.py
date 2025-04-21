@@ -8,10 +8,20 @@ import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.parametertree import Parameter
 from PySide6.QtCore import QByteArray
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox,
-                               QDoubleSpinBox, QFileDialog,
-                               QHeaderView, QLineEdit, QMainWindow,
-                               QMessageBox, QRadioButton, QSpinBox, QTabWidget)
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QDoubleSpinBox,
+    QFileDialog,
+    QHeaderView,
+    QLineEdit,
+    QMainWindow,
+    QMessageBox,
+    QRadioButton,
+    QSpinBox,
+    QTabWidget,
+)
 
 from . import __version__
 from .simplemask_kernel import SimpleMask
@@ -65,6 +75,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_plot.clicked.connect(self.plot)
         self.btn_compute_qpartition.clicked.connect(self.compute_partition)
         self.btn_compute_qpartition2.clicked.connect(self.compute_partition)
+        self.btn_compute_qpartition3.clicked.connect(self.compute_partition)
+
         self.btn_select_raw.clicked.connect(self.select_raw)
         # self.btn_select_txt.clicked.connect(self.select_txt)
         self.btn_update_parameters.clicked.connect(self.update_parameters)
@@ -452,8 +464,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.sm.read_data(fname, **kwargs):
             return
 
-        self.comboBox_param_xmap_name.clear()
-        self.comboBox_param_xmap_name.addItems(list(self.sm.qmap.keys()))
+        for key in ("comboBox_param_xmap_name",
+                    "comboBox_partition_mapname0",
+                    "comboBox_partition_mapname1"):
+            widget = getattr(self, key)
+            widget.clear()
+            widget.addItems(list(self.sm.qmap.keys()))
+
         self.comboBox_param_xmap_name.currentIndexChanged.connect(
             self.update_xmap_limits
         )
@@ -481,9 +498,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         param_struct = self.sm.dset_handler.get_parametertree_structure()
         self.metadata_parameter = Parameter.create(**param_struct)
-        self.metadata_parameter.sigTreeStateChanged.connect(self.update_parameter_to_dset)
+        self.metadata_parameter.sigTreeStateChanged.connect(
+            self.update_parameter_to_dset
+        )
         self.metadata_tree.setParameters(self.metadata_parameter, showTop=False)
-    
+
     def update_parameter_to_dset(self, param, changes):
         self.sm.dset_handler.update_metadata_from_changes(changes)
 
@@ -576,11 +595,21 @@ class SimpleMaskGUI(QMainWindow, Ui):
             }
         elif self.tabWidget.currentIndex() == 1:
             kwargs = {
-                "mode": "xy-mesh",
+                "mode": "x-y",
                 "sq_num": self.sb_sxnum.value(),
                 "sp_num": self.sb_synum.value(),
                 "dq_num": self.sb_dxnum.value(),
                 "dp_num": self.sb_dynum.value(),
+            }
+        elif self.tabWidget.currentIndex() == 2:
+            map0 = self.comboBox_partition_mapname0.currentText()
+            map1 = self.comboBox_partition_mapname1.currentText()
+            kwargs = {
+                "mode": f"{map0}-{map1}",
+                "sq_num": self.sb_partition_sn0.value(),
+                "sp_num": self.sb_partition_sn1.value(),
+                "dq_num": self.sb_partition_dn0.value(),
+                "dp_num": self.sb_partition_dn1.value(),
             }
 
         sq_num = least_multiple(kwargs["dq_num"], kwargs["sq_num"])
@@ -718,7 +747,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.sm.bad_pixel_set.clear()
         self.mask_list_xylist.clear()
         self.groupBox_11.setTitle("xy list")
-
 
     def save_load_settings(self, mode="save"):
         keys = [

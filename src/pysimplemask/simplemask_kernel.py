@@ -8,7 +8,6 @@ from .area_mask import MaskAssemble
 from .find_center import find_center
 from .pyqtgraph_mod import LineROI
 from .file_handler import get_handler
-from .qmap import compute_transmission_qmap
 import logging
 import time
 from .utils import (
@@ -169,13 +168,7 @@ class SimpleMask(object):
         return True
 
     def compute_qmap(self):
-        return compute_transmission_qmap(
-            self.meta["energy"],
-            (self.meta["bcy"], self.meta["bcx"]),
-            self.shape,
-            self.meta["pix_dim"],
-            self.meta["det_dist"],
-        )
+        return self.dset_handler.get_qmap()
 
     def get_qp_value(self, x, y):
         x = int(x)
@@ -406,10 +399,8 @@ class SimpleMask(object):
         return saxs1d, zero_loc
 
     def compute_partition(self, mode="q-phi", **kwargs):
-        map_names = {
-            "q-phi": ("q", "phi"),
-            "xy-mesh": ("x", "y"),
-        }[mode]
+        map_names = mode.split("-")
+        logger.info(f"compute partition with mode {mode}: map_names {map_names}")
         t0 = time.perf_counter()
         flag = self.compute_partition_general(map_names=map_names, **kwargs)
         t1 = time.perf_counter()
@@ -430,7 +421,7 @@ class SimpleMask(object):
         if self.meta is None or self.data_raw is None:
             return
 
-        assert map_names in (("q", "phi"), ("x", "y"))
+        # assert map_names in (("q", "phi"), ("x", "y"))
         name0, name1 = map_names
         #  generate dynamic partition
         pack_dq = generate_partition(

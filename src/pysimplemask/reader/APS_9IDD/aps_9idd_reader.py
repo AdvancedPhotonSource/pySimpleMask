@@ -26,7 +26,7 @@ class APS9IDDReader(FileReader):
     def _get_metadata(self, *args, **kwargs):
         with h5py.File(self.fname, "r") as f:
             metadata = {
-                "alpha_incident_deg": f["/entry/metadata/alpha_incident_deg"][()],
+                "alpha_i_deg": f["/entry/metadata/alpha_incident_deg"][()],
                 "bcx": f["/entry/metadata/beam_center"][0],
                 "bcy": f["/entry/metadata/beam_center"][1],
                 "det_dist": f["/entry/metadata/det_distance"][()],
@@ -36,6 +36,4 @@ class APS9IDDReader(FileReader):
                 "det_z": f["/entry/metadata/det_z"][()],
                 "energy": f["/entry/metadata/energy"][()],
             }
-        for k, v in metadata.items():
-            print(k, v)
         return metadata

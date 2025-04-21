@@ -195,10 +195,10 @@ def combine_partitions(
         - ('q', 'phi')
         - ('x', 'y')
     """
-    assert (pack1["map_name"], pack2["map_name"]) in [
-        ("q", "phi"),
-        ("x", "y"),
-    ], "Invalid partition pair. Allowed pairs: ('q', 'phi') or ('x', 'y')"
+    # assert (pack1["map_name"], pack2["map_name"]) in [
+    #     ("q", "phi"),
+    #     ("x", "y"),
+    # ], "Invalid partition pair. Allowed pairs: ('q', 'phi') or ('x', 'y')"
 
     # Convert partitions to zero-based indexing, then merge
     partition = (
