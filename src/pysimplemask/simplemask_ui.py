@@ -1346,6 +1346,97 @@ class Ui_SimpleMask(object):
         self.gridLayout_34.addLayout(self.gridLayout_33, 0, 0, 1, 1)
 
         self.tabWidget.addTab(self.tab_10, "")
+        self.tab_8 = QWidget()
+        self.tab_8.setObjectName(u"tab_8")
+        self.gridLayout_31 = QGridLayout(self.tab_8)
+        self.gridLayout_31.setObjectName(u"gridLayout_31")
+        self.gridLayout_30 = QGridLayout()
+        self.gridLayout_30.setObjectName(u"gridLayout_30")
+        self.comboBox_partition_mapname1 = QComboBox(self.tab_8)
+        self.comboBox_partition_mapname1.setObjectName(u"comboBox_partition_mapname1")
+
+        self.gridLayout_30.addWidget(self.comboBox_partition_mapname1, 2, 0, 2, 1)
+
+        self.label_46 = QLabel(self.tab_8)
+        self.label_46.setObjectName(u"label_46")
+
+        self.gridLayout_30.addWidget(self.label_46, 0, 3, 1, 1)
+
+        self.sb_partition_dn0 = QSpinBox(self.tab_8)
+        self.sb_partition_dn0.setObjectName(u"sb_partition_dn0")
+        self.sb_partition_dn0.setMinimum(1)
+        self.sb_partition_dn0.setMaximum(999)
+        self.sb_partition_dn0.setValue(36)
+
+        self.gridLayout_30.addWidget(self.sb_partition_dn0, 1, 2, 1, 1)
+
+        self.label_48 = QLabel(self.tab_8)
+        self.label_48.setObjectName(u"label_48")
+
+        self.gridLayout_30.addWidget(self.label_48, 0, 1, 1, 1)
+
+        self.label_50 = QLabel(self.tab_8)
+        self.label_50.setObjectName(u"label_50")
+
+        self.gridLayout_30.addWidget(self.label_50, 0, 2, 1, 1)
+
+        self.comboBox_partition_style1 = QComboBox(self.tab_8)
+        self.comboBox_partition_style1.addItem("")
+        self.comboBox_partition_style1.addItem("")
+        self.comboBox_partition_style1.setObjectName(u"comboBox_partition_style1")
+
+        self.gridLayout_30.addWidget(self.comboBox_partition_style1, 2, 3, 2, 1)
+
+        self.sb_partition_sn0 = QSpinBox(self.tab_8)
+        self.sb_partition_sn0.setObjectName(u"sb_partition_sn0")
+        self.sb_partition_sn0.setMinimum(2)
+        self.sb_partition_sn0.setMaximum(9999)
+        self.sb_partition_sn0.setValue(360)
+
+        self.gridLayout_30.addWidget(self.sb_partition_sn0, 1, 1, 1, 1)
+
+        self.label_53 = QLabel(self.tab_8)
+        self.label_53.setObjectName(u"label_53")
+
+        self.gridLayout_30.addWidget(self.label_53, 0, 0, 1, 1)
+
+        self.comboBox_partition_mapname0 = QComboBox(self.tab_8)
+        self.comboBox_partition_mapname0.setObjectName(u"comboBox_partition_mapname0")
+
+        self.gridLayout_30.addWidget(self.comboBox_partition_mapname0, 1, 0, 1, 1)
+
+        self.btn_compute_qpartition3 = QPushButton(self.tab_8)
+        self.btn_compute_qpartition3.setObjectName(u"btn_compute_qpartition3")
+
+        self.gridLayout_30.addWidget(self.btn_compute_qpartition3, 0, 4, 4, 3)
+
+        self.sb_partition_dn1 = QSpinBox(self.tab_8)
+        self.sb_partition_dn1.setObjectName(u"sb_partition_dn1")
+        self.sb_partition_dn1.setMinimum(1)
+        self.sb_partition_dn1.setMaximum(999)
+        self.sb_partition_dn1.setValue(1)
+
+        self.gridLayout_30.addWidget(self.sb_partition_dn1, 2, 2, 2, 1)
+
+        self.sb_partition_sn1 = QSpinBox(self.tab_8)
+        self.sb_partition_sn1.setObjectName(u"sb_partition_sn1")
+        self.sb_partition_sn1.setMinimum(1)
+        self.sb_partition_sn1.setMaximum(9999)
+        self.sb_partition_sn1.setValue(1)
+
+        self.gridLayout_30.addWidget(self.sb_partition_sn1, 2, 1, 2, 1)
+
+        self.comboBox_partition_style0 = QComboBox(self.tab_8)
+        self.comboBox_partition_style0.addItem("")
+        self.comboBox_partition_style0.addItem("")
+        self.comboBox_partition_style0.setObjectName(u"comboBox_partition_style0")
+
+        self.gridLayout_30.addWidget(self.comboBox_partition_style0, 1, 3, 1, 1)
+
+
+        self.gridLayout_31.addLayout(self.gridLayout_30, 0, 0, 1, 1)
+
+        self.tabWidget.addTab(self.tab_8, "")
 
         self.gridLayout_11.addWidget(self.tabWidget, 1, 0, 1, 1)
 
@@ -1394,8 +1485,8 @@ class Ui_SimpleMask(object):
         self.mask_list_include.toggled.connect(self.mask_list_variation.setEnabled)
 
         self.tabWidget_2.setCurrentIndex(1)
-        self.MaskWidget.setCurrentIndex(0)
-        self.tabWidget.setCurrentIndex(1)
+        self.MaskWidget.setCurrentIndex(5)
+        self.tabWidget.setCurrentIndex(2)
 
 
         QMetaObject.connectSlotsByName(SimpleMask)
@@ -1589,6 +1680,18 @@ class Ui_SimpleMask(object):
         self.label_36.setText(QCoreApplication.translate("SimpleMask", u"dynamic y:", None))
         self.btn_compute_qpartition2.setText(QCoreApplication.translate("SimpleMask", u"compute", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_10), QCoreApplication.translate("SimpleMask", u"xy-mesh", None))
+        self.label_46.setText(QCoreApplication.translate("SimpleMask", u"Style", None))
+        self.label_48.setText(QCoreApplication.translate("SimpleMask", u"Static partition:", None))
+        self.label_50.setText(QCoreApplication.translate("SimpleMask", u"Dynamic partition", None))
+        self.comboBox_partition_style1.setItemText(0, QCoreApplication.translate("SimpleMask", u"Linear", None))
+        self.comboBox_partition_style1.setItemText(1, QCoreApplication.translate("SimpleMask", u"Logarithmic", None))
+
+        self.label_53.setText(QCoreApplication.translate("SimpleMask", u"MapName", None))
+        self.btn_compute_qpartition3.setText(QCoreApplication.translate("SimpleMask", u"compute", None))
+        self.comboBox_partition_style0.setItemText(0, QCoreApplication.translate("SimpleMask", u"Linear", None))
+        self.comboBox_partition_style0.setItemText(1, QCoreApplication.translate("SimpleMask", u"Logarithmic", None))
+
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_8), QCoreApplication.translate("SimpleMask", u"General", None))
         self.groupBox_6.setTitle(QCoreApplication.translate("SimpleMask", u"Output", None))
         self.pushButton.setText(QCoreApplication.translate("SimpleMask", u"save", None))
         self.comboBox_output_type.setItemText(0, QCoreApplication.translate("SimpleMask", u"Nexus-XPCS", None))
