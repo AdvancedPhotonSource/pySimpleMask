@@ -68,4 +68,13 @@ class APS9IDDReader(FileReader):
                 "det_y": f["/entry/instrument/detector_1/position_y"][()],
                 "energy": f["/entry/instrument/incident_beam/incident_energy"][()],
             }
+        # correct beam center; det_x and det_y are the actual detector position, 
+        # det_x0 and det_y0 are the beam center position
+        # DOOR <++++++ x --------< WALL
+        # CEIL <++++++ y --------< FLOOR
+        # bcx and bcy follows the same direction of an image
+        delta_x = metadata["det_x"] - metadata["det_x0"]
+        delta_y = metadata["det_y"] - metadata["det_y0"]
+        metadata["bcx"] += delta_x / metadata["pix_dim"]
+        metadata["bcy"] += delta_y / metadata["pix_dim"]
         return metadata
