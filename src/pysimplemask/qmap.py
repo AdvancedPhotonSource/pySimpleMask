@@ -77,7 +77,7 @@ def compute_reflection_qmap(energy, center, shape, pix_dim, det_dist, alpha_i_de
     TTH = np.arctan(r / det_dist)
 
     alpha_i = np.deg2rad(alpha_i_deg)
-    alpha_f = np.arctan(vg * (-1 * pix_dim) / det_dist) - 2 * alpha_i
+    alpha_f = np.arctan(vg * (-1 * pix_dim) / det_dist) - alpha_i
     tth = np.arctan(hg * pix_dim / det_dist)
 
     qx = k0 * (np.cos(alpha_f) * np.cos(tth) - np.cos(alpha_i))

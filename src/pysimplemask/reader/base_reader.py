@@ -177,17 +177,14 @@ class FileReader(object):
         if row < 0 or row >= shape[0]:
             return None
 
-        begin = len(DISPLAY_FIELD)
-
         if self.stype == "Reflection":
-            labels = ["phi", "TTH", "tth", "alpha_f", "qx", "qy", "qz", "qr", "q"]
+            labels = ["phi", "tth", "alpha_f", "qx", "qy", "qz", "qr", "q"]
         elif self.stype == "Transmission":
             labels = ["phi", "TTH", "qx", "qy", "q"]
 
         qmap_labels = list(self.qmap.keys())
+        begin = len(DISPLAY_FIELD)
         selection = [begin + qmap_labels.index(k) for k in labels]
-        if index in selection:
-            selection.remove(index)
         selection.append(index)
         labels.append("data")
 
