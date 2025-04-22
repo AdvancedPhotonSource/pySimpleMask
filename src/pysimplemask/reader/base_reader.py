@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+import traceback
 from ..qmap import compute_qmap
 
 logger = logging.getLogger(__name__)
@@ -144,7 +145,7 @@ class FileReader(object):
             metdata = self._get_metadata(*args, **kwargs)
             return metdata
         except Exception as e:
-            logger.warning(e)
+            traceback.print_exc()
             logger.warning(
                 "failed to get the real metadata, using default values instead"
             )
