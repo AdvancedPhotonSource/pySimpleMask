@@ -15,7 +15,6 @@ def compute_qmap(stype, metadata):
             metadata["det_dist"],
         )
     elif stype == "Reflection":
-        print(metadata)
         return compute_reflection_qmap(
             metadata["energy"],
             (metadata["bcy"], metadata["bcx"]),
