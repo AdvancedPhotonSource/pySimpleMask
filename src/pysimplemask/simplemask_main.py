@@ -3,31 +3,21 @@ import logging
 import os
 import sys
 import traceback
+from pathlib import Path
 
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.parametertree import Parameter
 from PySide6.QtCore import QByteArray
-from PySide6.QtWidgets import (
-    QApplication,
-    QCheckBox,
-    QComboBox,
-    QDoubleSpinBox,
-    QFileDialog,
-    QHeaderView,
-    QLineEdit,
-    QMainWindow,
-    QMessageBox,
-    QRadioButton,
-    QSpinBox,
-    QTabWidget,
-)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox,
+                               QDoubleSpinBox, QFileDialog, QHeaderView,
+                               QLineEdit, QMainWindow, QMessageBox,
+                               QRadioButton, QSpinBox, QTabWidget)
 
 from . import __version__
 from .simplemask_kernel import SimpleMask
 from .simplemask_ui import Ui_SimpleMask as Ui
 from .table_model import XmapConstraintsTableModel
-from pathlib import Path
 
 HOME_DIR = Path.home()
 CONFIG_FILE = HOME_DIR / ".pysimplemask" / "config.json"

@@ -1,24 +1,21 @@
+import logging
+import time
+
 import h5py
 import numpy as np
 import pyqtgraph as pg
-from pyqtgraph.Qt import QtCore
-from pysimplemask import __version__
 import tifffile
-from .area_mask import MaskAssemble
-from .find_center import find_center
-from .pyqtgraph_mod import LineROI
-from .file_handler import get_handler
-import logging
-import time
-from .utils import (
-    hash_numpy_dict,
-    optimize_integer_array,
-    generate_partition,
-    combine_partitions,
-    check_consistency,
-)
-from .outlier_removal import outlier_removal_with_saxs
+from pyqtgraph.Qt import QtCore
 
+from pysimplemask import __version__
+
+from .area_mask import MaskAssemble
+from .file_handler import get_handler
+from .find_center import find_center
+from .outlier_removal import outlier_removal_with_saxs
+from .pyqtgraph_mod import LineROI
+from .utils import (check_consistency, combine_partitions, generate_partition,
+                    hash_numpy_dict, optimize_integer_array)
 
 pg.setConfigOptions(imageAxisOrder="row-major")
 

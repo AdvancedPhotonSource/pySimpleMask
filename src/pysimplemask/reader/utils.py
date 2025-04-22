@@ -74,6 +74,10 @@ def sum_frames_parallel(
             raise ValueError("num_frames must be positive")
         if (start_frame + num_frames) > total_frames:
             num_frames = total_frames - start_frame
+       
+        # If num_frames is small, process directly 
+        if num_frames < chunk_size:
+            return np.sum(dataset[start_frame:start_frame + num_frames], axis=0)
 
         # Create chunks
         chunks = []

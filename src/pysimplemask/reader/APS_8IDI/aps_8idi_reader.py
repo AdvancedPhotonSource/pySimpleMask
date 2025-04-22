@@ -1,6 +1,7 @@
 import logging
+
 from ..base_reader import FileReader
-from . import HdfDataset, ImmDataset, RigakuDataset, Rigaku3MDataset
+from . import HdfDataset, ImmDataset, Rigaku3MDataset, RigakuDataset
 
 logger = logging.getLogger(__file__)
 

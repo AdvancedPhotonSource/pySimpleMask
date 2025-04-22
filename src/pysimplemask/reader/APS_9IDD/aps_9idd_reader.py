@@ -1,8 +1,9 @@
 import logging
+
 import h5py
+
 from ..base_reader import FileReader
 from ..utils import sum_frames_parallel
-
 
 logger = logging.getLogger(__name__)
 
