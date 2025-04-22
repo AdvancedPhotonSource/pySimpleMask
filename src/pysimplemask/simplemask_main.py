@@ -463,6 +463,12 @@ class SimpleMaskGUI(QMainWindow, Ui):
         }
         if not self.sm.read_data(fname, **kwargs):
             return
+        else:
+            stype = self.sm.dset_handler.stype
+            if stype == "Transmission":
+                self.tabWidget_2.setCurrentIndex(0)
+            elif stype == "Reflection":
+                self.tabWidget_2.setCurrentIndex(1)
 
         for key in (
             "comboBox_param_xmap_name",
