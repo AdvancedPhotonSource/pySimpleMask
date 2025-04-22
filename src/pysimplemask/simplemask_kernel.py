@@ -421,7 +421,7 @@ class SimpleMask(object):
         assert len(val) == 5
         for idx, key in enumerate(["bcx", "bcy", "energy", "pix_dim", "det_dist"]):
             self.meta[key] = val[idx]
-        self.qmap, self.qmap_unit = self.compute_qmap()
+        self.qmap, self.qmap_unit, _labels = self.compute_qmap()
         self.mask_kernel.update_qmap(self.qmap)
 
     def get_parameters(self):
