@@ -22,6 +22,7 @@ def compute_qmap(stype, metadata):
             metadata["pix_dim"],
             metadata["det_dist"],
             alpha_i_deg=metadata["alpha_i_deg"],
+            orientation=metadata["orientation"],
         )
 
 
@@ -66,18 +67,31 @@ def compute_transmission_qmap(energy, center, shape, pix_dim, det_dist):
 
 
 @lru_cache(maxsize=128)
-def compute_reflection_qmap(energy, center, shape, pix_dim, det_dist, alpha_i_deg=0.14):
+def compute_reflection_qmap(
+    energy, center, shape, pix_dim, det_dist, alpha_i_deg=0.14, orientation="north"
+):
     k0 = 2 * np.pi / (E2KCONST / energy)
+
     v = np.arange(shape[0], dtype=np.uint32) - center[0]
     h = np.arange(shape[1], dtype=np.uint32) - center[1]
     vg, hg = np.meshgrid(v, h, indexing="ij")
+    vg *= -1
+
+    if orientation == "north":
+        pass
+    elif orientation == "west":
+        vg, hg = -hg, vg
+    elif orientation == "south":
+        vg, hg = -vg, -hg
+    elif orientation == "east":
+        vg, hg = hg, -vg
 
     r = np.hypot(vg, hg) * pix_dim
-    phi = np.arctan2(vg, hg) * (-1)
+    phi = np.arctan2(vg, hg)
     TTH = np.arctan(r / det_dist)
 
     alpha_i = np.deg2rad(alpha_i_deg)
-    alpha_f = np.arctan(vg * (-1 * pix_dim) / det_dist) - alpha_i
+    alpha_f = np.arctan(vg * pix_dim / det_dist) - alpha_i
     tth = np.arctan(hg * pix_dim / det_dist)
 
     qx = k0 * (np.cos(alpha_f) * np.cos(tth) - np.cos(alpha_i))
@@ -97,7 +111,7 @@ def compute_reflection_qmap(energy, center, shape, pix_dim, det_dist, alpha_i_de
         "qr": qr,
         "q": q,
         "x": hg,
-        "y": vg,
+        "y": vg * (-1),
     }
 
     for key in ["phi", "TTH", "tth", "alpha_f"]:

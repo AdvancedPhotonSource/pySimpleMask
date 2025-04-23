@@ -57,6 +57,7 @@ class APS9IDDReader(FileReader):
         with h5py.File(meta_fname, "r") as f:
             metadata = {
                 "alpha_i_deg": f["/entry/sample/incident_angle"][()],
+                "orientation": f["/entry/sample/orientation"][()].decode("utf-8"),
                 "bcx": f["/entry/instrument/detector_1/beam_center_x"][()],
                 "bcy": f["/entry/instrument/detector_1/beam_center_y"][()],
                 "det_dist": f["/entry/instrument/detector_1/distance"][()],
@@ -68,7 +69,7 @@ class APS9IDDReader(FileReader):
                 "det_y": f["/entry/instrument/detector_1/position_y"][()],
                 "energy": f["/entry/instrument/incident_beam/incident_energy"][()],
             }
-        # correct beam center; det_x and det_y are the actual detector position, 
+        # correct beam center; det_x and det_y are the actual detector position,
         # det_x0 and det_y0 are the beam center position
         # DOOR <++++++ x --------< WALL
         # CEIL <++++++ y --------< FLOOR
