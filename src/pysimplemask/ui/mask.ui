@@ -128,7 +128,7 @@
           <item>
            <widget class="QPushButton" name="btn_load">
             <property name="text">
-             <string>load data</string>
+             <string>Load</string>
             </property>
            </widget>
           </item>
@@ -369,31 +369,6 @@
               </property>
              </widget>
             </item>
-            <item row="4" column="2" colspan="2">
-             <layout class="QHBoxLayout" name="horizontalLayout_3">
-              <item>
-               <widget class="QPushButton" name="btn_swapxy">
-                <property name="text">
-                 <string>Swap X-Y</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="btn_find_center">
-                <property name="text">
-                 <string>Find Center</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="btn_update_parameters">
-                <property name="text">
-                 <string>Update </string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
            </layout>
           </widget>
           <widget class="QWidget" name="tab_7">
@@ -412,7 +387,7 @@
                  <x>0</x>
                  <y>0</y>
                  <width>559</width>
-                 <height>290</height>
+                 <height>145</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_29">
@@ -468,6 +443,37 @@
            <widget class="QToolButton" name="btn_select_raw">
             <property name="text">
              <string>...</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item row="3" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <item>
+           <widget class="QPushButton" name="btn_swapxy">
+            <property name="text">
+             <string>Swap X-Y</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_find_center">
+            <property name="text">
+             <string>Find Center</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_update_parameters">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Update Metadata</string>
             </property>
            </widget>
           </item>
