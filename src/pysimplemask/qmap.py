@@ -1,7 +1,9 @@
+import logging
 from functools import lru_cache
 
 import numpy as np
 
+logger = logging.getLogger(__name__)
 E2KCONST = 12.39841984
 
 
@@ -85,6 +87,8 @@ def compute_reflection_qmap(
         vg, hg = -vg, -hg
     elif orientation == "east":
         vg, hg = hg, -vg
+    else:
+        logger.warning("Unknown orientation: {orientation}. using default north")
 
     r = np.hypot(vg, hg) * pix_dim
     phi = np.arctan2(vg, hg)
