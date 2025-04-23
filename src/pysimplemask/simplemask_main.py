@@ -9,10 +9,20 @@ import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.parametertree import Parameter
 from PySide6.QtCore import QByteArray
-from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox,
-                               QDoubleSpinBox, QFileDialog, QHeaderView,
-                               QLineEdit, QMainWindow, QMessageBox,
-                               QRadioButton, QSpinBox, QTabWidget)
+from PySide6.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QDoubleSpinBox,
+    QFileDialog,
+    QHeaderView,
+    QLineEdit,
+    QMainWindow,
+    QMessageBox,
+    QRadioButton,
+    QSpinBox,
+    QTabWidget,
+)
 
 from . import __version__
 from .simplemask_kernel import SimpleMask
@@ -52,6 +62,15 @@ def text_to_array(pts, dtype=np.int64):
     pts = np.array(pts).astype(dtype)
 
     return pts
+
+
+PVMAP = {
+    "bcx": "db_cenx",
+    "bcy": "db_ceny",
+    "energy": "db_energy",
+    "pix_dim": "db_pix_dim",
+    "det_dist": "db_det_dist",
+}
 
 
 class SimpleMaskGUI(QMainWindow, Ui):
@@ -175,8 +194,12 @@ class SimpleMaskGUI(QMainWindow, Ui):
         header.setSectionResizeMode(QHeaderView.Stretch)
         self.tabWidget.setCurrentIndex(0)
 
-        self.comboBox_partition_mapname0.currentIndexChanged.connect(self.update_partition_mapname)
-        self.comboBox_partition_mapname1.currentIndexChanged.connect(self.update_partition_mapname)
+        self.comboBox_partition_mapname0.currentIndexChanged.connect(
+            self.update_partition_mapname
+        )
+        self.comboBox_partition_mapname1.currentIndexChanged.connect(
+            self.update_partition_mapname
+        )
         self.save_load_settings(mode="load")
         self.show()
 
@@ -376,25 +399,19 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
 
-        pvs = (
-            self.db_cenx,
-            self.db_ceny,
-            self.db_energy,
-            self.db_pix_dim,
-            self.db_det_dist,
-        )
-        values = []
-        for pv in pvs:
-            value = pv.value()
-            if pv == self.db_pix_dim:
-                value = value * 1.0e-6
-            values.append(value)
+        new_metadata = {}
+        for name, widget_name in PVMAP.items():
+            scale = 1e-6 if name == "pix_dim" else 1
+            widget = getattr(self, widget_name)
+            new_metadata[name] = widget.value() * scale
+
         if swapxy:
-            y, x = values[0], values[1]
-            values[0], values[1] = x, y
+            y, x = new_metadata["bcx"], new_metadata["bcy"]
+            new_metadata["bcx"], new_metadata["bcy"] = x, y
             self.db_cenx.setValue(x)
             self.db_ceny.setValue(y)
-        self.sm.update_parameters(values)
+
+        self.sm.update_parameters(new_metadata)
         self.groupBox.repaint()
         self.plot()
 
@@ -464,7 +481,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.sm.read_data(fname, **kwargs):
             return
         else:
-            stype = self.sm.dset_handler.stype
+            stype = self.sm.dset.stype
             if stype == "Transmission":
                 self.tabWidget_2.setCurrentIndex(0)
             elif stype == "Reflection":
@@ -496,15 +513,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_load.repaint()
 
     def display_metadata(self):
-        self.db_cenx.setValue(self.sm.meta["bcx"])
-        self.db_ceny.setValue(self.sm.meta["bcy"])
-        self.db_energy.setValue(self.sm.meta["energy"])
-        self.db_pix_dim.setValue(self.sm.meta["pix_dim"] * 1.0e6)
-        self.db_det_dist.setValue(self.sm.meta["det_dist"])
+        for label, widget_name in PVMAP.items():
+            widget = getattr(self, widget_name)
+            scale = 1e6 if label == "pix_dim" else 1
+            widget.setValue(self.sm.dset.metadata[label] * scale)
+
         self.le_shape.setText(str(self.sm.shape))
         self.groupBox.repaint()
 
-        param_struct = self.sm.dset_handler.get_parametertree_structure()
+        param_struct = self.sm.dset.get_parametertree_structure()
         self.metadata_parameter = Parameter.create(**param_struct)
         self.metadata_parameter.sigTreeStateChanged.connect(
             self.update_parameter_to_dset
@@ -512,7 +529,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.metadata_tree.setParameters(self.metadata_parameter, showTop=False)
 
     def update_parameter_to_dset(self, param, changes):
-        self.sm.dset_handler.update_metadata_from_changes(changes)
+        self.sm.dset.update_metadata_from_changes(changes)
 
     def plot(self):
         kwargs = {

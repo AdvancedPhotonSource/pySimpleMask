@@ -163,6 +163,9 @@ class FileReader(object):
             # not used
             self.metadata[changed_param.name()] = new_value
 
+    def update_metadata(self, new_metadata):
+        self.metadata.update(new_metadata)
+
     def get_qmap(self):
         self.qmap, self.qmap_unit = compute_qmap(self.stype, self.metadata)
         for index, (k, v) in enumerate(self.qmap.items()):

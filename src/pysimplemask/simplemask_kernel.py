@@ -14,8 +14,13 @@ from .file_handler import get_handler
 from .find_center import find_center
 from .outlier_removal import outlier_removal_with_saxs
 from .pyqtgraph_mod import LineROI
-from .utils import (check_consistency, combine_partitions, generate_partition,
-                    hash_numpy_dict, optimize_integer_array)
+from .utils import (
+    check_consistency,
+    combine_partitions,
+    generate_partition,
+    hash_numpy_dict,
+    optimize_integer_array,
+)
 
 pg.setConfigOptions(imageAxisOrder="row-major")
 
@@ -25,13 +30,12 @@ logger = logging.getLogger(__name__)
 
 class SimpleMask(object):
     def __init__(self, pg_hdl, infobar):
-        self.dset_handler = None
+        self.dset = None
         self.shape = None
         self.qmap = None
         self.mask = None
         self.mask_kernel = None
         self.new_partition = None
-        self.meta = None
 
         self.hdl = pg_hdl
         self.infobar = infobar
@@ -39,15 +43,15 @@ class SimpleMask(object):
         self.bad_pixel_set = set()
 
     def is_ready(self):
-        return self.dset_handler is not None
+        return self.dset is not None
 
     def find_center(self):
-        if self.dset_handler is None:
+        if self.dset is None:
             return
 
-        center_guess = (self.meta["bcy"], self.meta["bcx"])
+        center_guess = (self.dset.metadata["bcy"], self.dset.metadata["bcx"])
         center = find_center(
-            self.dset_handler.scat,
+            self.dset.scat,
             mask=self.mask,
             center_guess=center_guess,
             scale="log",
@@ -58,7 +62,7 @@ class SimpleMask(object):
         msg = self.mask_kernel.evaluate(target, **kwargs)
         # preview the mask
         mask = self.mask_kernel.get_one_mask(target)
-        self.dset_handler.set_preview(mask)
+        self.dset.set_preview(mask)
         return msg
 
     def mask_action(self, action="undo"):
@@ -71,10 +75,10 @@ class SimpleMask(object):
         else:
             # if target is None, apply will return the current mask
             self.mask = self.mask_kernel.apply(target)
-        self.dset_handler.update_mask(self.mask)
+        self.dset.update_mask(self.mask)
 
     def get_pts_with_similar_intensity(self, cen=None, radius=50, variation=50):
-        return self.dset_handler.get_pts_with_similar_intensity(cen, radius, variation)
+        return self.dset.get_pts_with_similar_intensity(cen, radius, variation)
 
     def save_mask(self, save_name):
         mask = self.mask.astype(np.uint8)
@@ -116,28 +120,27 @@ class SimpleMask(object):
 
     # generate 2d saxs
     def read_data(self, fname=None, beamline="APS_8IDI", **kwargs):
-        self.dset_handler = get_handler(beamline, fname)
-        if self.dset_handler is None:
+        self.dset = get_handler(beamline, fname)
+        if self.dset is None:
             logger.error(f"failed to create a dataset handler for {fname}")
             return False
 
         t0 = time.perf_counter()
-        self.dset_handler.prepare_data(**kwargs)
+        self.dset.prepare_data(**kwargs)
         t1 = time.perf_counter()
         logger.info(f"data loaded in {t1 - t0: .1f} seconds")
-        self.meta = self.dset_handler.metadata
 
-        self.shape = self.dset_handler.shape
+        self.shape = self.dset.shape
         self.mask = np.ones(self.shape, dtype=bool)
 
         self.qmap, self.qmap_unit, _ = self.compute_qmap()
-        self.mask_kernel = MaskAssemble(self.shape, self.dset_handler.scat)
+        self.mask_kernel = MaskAssemble(self.shape, self.dset.scat)
         self.mask_apply(target="default_mask")
         self.mask_kernel.update_qmap(self.qmap)
         return True
 
     def compute_qmap(self):
-        return self.dset_handler.get_qmap()
+        return self.dset.get_qmap()
 
     def show_location(self, pos):
         if not self.hdl.scene.itemsBoundingRect().contains(pos) or self.shape is None:
@@ -146,7 +149,7 @@ class SimpleMask(object):
         idx = self.hdl.currentIndex
         col = int(mouse_point.x())
         row = int(mouse_point.y())
-        msg = self.dset_handler.get_coordinates(col, row, idx)
+        msg = self.dset.get_coordinates(col, row, idx)
         if msg:
             self.infobar.clear()
             self.infobar.setText(msg)
@@ -160,12 +163,12 @@ class SimpleMask(object):
         plot_index=0,
         **kwargs,
     ):
-        if self.dset_handler is None:
+        if self.dset is None:
             return
         self.hdl.clear()
-        center = (self.meta["bcx"], self.meta["bcy"])
+        center = (self.dset.metadata["bcx"], self.dset.metadata["bcy"])
 
-        self.hdl.setImage(self.dset_handler.data_display)
+        self.hdl.setImage(self.dset.data_display)
         self.hdl.adjust_viewbox()
         self.hdl.set_colormap(cmap)
 
@@ -180,9 +183,9 @@ class SimpleMask(object):
         return
 
     def apply_drawing(self):
-        if self.dset_handler is None:
+        if self.dset is None:
             return
-        shape = self.dset_handler.shape
+        shape = self.dset.shape
         ones = np.ones((shape[0] + 1, shape[1] + 1), dtype=bool)
         mask_n = np.zeros_like(ones, dtype=bool)
         mask_e = np.zeros_like(mask_n)
@@ -194,9 +197,7 @@ class SimpleMask(object):
 
             mask_temp = np.zeros_like(ones, dtype=bool)
             # return slice and transfrom
-            sl, _ = x.getArraySlice(
-                self.dset_handler.data_display[1], self.hdl.imageItem
-            )
+            sl, _ = x.getArraySlice(self.dset.data_display[1], self.hdl.imageItem)
             y = x.getArrayRegion(ones, self.hdl.imageItem)
 
             # sometimes the roi size returned from getArraySlice and
@@ -244,7 +245,7 @@ class SimpleMask(object):
         if label is not None and label in self.hdl.roi:
             self.hdl.remove_item(label)
 
-        cen = (self.meta["bcx"], self.meta["bcy"])
+        cen = (self.dset.metadata["bcx"], self.dset.metadata["bcy"])
         if cen[0] < 0 or cen[1] < 0 or cen[0] > self.shape[1] or cen[1] > self.shape[0]:
             logger.warning("beam center is out of range, use image center instead")
             cen = (self.shape[1] // 2, self.shape[0] // 2)
@@ -324,7 +325,7 @@ class SimpleMask(object):
         )
         qlist, partition = saxs_pack["v_list"], saxs_pack["partition"]
         saxs1d, zero_loc = outlier_removal_with_saxs(
-            qlist, partition, self.dset_handler.scat, method=method, cutoff=cutoff
+            qlist, partition, self.dset.scat, method=method, cutoff=cutoff
         )
         t1 = time.perf_counter()
         logger.info(
@@ -352,7 +353,7 @@ class SimpleMask(object):
         phi_offset=0.0,
         symmetry_fold=1,
     ):
-        if self.dset_handler is None:
+        if self.dset is None:
             return
 
         # assert map_names in (("q", "phi"), ("x", "y"))
@@ -388,7 +389,7 @@ class SimpleMask(object):
         static_map = combine_partitions(pack_sq, pack_sp, prefix="static")
 
         # dump result to file;
-        self.dset_handler.update_partitions(
+        self.dset.update_partitions(
             dynamic_map["dynamic_roi_map"], static_map["static_roi_map"]
         )
         self.hdl.setCurrentIndex(3)
@@ -399,12 +400,12 @@ class SimpleMask(object):
         logger.info("dqmap/sqmap consistency check: {}".format(flag_consistency))
 
         partition = {
-            "beam_center_x": self.meta["bcx"],
-            "beam_center_y": self.meta["bcy"],
-            "pixel_size": self.meta["pix_dim"],
+            "beam_center_x": self.dset.metadata["bcx"],
+            "beam_center_y": self.dset.metadata["bcy"],
+            "pixel_size": self.dset.metadata["pix_dim"],
             "mask": self.mask,
-            "energy": self.meta["energy"],
-            "detector_distance": self.meta["det_dist"],
+            "energy": self.dset.metadata["energy"],
+            "detector_distance": self.dset.metadata["det_dist"],
             "map_names": list(map_names),
             "map_units": [self.qmap_unit[name0], self.qmap_unit[name1]],
         }
@@ -414,18 +415,10 @@ class SimpleMask(object):
         self.new_partition = partition
         return partition
 
-    def update_parameters(self, val):
-        assert len(val) == 5
-        for idx, key in enumerate(["bcx", "bcy", "energy", "pix_dim", "det_dist"]):
-            self.meta[key] = val[idx]
+    def update_parameters(self, new_metadata):
+        self.dset.update_metadata(new_metadata)
         self.qmap, self.qmap_unit, _labels = self.compute_qmap()
         self.mask_kernel.update_qmap(self.qmap)
-
-    def get_parameters(self):
-        val = []
-        for key in ["bcx", "bcy", "energy", "pix_dim", "det_dist"]:
-            val.append(self.meta[key])
-        return val
 
 
 def test01():
