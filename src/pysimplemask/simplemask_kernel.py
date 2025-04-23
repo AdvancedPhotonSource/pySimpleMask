@@ -49,7 +49,7 @@ class SimpleMask(object):
         if self.dset is None:
             return
 
-        center_guess = (self.dset.metadata["bcy"], self.dset.metadata["bcx"])
+        center_guess = self.get_center()
         center = find_center(
             self.dset.scat,
             mask=self.mask,
@@ -166,8 +166,7 @@ class SimpleMask(object):
         if self.dset is None:
             return
         self.hdl.clear()
-        center = (self.dset.metadata["bcx"], self.dset.metadata["bcy"])
-
+        center = self.get_center()
         self.hdl.setImage(self.dset.data_display)
         self.hdl.adjust_viewbox()
         self.hdl.set_colormap(cmap)
@@ -245,7 +244,7 @@ class SimpleMask(object):
         if label is not None and label in self.hdl.roi:
             self.hdl.remove_item(label)
 
-        cen = (self.dset.metadata["bcx"], self.dset.metadata["bcy"])
+        cen = self.get_center()
         if cen[0] < 0 or cen[1] < 0 or cen[0] > self.shape[1] or cen[1] > self.shape[0]:
             logger.warning("beam center is out of range, use image center instead")
             cen = (self.shape[1] // 2, self.shape[0] // 2)
@@ -399,9 +398,10 @@ class SimpleMask(object):
         )
         logger.info("dqmap/sqmap consistency check: {}".format(flag_consistency))
 
+        center = self.get_center()
         partition = {
-            "beam_center_x": self.dset.metadata["bcx"],
-            "beam_center_y": self.dset.metadata["bcy"],
+            "beam_center_x": center[0],
+            "beam_center_y": center[1],
             "pixel_size": self.dset.metadata["pix_dim"],
             "mask": self.mask,
             "energy": self.dset.metadata["energy"],
@@ -419,6 +419,12 @@ class SimpleMask(object):
         self.dset.update_metadata(new_metadata)
         self.qmap, self.qmap_unit, _labels = self.compute_qmap()
         self.mask_kernel.update_qmap(self.qmap)
+
+    def get_center(self):
+        if self.dset is None:
+            return (None, None)
+        else:
+            return (self.dset.metadata["bcx"], self.dset.metadata["bcy"])
 
 
 def test01():

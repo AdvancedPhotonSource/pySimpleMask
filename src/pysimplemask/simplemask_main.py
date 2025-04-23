@@ -256,7 +256,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
             traceback.print_exc()
             self.statusbar.showMessage("Failed to find center. Abort", 2000)
         else:
-            cen_old = (self.db_cenx.value(), self.db_ceny.value())
+            cen_old = self.sm.get_center()
+            # cen_old = (self.db_cenx.value(), self.db_ceny.value())
             self.db_cenx.setValue(center[1])
             self.db_ceny.setValue(center[0])
             self.update_parameters()

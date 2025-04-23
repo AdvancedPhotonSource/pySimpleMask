@@ -74,16 +74,26 @@ def center_crop(img, mask=None, center=None):
         center = estimate_center2(img, mask)
 
     center = np.round(center).astype(int)
-    half_size = min(center[0], img.shape[0] - center[0], center[1], img.shape[1] - center[1])
+    half_size = min(
+        center[0], img.shape[0] - center[0], center[1], img.shape[1] - center[1]
+    )
 
-    cropped_img = img[center[0] - half_size:center[0] + half_size + 1,
-                      center[1] - half_size:center[1] + half_size + 1]
+    cropped_img = img[
+        center[0] - half_size : center[0] + half_size + 1,
+        center[1] - half_size : center[1] + half_size + 1,
+    ]
     cropped_mask = None
     if mask is not None:
-        cropped_mask = mask[center[0] - half_size:center[0] + half_size + 1,
-                           center[1] - half_size:center[1] + half_size + 1]
+        cropped_mask = mask[
+            center[0] - half_size : center[0] + half_size + 1,
+            center[1] - half_size : center[1] + half_size + 1,
+        ]
 
-    min_value = np.min(cropped_img[cropped_mask == 1] if cropped_mask is not None and np.any(cropped_mask==1) else cropped_img)
+    min_value = np.min(
+        cropped_img[cropped_mask == 1]
+        if cropped_mask is not None and np.any(cropped_mask == 1)
+        else cropped_img
+    )
     cropped_img = cropped_img - min_value
     return center, cropped_img, cropped_mask
 
@@ -113,15 +123,20 @@ def estimate_center_cross_correlation(img, mask, center):
     else:
         moving_mask = None
 
-    shift, _, _ = phase_cross_correlation(cropped_img, moving_image,
-                                         reference_mask=cropped_mask, moving_mask=moving_mask,
-                                         upsample_factor=4, overlap_ratio=0.75)
+    shift, _, _ = phase_cross_correlation(
+        cropped_img,
+        moving_image,
+        reference_mask=cropped_mask,
+        moving_mask=moving_mask,
+        upsample_factor=4,
+        overlap_ratio=0.75,
+    )
     new_center = center_int.astype(float) + shift / 2.0
-
+    new_center = list(new_center)
     return new_center
 
 
-def find_center(img, mask=None, scale='log', iter_center=2, center_guess=None):
+def find_center(img, mask=None, scale="log", iter_center=2, center_guess=None):
     """Finds the center of an image using iterative refinement.
 
     Parameters
@@ -149,15 +164,17 @@ def find_center(img, mask=None, scale='log', iter_center=2, center_guess=None):
     masked_img = img.copy()
     masked_img[mask == 0] = 0
 
-    assert scale in ('log', 'linear')
-    if scale == 'log':
+    assert scale in ("log", "linear")
+    if scale == "log":
         min_value = np.min(masked_img[masked_img > 0])
         masked_img[masked_img <= 0] = min_value
         masked_img = np.log10(masked_img).astype(np.float32)
     else:
         masked_img = masked_img.astype(np.float32)
 
-    masked_img = (masked_img - np.min(masked_img)) / (np.max(masked_img) - np.min(masked_img))
+    masked_img = (masked_img - np.min(masked_img)) / (
+        np.max(masked_img) - np.min(masked_img)
+    )
 
     center = center_guess if center_guess is not None else estimate_center(masked_img)
 
@@ -167,6 +184,6 @@ def find_center(img, mask=None, scale='log', iter_center=2, center_guess=None):
     return center
 
 
-if __name__ == '__main__':
-    img = skio.imread('../tests/data/saxs_test.tif')
+if __name__ == "__main__":
+    img = skio.imread("../tests/data/saxs_test.tif")
     print(find_center(img))
