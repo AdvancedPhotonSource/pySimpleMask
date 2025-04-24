@@ -247,26 +247,6 @@ class Ui_SimpleMask(object):
 
         self.gridLayout_10.addWidget(self.det_rz, 4, 1, 1, 1)
 
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.btn_swapxy = QPushButton(self.tab)
-        self.btn_swapxy.setObjectName(u"btn_swapxy")
-
-        self.horizontalLayout_3.addWidget(self.btn_swapxy)
-
-        self.btn_find_center = QPushButton(self.tab)
-        self.btn_find_center.setObjectName(u"btn_find_center")
-
-        self.horizontalLayout_3.addWidget(self.btn_find_center)
-
-        self.btn_update_parameters = QPushButton(self.tab)
-        self.btn_update_parameters.setObjectName(u"btn_update_parameters")
-
-        self.horizontalLayout_3.addWidget(self.btn_update_parameters)
-
-
-        self.gridLayout_10.addLayout(self.horizontalLayout_3, 4, 2, 1, 2)
-
         self.tabWidget_2.addTab(self.tab, "")
         self.tab_7 = QWidget()
         self.tab_7.setObjectName(u"tab_7")
@@ -277,7 +257,7 @@ class Ui_SimpleMask(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 559, 290))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 559, 145))
         self.gridLayout_29 = QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_29.setObjectName(u"gridLayout_29")
         self.gridLayout_29.setContentsMargins(0, 0, 0, 0)
@@ -319,6 +299,28 @@ class Ui_SimpleMask(object):
 
 
         self.gridLayout_2.addLayout(self.horizontalLayout_2, 0, 0, 1, 1)
+
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.btn_swapxy = QPushButton(self.groupBox)
+        self.btn_swapxy.setObjectName(u"btn_swapxy")
+
+        self.horizontalLayout_3.addWidget(self.btn_swapxy)
+
+        self.btn_find_center = QPushButton(self.groupBox)
+        self.btn_find_center.setObjectName(u"btn_find_center")
+
+        self.horizontalLayout_3.addWidget(self.btn_find_center)
+
+        self.btn_update_parameters = QPushButton(self.groupBox)
+        self.btn_update_parameters.setObjectName(u"btn_update_parameters")
+        sizePolicy3.setHeightForWidth(self.btn_update_parameters.sizePolicy().hasHeightForWidth())
+        self.btn_update_parameters.setSizePolicy(sizePolicy3)
+
+        self.horizontalLayout_3.addWidget(self.btn_update_parameters)
+
+
+        self.gridLayout_2.addLayout(self.horizontalLayout_3, 3, 0, 1, 1)
 
         self.splitter.addWidget(self.groupBox)
         self.groupBox_2 = QGroupBox(self.splitter)
@@ -1484,7 +1486,7 @@ class Ui_SimpleMask(object):
         self.mask_list_include.toggled.connect(self.mask_list_radius.setEnabled)
         self.mask_list_include.toggled.connect(self.mask_list_variation.setEnabled)
 
-        self.tabWidget_2.setCurrentIndex(0)
+        self.tabWidget_2.setCurrentIndex(1)
         self.MaskWidget.setCurrentIndex(5)
         self.tabWidget.setCurrentIndex(1)
 
@@ -1501,7 +1503,7 @@ class Ui_SimpleMask(object):
 
         self.label_9.setText(QCoreApplication.translate("SimpleMask", u"begin index:", None))
         self.label_28.setText(QCoreApplication.translate("SimpleMask", u"num_frames", None))
-        self.btn_load.setText(QCoreApplication.translate("SimpleMask", u"load data", None))
+        self.btn_load.setText(QCoreApplication.translate("SimpleMask", u"Load", None))
         self.label_2.setText(QCoreApplication.translate("SimpleMask", u"center x:", None))
         self.label_3.setText(QCoreApplication.translate("SimpleMask", u"center y:", None))
         self.label_4.setText(QCoreApplication.translate("SimpleMask", u"energy (keV):", None))
@@ -1511,14 +1513,14 @@ class Ui_SimpleMask(object):
         self.label_35.setText(QCoreApplication.translate("SimpleMask", u"detector Ry (deg):", None))
         self.label_7.setText(QCoreApplication.translate("SimpleMask", u"detector shape:", None))
         self.label_40.setText(QCoreApplication.translate("SimpleMask", u"detector Rz (deg):", None))
-        self.btn_swapxy.setText(QCoreApplication.translate("SimpleMask", u"Swap X-Y", None))
-        self.btn_find_center.setText(QCoreApplication.translate("SimpleMask", u"Find Center", None))
-        self.btn_update_parameters.setText(QCoreApplication.translate("SimpleMask", u"Update ", None))
         self.tabWidget_2.setTabText(self.tabWidget_2.indexOf(self.tab), QCoreApplication.translate("SimpleMask", u"Small Angle", None))
         self.tabWidget_2.setTabText(self.tabWidget_2.indexOf(self.tab_7), QCoreApplication.translate("SimpleMask", u"Grazing Incidence", None))
         self.label_17.setText(QCoreApplication.translate("SimpleMask", u"Scattering File:", None))
         self.fname.setPlaceholderText(QCoreApplication.translate("SimpleMask", u"filename", None))
         self.btn_select_raw.setText(QCoreApplication.translate("SimpleMask", u"...", None))
+        self.btn_swapxy.setText(QCoreApplication.translate("SimpleMask", u"Swap X-Y", None))
+        self.btn_find_center.setText(QCoreApplication.translate("SimpleMask", u"Find Center", None))
+        self.btn_update_parameters.setText(QCoreApplication.translate("SimpleMask", u"Update Metadata", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("SimpleMask", u"Mask", None))
         self.groupBox_7.setTitle(QCoreApplication.translate("SimpleMask", u"Blemish File:", None))
         self.label_30.setText(QCoreApplication.translate("SimpleMask", u"Blemish file:", None))

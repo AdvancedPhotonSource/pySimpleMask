@@ -20,7 +20,12 @@ def dict_to_params(name, d):
                 param_type = "float"
             elif isinstance(value, bool):
                 param_type = "bool"
-            children.append({"name": key, "type": param_type, "value": value})
+            if param_type == "float":
+                children.append(
+                    {"name": key, "type": param_type, "value": value, "decimals": 6}
+                )
+            else:
+                children.append({"name": key, "type": param_type, "value": value})
     return {"name": name, "type": "group", "children": children}
 
 

@@ -416,7 +416,7 @@ class SimpleMask(object):
         return partition
 
     def update_parameters(self, new_metadata):
-        self.dset.update_metadata(new_metadata)
+        # self.dset.update_metadata(new_metadata)
         self.qmap, self.qmap_unit, _labels = self.compute_qmap()
         self.mask_kernel.update_qmap(self.qmap)
 
