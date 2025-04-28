@@ -251,17 +251,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.btn_find_center.setText("Finding Center ...")
             self.btn_find_center.setDisabled(True)
             self.centralwidget.repaint()
-            center = self.sm.find_center()
+            center_vh = self.sm.find_center()
         except Exception:
             traceback.print_exc()
             self.statusbar.showMessage("Failed to find center. Abort", 2000)
         else:
             cen_old = self.sm.get_center()
-            # cen_old = (self.db_cenx.value(), self.db_ceny.value())
-            self.db_cenx.setValue(center[1])
-            self.db_ceny.setValue(center[0])
-            self.update_parameters()
-            cen_new = (round(center[1], 4), round(center[0], 4))
+            self.update_parameters(new_center=center_vh)
+            cen_new = self.sm.get_center()
             logger.info(f"found center: {cen_old} --> {cen_new}")
         finally:
             self.btn_find_center.setText("Find Center")
@@ -396,7 +393,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return False
         return True
 
-    def update_parameters(self, swapxy=False):
+    def update_parameters(self, swapxy=False, new_center=None):
         if not self.is_ready():
             return
 
@@ -406,6 +403,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
             widget = getattr(self, widget_name)
             new_metadata[name] = widget.value() * scale
 
+        if new_center:
+            new_metadata["bcy"], new_metadata["bcx"] = new_center
+
         if swapxy:
             y, x = new_metadata["bcx"], new_metadata["bcy"]
             new_metadata["bcx"], new_metadata["bcy"] = x, y
@@ -413,6 +413,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.db_ceny.setValue(y)
 
         self.sm.update_parameters(new_metadata)
+        self.display_metadata()
         self.groupBox.repaint()
         self.plot()
 
