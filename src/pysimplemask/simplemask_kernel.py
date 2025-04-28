@@ -49,7 +49,7 @@ class SimpleMask(object):
         if self.dset is None:
             return
 
-        center_guess = self.get_center()
+        center_guess = self.get_center(mode="vh")
         center = find_center(
             self.dset.scat,
             mask=self.mask,
@@ -416,15 +416,20 @@ class SimpleMask(object):
         return partition
 
     def update_parameters(self, new_metadata):
-        # self.dset.update_metadata(new_metadata)
+        self.dset.update_metadata(new_metadata)
         self.qmap, self.qmap_unit, _labels = self.compute_qmap()
         self.mask_kernel.update_qmap(self.qmap)
 
-    def get_center(self):
+    def get_center(self, mode="xy"):
         if self.dset is None:
             return (None, None)
         else:
-            return (self.dset.metadata["bcx"], self.dset.metadata["bcy"])
+            assert mode in ("xy", "vh"), "mode must be either 'xy' or 'vh'"
+            if mode == "xy":
+                center = (self.dset.metadata["bcx"], self.dset.metadata["bcy"])
+            elif mode == "vh":
+                center = (self.dset.metadata["bcy"], self.dset.metadata["bcx"])
+            return center
 
 
 def test01():
