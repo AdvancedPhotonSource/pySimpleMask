@@ -72,7 +72,6 @@ def center_crop(img, mask=None, center=None):
 
     if center is None:
         center = estimate_center2(img, mask)
-
     center = np.round(center).astype(int)
     half_size = min(
         center[0], img.shape[0] - center[0], center[1], img.shape[1] - center[1]
@@ -132,7 +131,7 @@ def estimate_center_cross_correlation(img, mask, center):
         overlap_ratio=0.75,
     )
     new_center = center_int.astype(float) + shift / 2.0
-    new_center = list(new_center)
+    new_center = new_center.tolist()
     return new_center
 
 
@@ -180,7 +179,6 @@ def find_center(img, mask=None, scale="log", iter_center=2, center_guess=None):
 
     for _ in range(iter_center):
         center = estimate_center_cross_correlation(masked_img, mask, center)
-
     return center
 
 
