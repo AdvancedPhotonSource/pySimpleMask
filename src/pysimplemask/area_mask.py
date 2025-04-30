@@ -197,6 +197,8 @@ class MaskAssemble():
             fname = os.path.join(basename, '8idRigaku3m/latest_blemish.tif')
         elif tuple(self.shape) == (4362, 4148):
             fname = os.path.join(basename, '9idEiger16m/latest_blemish.tif')
+        elif tuple(self.shape) == (512, 1024):
+            fname = os.path.join(basename, '8idRigaku500k/latest_blemish.tif')
         else:
             logger.warning('detector shape/type not supported')
             self.mask_ptr_min = 0
