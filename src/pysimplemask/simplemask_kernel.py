@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 
 import h5py
@@ -14,13 +15,8 @@ from .file_handler import get_handler
 from .find_center import find_center
 from .outlier_removal import outlier_removal_with_saxs
 from .pyqtgraph_mod import LineROI
-from .utils import (
-    check_consistency,
-    combine_partitions,
-    generate_partition,
-    hash_numpy_dict,
-    optimize_integer_array,
-)
+from .utils import (check_consistency, combine_partitions, generate_partition,
+                    hash_numpy_dict, optimize_integer_array)
 
 pg.setConfigOptions(imageAxisOrder="row-major")
 
@@ -408,6 +404,7 @@ class SimpleMask(object):
             "detector_distance": self.dset.metadata["det_dist"],
             "map_names": list(map_names),
             "map_units": [self.qmap_unit[name0], self.qmap_unit[name1]],
+            "source_file": os.path.realpath(self.dset.fname),
         }
         partition.update(dynamic_map)
         partition.update(static_map)
