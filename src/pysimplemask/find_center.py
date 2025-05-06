@@ -69,9 +69,18 @@ def center_crop(img, mask=None, center=None):
     tuple
         A tuple containing the center coordinates, the cropped image, and the cropped mask (if provided).
     """
+    if center is not None:
+        if (
+            center[0] < 0
+            or center[1] < 0
+            or center[0] >= img.shape[0]
+            or center[1] >= img.shape[1]
+        ):
+            center = None
 
     if center is None:
         center = estimate_center2(img, mask)
+
     center = np.round(center).astype(int)
     half_size = min(
         center[0], img.shape[0] - center[0], center[1], img.shape[1] - center[1]
