@@ -203,6 +203,8 @@ class MaskAssemble:
             fname = os.path.join(basename, "9idEiger16m/latest_blemish.tif")
         elif tuple(self.shape) == (516, 1556):
             fname = os.path.join(basename, "8idLambda750k/latest_blemish.tif")
+        elif tuple(self.shape) == (516, 1554):
+            fname = os.path.join(basename, "detLambda750k/latest_blemish.tif")
         elif tuple(self.shape) == (512, 1024):
             fname = os.path.join(basename, '8idRigaku500k/latest_blemish.tif')
         else:
