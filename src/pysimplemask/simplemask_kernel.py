@@ -15,8 +15,13 @@ from .file_handler import get_handler
 from .find_center import find_center
 from .outlier_removal import outlier_removal_with_saxs
 from .pyqtgraph_mod import LineROI
-from .utils import (check_consistency, combine_partitions, generate_partition,
-                    hash_numpy_dict, optimize_integer_array)
+from .utils import (
+    check_consistency,
+    combine_partitions,
+    generate_partition,
+    hash_numpy_dict,
+    optimize_integer_array,
+)
 
 pg.setConfigOptions(imageAxisOrder="row-major")
 
@@ -162,7 +167,6 @@ class SimpleMask(object):
         if self.dset is None:
             return
         self.hdl.clear()
-        center = self.get_center()
         self.hdl.setImage(self.dset.data_display)
         self.hdl.adjust_viewbox()
         self.hdl.set_colormap(cmap)
@@ -170,7 +174,9 @@ class SimpleMask(object):
         # plot center
         if plot_center:
             t = pg.ScatterPlotItem()
-            t.addPoints(x=[center[0]], y=[center[1]], symbol="+", size=15)
+            center = self.get_center(mode="vh")
+            logger.info(f"direct beam center is ({center[1]}, {center[0]})")
+            t.addPoints(x=[center[1]], y=[center[0]], symbol="+", size=15)
             self.hdl.add_item(t, label="center")
 
         self.hdl.setCurrentIndex(plot_index)
@@ -240,7 +246,7 @@ class SimpleMask(object):
         if label is not None and label in self.hdl.roi:
             self.hdl.remove_item(label)
 
-        cen = self.get_center()
+        cen = self.get_center(mode="xy")
         if cen[0] < 0 or cen[1] < 0 or cen[0] > self.shape[1] or cen[1] > self.shape[0]:
             logger.warning("beam center is out of range, use image center instead")
             cen = (self.shape[1] // 2, self.shape[0] // 2)
@@ -394,7 +400,7 @@ class SimpleMask(object):
         )
         logger.info("dqmap/sqmap consistency check: {}".format(flag_consistency))
 
-        center = self.get_center()
+        center = self.get_center("xy")
         partition = {
             "beam_center_x": center[0],
             "beam_center_y": center[1],
@@ -422,10 +428,7 @@ class SimpleMask(object):
             return (None, None)
         else:
             assert mode in ("xy", "vh"), "mode must be either 'xy' or 'vh'"
-            if mode == "xy":
-                center = (self.dset.metadata["bcx"], self.dset.metadata["bcy"])
-            elif mode == "vh":
-                center = (self.dset.metadata["bcy"], self.dset.metadata["bcx"])
+            center = self.dset.get_center(mode=mode)
             return center
 
 

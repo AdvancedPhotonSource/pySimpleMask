@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 import traceback
-from ..qmap import compute_qmap
+from ..qmap import compute_qmap, compute_display_center
 
 logger = logging.getLogger(__name__)
 
@@ -177,6 +177,18 @@ class FileReader(object):
             self.data_display[len(DISPLAY_FIELD) + index] = v
         labels = list(DISPLAY_FIELD) + list(self.qmap.keys())
         return self.qmap, self.qmap_unit, labels
+
+    def get_center(self, mode="vh"):
+        display_center = compute_display_center(
+            (self.metadata["bcy"], self.metadata["bcx"]),
+            self.metadata["det_dist"],
+            self.metadata["pix_dim"],
+            self.metadata["swing_angle"],
+        )
+        if mode == "xy":
+            return (display_center[1], display_center[0])
+        elif mode == "vh":
+            return display_center
 
     def get_coordinates(self, col, row, index):
         shape = self.shape

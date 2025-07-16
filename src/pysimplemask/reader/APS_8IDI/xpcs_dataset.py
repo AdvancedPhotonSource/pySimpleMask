@@ -249,12 +249,20 @@ def get_hdf_metadata(fname):
         "bcx0": "/entry/instrument/detector_1/beam_center_x",
         "bcy0": "/entry/instrument/detector_1/beam_center_y",
         "det_dist": "/entry/instrument/detector_1/distance",
+        "swing_angle": "/entry/instrument/detector_1/flightpath_swing",
     }
 
     meta = {}
     with h5py.File(meta_fname, "r") as f:
         for key, val in keys.items():
-            meta[key] = f[val][()]
+            if val in f:
+                meta[key] = f[val][()]
+            elif key == "swing_angle" and val not in f:
+                logger.warning(
+                    "flight path swing angle not found metadata, set to 0.0 degree"
+                )
+                # set default angle to 0.0 for backward compatibility
+                meta[key] = 0.0
         meta["data_name"] = os.path.basename(meta_fname)
 
     ccdx, ccdx0 = meta["ccdx"], meta["ccdx0"]
