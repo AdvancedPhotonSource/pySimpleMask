@@ -2,6 +2,7 @@ import logging
 from functools import lru_cache
 
 import numpy as np
+import math
 
 logger = logging.getLogger(__name__)
 E2KCONST = 12.39841984
@@ -32,14 +33,18 @@ def compute_qmap(stype, metadata):
 def compute_display_center(center, detector_distance, pixel_size, swing_angle=0):
     center_v = center[0]
     # if swing_angle < 0, the center shift towards the nagative direction (DOOR)
-    center_h = center[1] + detector_distance * np.tan(np.deg2rad(swing_angle)) / pixel_size
+    center_h = (
+        center[1] + detector_distance * np.tan(np.deg2rad(swing_angle)) / pixel_size
+    )
     # make it a python native float to avoid 2 types of floats
     center_h = float(center_h)
     return (center_v, center_h)
 
 
 @lru_cache(maxsize=128)
-def compute_transmission_qmap(energy, center, shape, pixel_size, detector_distance, swing_angle):
+def compute_transmission_qmap(
+    energy, center, shape, pixel_size, detector_distance, swing_angle
+):
     k0 = 2 * np.pi / (E2KCONST / energy)
 
     # swing_angle is negative when swin towards the wall
@@ -101,7 +106,13 @@ def compute_transmission_qmap(energy, center, shape, pixel_size, detector_distan
 
 @lru_cache(maxsize=128)
 def compute_reflection_qmap(
-    energy, center, shape, pixel_size, detector_distance, alpha_i_deg=0.14, orientation="north"
+    energy,
+    center,
+    shape,
+    pixel_size,
+    detector_distance,
+    alpha_i_deg=0.14,
+    orientation=0.0,
 ):
     k0 = 2 * np.pi / (E2KCONST / energy)
 
@@ -110,13 +121,19 @@ def compute_reflection_qmap(
     vg, hg = np.meshgrid(v, h, indexing="ij")
     vg *= -1
 
-    if orientation == "north":
+    assert isinstance(orientation, (float, int)), "Orientation must be a float or int"
+    while orientation < 0:
+        orientation += 360.0
+
+    if math.isclose(orientation, 0.0, abs_tol=1e-3) or math.isclose(
+        orientation, 360.0, abs_tol=1e-3
+    ):
         pass
-    elif orientation == "west":
+    elif math.isclose(orientation, 90.00, abs_tol=1e-3):
         vg, hg = -hg, vg
-    elif orientation == "south":
+    elif math.isclose(orientation, 180.0, abs_tol=1e-3):
         vg, hg = -vg, -hg
-    elif orientation == "east":
+    elif math.isclose(orientation, 270.0, abs_tol=1e-3):
         vg, hg = hg, -vg
     else:
         logger.warning("Unknown orientation: {orientation}. using default north")
