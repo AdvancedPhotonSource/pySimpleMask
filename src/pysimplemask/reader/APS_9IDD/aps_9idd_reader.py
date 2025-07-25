@@ -4,7 +4,7 @@ import h5py
 import os
 import glob
 from ..base_reader import FileReader
-from ..utils import sum_frames_parallel, create_pg_parameter_list, get_metadata_from_keymap
+from ..utils import sum_frames_parallel, get_metadata_from_keymap
 import re
 
 logger = logging.getLogger(__name__)
@@ -49,8 +49,6 @@ METADATA_KEYMAPS = {
     "_sp_det_x0": "/entry/instrument/detector_1/specular_beam_stage_x",
     "_sp_det_y0": "/entry/instrument/detector_1/specular_beam_stage_y",
 }
-
-
 
 
 def get_metadata(fname, flag_samefile=True, detector_shape=(1000, 1000)):
@@ -158,8 +156,4 @@ class APS9IDDReader(FileReader):
             if detector_shape is not None:
                 meta["detector_shape_x"] = detector_shape[1]
                 meta["detector_shape_y"] = detector_shape[0]
-        meta["bcx"] = meta["beam_center_x"]
-        meta["bcy"] = meta["beam_center_y"]
-        meta["pix_dim"] = meta["pixel_size"]
-        meta["det_dist"] = meta["detector_distance"]
         return meta
