@@ -4,7 +4,7 @@ import h5py
 import os
 import glob
 from ..base_reader import FileReader
-from ..utils import sum_frames_parallel
+from ..utils import sum_frames_parallel, create_pg_parameter_list, get_metadata_from_keymap
 import re
 
 logger = logging.getLogger(__name__)
@@ -51,65 +51,6 @@ METADATA_KEYMAPS = {
 }
 
 
-def create_pg_parameter_list(data_dict):
-    def get_param_type(value):
-        """Determines the parameter type based on the value's Python type."""
-        if isinstance(value, bool):
-            return "bool"
-        elif isinstance(value, int):
-            return "int"
-        elif isinstance(value, float):
-            return "float"
-        else:
-            return "str"
-
-    # Convert the dictionary to a list of parameter definitions
-    params = []
-    for key, value in data_dict.items():
-        param_type = get_param_type(value)
-        line = {"name": key, "type": param_type, "value": value}
-
-        if key in DEFAULT_METADATA_WITHUNITS:
-            # Unpack the metadata tuple
-            _, unit, fmt_str = DEFAULT_METADATA_WITHUNITS[key]
-            # Set the unit as a suffix for display
-            line["suffix"] = f" {unit}"  # Add a leading space for readability
-            line["siPrefix"] = False
-            # This is crucial for custom formatting of floats
-            # 2. Parse format string to set the number of decimals
-            match = re.search(r"%\.(\d+)f", fmt_str)
-            if match:
-                line["decimals"] = int(match.group(1))
-
-        params.append(line)
-
-    return params
-
-
-def get_metadata_from_keymap(fname):
-    """
-    Generic metadata reader using configurable key mappings.
-
-    Args:
-        fname: HDF5 file path
-        keymap_name: Name of predefined keymap ("nexus" or "standard")
-        custom_keymap: Optional custom keymap dictionary to override predefined ones
-
-    Returns:
-        dict: Metadata dictionary with standardized keys
-    """
-    metadata = {}
-    with h5py.File(fname, "r") as f:
-        for key, hdf_path in METADATA_KEYMAPS.items():
-            try:
-                metadata[key] = f[hdf_path][()]
-            except KeyError:
-                logger.debug(
-                    f"Could not find HDF5 path '{hdf_path}' for key '{key}' in file {fname}"
-                )
-                metadata[key] = None
-
-    return metadata
 
 
 def get_metadata(fname, flag_samefile=True, detector_shape=(1000, 1000)):
@@ -135,7 +76,7 @@ def get_metadata(fname, flag_samefile=True, detector_shape=(1000, 1000)):
         meta_fname = meta_fnames[0]
 
     # Use the keymap-based reader
-    metadata = get_metadata_from_keymap(meta_fname)
+    metadata = get_metadata_from_keymap(meta_fname, METADATA_KEYMAPS)
     m = metadata
 
     # Calculate beam center and specular positions with null checks

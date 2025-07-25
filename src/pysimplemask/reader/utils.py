@@ -2,12 +2,83 @@ import numpy as np
 import h5py
 import hdf5plugin
 import logging
+import re
 
 
 logger = logging.getLogger(__name__)
 
 
 from multiprocessing import Pool, cpu_count
+
+
+def create_pg_parameter_list(data_dict, metadata_withunits):
+    """
+    Create a parameter list for PyQtGraph from a data dictionary.
+    
+    Args:
+        data_dict: Dictionary of parameter values
+        metadata_withunits: Dictionary mapping parameter names to (value, unit, format_string) tuples
+        
+    Returns:
+        list: List of parameter definitions for PyQtGraph
+    """
+    def get_param_type(value):
+        """Determines the parameter type based on the value's Python type."""
+        if isinstance(value, bool):
+            return "bool"
+        elif isinstance(value, int):
+            return "int"
+        elif isinstance(value, float):
+            return "float"
+        else:
+            return "str"
+
+    # Convert the dictionary to a list of parameter definitions
+    params = []
+    for key, value in data_dict.items():
+        param_type = get_param_type(value)
+        line = {"name": key, "type": param_type, "value": value}
+
+        if key in metadata_withunits:
+            # Unpack the metadata tuple
+            _, unit, fmt_str = metadata_withunits[key]
+            # Set the unit as a suffix for display
+            line["suffix"] = f" {unit}"  # Add a leading space for readability
+            line["siPrefix"] = False
+            # This is crucial for custom formatting of floats
+            # Parse format string to set the number of decimals
+            match = re.search(r"%\.(\d+)f", fmt_str)
+            if match:
+                line["decimals"] = int(match.group(1))
+
+        params.append(line)
+
+    return params
+
+
+def get_metadata_from_keymap(fname, metadata_keymaps):
+    """
+    Generic metadata reader using configurable key mappings.
+
+    Args:
+        fname: HDF5 file path
+        metadata_keymaps: Dictionary mapping metadata keys to HDF5 paths
+
+    Returns:
+        dict: Metadata dictionary with standardized keys
+    """
+    metadata = {}
+    with h5py.File(fname, "r") as f:
+        for key, hdf_path in metadata_keymaps.items():
+            try:
+                metadata[key] = f[hdf_path][()]
+            except KeyError:
+                logger.debug(
+                    f"Could not find HDF5 path '{hdf_path}' for key '{key}' in file {fname}"
+                )
+                metadata[key] = None
+
+    return metadata
 
 
 def process_chunk(args):
@@ -97,4 +168,3 @@ def sum_frames_parallel(
 
     # Sum all results
     return np.sum(np.array(results), axis=0)
-
