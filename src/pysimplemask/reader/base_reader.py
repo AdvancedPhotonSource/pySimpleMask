@@ -197,6 +197,7 @@ class FileReader(object):
         raise NotImplementedError
 
     def get_parametertree_structure(self):
+        print(self.meta_units_fmts)
         return dict_to_params("metadata", self.metadata, self.meta_units_fmts)
 
     def update_metadata_from_changes(self, changes):

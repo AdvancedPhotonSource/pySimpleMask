@@ -398,20 +398,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
 
         new_metadata = {}
-        for name, widget_name in PVMAP.items():
-            scale = 1e-6 if name == "pixel_size" else 1
-            widget = getattr(self, widget_name)
-            new_metadata[name] = widget.value() * scale
-
-        if new_center:
-            new_metadata["beam_center_y"], new_metadata["beam_center_x"] = new_center
-
-        if swapxy:
-            y, x = new_metadata["beam_center_x"], new_metadata["beam_center_y"]
-            new_metadata["beam_center_x"], new_metadata["beam_center_y"] = x, y
-            self.db_cenx.setValue(x)
-            self.db_ceny.setValue(y)
-
         self.sm.update_parameters(new_metadata)
         self.display_metadata()
         self.groupBox.repaint()
@@ -482,12 +468,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         }
         if not self.sm.read_data(fname, **kwargs):
             return
-        else:
-            stype = self.sm.dset.stype
-            if stype == "Transmission":
-                self.tabWidget_2.setCurrentIndex(0)
-            elif stype == "Reflection":
-                self.tabWidget_2.setCurrentIndex(1)
+        # else:
+        #     stype = self.sm.dset.stype
 
         for key in (
             "comboBox_param_xmap_name",
@@ -515,14 +497,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_load.repaint()
 
     def display_metadata(self):
-        for label, widget_name in PVMAP.items():
-            widget = getattr(self, widget_name)
-            scale = 1e6 if label == "pixel_size" else 1
-            widget.setValue(self.sm.dset.metadata[label] * scale)
-
-        self.le_shape.setText(str(self.sm.shape))
-        self.groupBox.repaint()
-
         param_struct = self.sm.dset.get_parametertree_structure()
         self.metadata_parameter = Parameter.create(**param_struct)
         self.metadata_parameter.sigTreeStateChanged.connect(
@@ -677,6 +651,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
             save_fname = QFileDialog.getSaveFileName(
                 self, caption="Save mask/qmap as", filter="HDF (*.hdf)"
             )[0]
+            if save_fname == "":
+                logger.warning("received empty filename; exit without saving")
+                return
             if not save_fname.endswith(".hdf"):
                 save_fname += ".hdf"
             if self.sm.new_partition is None:
