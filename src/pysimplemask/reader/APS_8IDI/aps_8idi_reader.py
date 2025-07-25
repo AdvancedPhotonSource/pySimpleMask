@@ -90,10 +90,17 @@ def get_hdf_metadata(fname):
             meta["pixel_size"] = DEFAULT_METADATA["pixel_size"]
 
         # Clean up intermediate values
-        meta.pop("bcx0", None)
-        meta.pop("bcy0", None)
-        meta.pop("x_pixel_size", None)
-        meta.pop("y_pixel_size", None)
+        for key in [
+            "bcx0",
+            "bcy0",
+            "ccdx",
+            "ccdy",
+            "ccdx0",
+            "ccdy0",
+            "x_pixel_size",
+            "y_pixel_size",
+        ]:
+            meta.pop(key, None)
 
         # Fill in any missing values with defaults
         for key, default_value in DEFAULT_METADATA.items():
@@ -143,4 +150,3 @@ class APS8IDIReader(FileReader):
 
     def _get_metadata(self):
         return get_hdf_metadata(self.fname)
-

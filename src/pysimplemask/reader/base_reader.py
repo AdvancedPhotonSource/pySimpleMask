@@ -93,13 +93,13 @@ def get_fake_metadata():
     return metadata
 
 
-def smart_float(x, precision=2):
+def smart_float(x, precision=4):
     """
     Convert a float to a string, either in scientific notation or fixed-point notation.
     The precision is the number of digits after the decimal point.
     """
-    if x == 0 or (1e-4 <= abs(x) < 1e4):
-        return f"{x:.{precision}f}".rstrip("0").rstrip(".")  # clean float
+    if x == 0 or (1e-2 <= abs(x) < 1e2):
+        return f"{x:.4f}".rstrip("0").rstrip(".")  # clean float
     else:
         return f"{x:.{precision}e}"  # scientific
 
@@ -197,7 +197,6 @@ class FileReader(object):
         raise NotImplementedError
 
     def get_parametertree_structure(self):
-        print(self.meta_units_fmts)
         return dict_to_params("metadata", self.metadata, self.meta_units_fmts)
 
     def update_metadata_from_changes(self, changes):
