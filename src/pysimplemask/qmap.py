@@ -20,11 +20,11 @@ def compute_qmap(stype, metadata):
     elif stype == "Reflection":
         return compute_reflection_qmap(
             metadata["energy"],
-            (metadata["bcy"], metadata["bcx"]),
+            (metadata["beam_center_y"], metadata["beam_center_x"]),
             metadata["shape"],
-            metadata["pix_dim"],
-            metadata["det_dist"],
-            alpha_i_deg=metadata["alpha_i_deg"],
+            metadata["pixel_size"],
+            metadata["detector_distance"],
+            alpha_i_deg=metadata["incident_angle"],
             orientation=metadata["orientation"],
         )
 
