@@ -90,6 +90,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # self.btn_select_txt.clicked.connect(self.select_txt)
         self.btn_update_parameters.clicked.connect(self.update_parameters)
         self.btn_swapxy.clicked.connect(lambda: self.update_parameters(swapxy=True))
+        self.pushButton_goto_max.clicked.connect(self.goto_max)
 
         self.btn_find_center.clicked.connect(self.find_center)
 
@@ -203,6 +204,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.save_load_settings(mode="load")
         self.show()
 
+    def goto_max(self):
+        self.sm.goto_max()
+        self.display_metadata()
+        self.plot()
+
     def update_partition_mapname(self):
         idx0 = self.comboBox_partition_mapname0.currentIndex()
         idx1 = self.comboBox_partition_mapname1.currentIndex()
@@ -257,7 +263,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.statusbar.showMessage("Failed to find center. Abort", 2000)
         else:
             cen_old = self.sm.get_center()
-            self.update_parameters(new_center=center_vh)
+            self.update_parameters(new_center_vh=center_vh)
             cen_new = self.sm.get_center()
             logger.info(f"found center: {cen_old} --> {cen_new}")
         finally:
@@ -393,14 +399,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return False
         return True
 
-    def update_parameters(self, swapxy=False, new_center=None):
+    def update_parameters(self, swapxy=False, new_center_vh=None):
         if not self.is_ready():
             return
 
-        new_metadata = {}
-        self.sm.update_parameters(new_metadata)
+        if swapxy:
+            self.sm.dset.swapxy()
+        if new_center_vh:
+            self.sm.dset.set_center_vh(new_center_vh)
+        self.sm.update_parameters()
         self.display_metadata()
-        self.groupBox.repaint()
         self.plot()
 
     def select_raw(self):

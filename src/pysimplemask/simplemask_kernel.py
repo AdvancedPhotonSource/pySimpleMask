@@ -134,14 +134,11 @@ class SimpleMask(object):
         self.shape = self.dset.shape
         self.mask = np.ones(self.shape, dtype=bool)
 
-        self.qmap, self.qmap_unit, _ = self.compute_qmap()
+        self.qmap, self.qmap_unit, _ = self.dset.compute_qmap()
         self.mask_kernel = MaskAssemble(self.shape, self.dset.scat)
         self.mask_apply(target="default_mask")
         self.mask_kernel.update_qmap(self.qmap)
         return True
-
-    def compute_qmap(self):
-        return self.dset.get_qmap()
 
     def show_location(self, pos):
         if not self.hdl.scene.itemsBoundingRect().contains(pos) or self.shape is None:
@@ -418,9 +415,9 @@ class SimpleMask(object):
         self.new_partition = partition
         return partition
 
-    def update_parameters(self, new_metadata):
+    def update_parameters(self, new_metadata=None):
         self.dset.update_metadata(new_metadata)
-        self.qmap, self.qmap_unit, _labels = self.compute_qmap()
+        self.qmap, self.qmap_unit, _labels = self.dset.compute_qmap()
         self.mask_kernel.update_qmap(self.qmap)
 
     def get_center(self, mode="xy"):
@@ -430,6 +427,11 @@ class SimpleMask(object):
             assert mode in ("xy", "vh"), "mode must be either 'xy' or 'vh'"
             center = self.dset.get_center(mode=mode)
             return center
+    
+    def goto_max(self):
+        center_vh = self.dset.find_maximal_intensity_center()
+        self.dset.set_center_vh(center_vh)
+        return center_vh
 
 
 def test01():

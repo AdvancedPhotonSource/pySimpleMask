@@ -3,6 +3,7 @@ import numpy as np
 import traceback
 import re
 from ..qmap import compute_qmap, compute_display_center
+from scipy.ndimage import median_filter, gaussian_filter
 
 logger = logging.getLogger(__name__)
 
@@ -40,29 +41,6 @@ def dict_to_params(name, data_dict, meta_units_formats=None):
         params.append(line)
 
     return {"name": name, "type": "group", "children": params}
-
-
-# def dict_to_params(name, d, meta_units_fmts=None):
-#     """Recursively convert a Python dictionary to ParameterTree structure."""
-#     children = []
-#     for key, value in d.items():
-#         if isinstance(value, dict):
-#             children.append(dict_to_params(key, value))
-#         else:
-#             param_type = "str"  # default
-#             if isinstance(value, int):
-#                 param_type = "int"
-#             elif isinstance(value, float):
-#                 param_type = "float"
-#             elif isinstance(value, bool):
-#                 param_type = "bool"
-#             if param_type == "float":
-#                 children.append(
-#                     {"name": key, "type": param_type, "value": value, "decimals": 6}
-#                 )
-#             else:
-#                 children.append({"name": key, "type": param_type, "value": value})
-#     return {"name": name, "type": "group", "children": children}
 
 
 def parameter_to_dict(parameter):
@@ -184,14 +162,40 @@ class FileReader(object):
 
     def get_metadata(self, *args, **kwargs):
         try:
-            metdata = self._get_metadata(*args, **kwargs)
-            return metdata
+            metadata = self._get_metadata(*args, **kwargs)
+            for k, v in metadata.items():
+                # convert to float for consistency and compatibility with downstream processing
+                if isinstance(v, (int, np.floating)):
+                    metadata[k] = float(v)
+            return metadata
         except Exception as e:
             traceback.print_exc()
             logger.warning(
                 "failed to get the real metadata, using default values instead"
             )
             return get_fake_metadata()
+
+    def find_maximal_intensity_center(
+        self, median_size: int = 3, gaussian_sigma: float = 1.0
+    ) -> tuple:
+        """
+        Find the position of the maximum point in a 2D image robustly,
+        using median and Gaussian filtering to reduce noise.
+
+        Parameters:
+            image (np.ndarray): 2D input image.
+            median_size (int): Kernel size for median filtering (default: 3).
+            gaussian_sigma (float): Sigma for Gaussian filtering (default: 1.0).
+
+        Returns:
+            tuple: Coordinates (row, col) of the maximum point in the smoothed image.
+        """
+        scat_mask_loc = DISPLAY_FIELD.index("scattering * mask")
+        scat_mask = self.data_display[scat_mask_loc]
+        cleaned = median_filter(scat_mask, size=median_size)
+        smoothed = gaussian_filter(cleaned, sigma=gaussian_sigma)
+        max_pos_vh = np.unravel_index(np.argmax(smoothed), smoothed.shape)
+        return max_pos_vh
 
     def _get_metadata(self, *args, **kwargs):
         raise NotImplementedError
@@ -206,9 +210,10 @@ class FileReader(object):
             self.metadata[changed_param.name()] = new_value
 
     def update_metadata(self, new_metadata):
-        self.metadata.update(new_metadata)
+        if new_metadata:
+            self.metadata.update(new_metadata)
 
-    def get_qmap(self):
+    def compute_qmap(self):
         self.qmap, self.qmap_unit = compute_qmap(self.stype, self.metadata)
         for index, (k, v) in enumerate(self.qmap.items()):
             self.data_display[len(DISPLAY_FIELD) + index] = v
@@ -226,6 +231,16 @@ class FileReader(object):
             return (display_center[1], display_center[0])
         elif mode == "vh":
             return display_center
+
+    def swapxy(self):
+        newx = self.metadata["beam_center_y"]
+        newy = self.metadata["beam_center_x"]
+        self.metadata["beam_center_x"] = newx
+        self.metadata["beam_center_y"] = newy
+
+    def set_center_vh(self, new_center_vh):
+        self.metadata["beam_center_y"] = float(new_center_vh[0])
+        self.metadata["beam_center_x"] = float(new_center_vh[1])
 
     def get_coordinates(self, col, row, index):
         shape = self.shape

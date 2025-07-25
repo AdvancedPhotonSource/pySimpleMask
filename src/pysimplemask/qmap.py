@@ -33,6 +33,8 @@ def compute_display_center(center, detector_distance, pixel_size, swing_angle=0)
     center_v = center[0]
     # if swing_angle < 0, the center shift towards the nagative direction (DOOR)
     center_h = center[1] + detector_distance * np.tan(np.deg2rad(swing_angle)) / pixel_size
+    # make it a python native float to avoid 2 types of floats
+    center_h = float(center_h)
     return (center_v, center_h)
 
 
