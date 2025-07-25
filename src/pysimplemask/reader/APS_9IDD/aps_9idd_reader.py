@@ -176,6 +176,7 @@ class APS9IDDReader(FileReader):
         super().__init__(fname)
         self.ftype = "APS_9IDD"
         self.stype = "Reflection"
+        self.meta_units_fmts = DEFAULT_METADATA_WITHUNITS.copy()
 
     def get_scattering(self, num_frames=-1, begin_idx=0, num_processes=None):
         return sum_frames_parallel(

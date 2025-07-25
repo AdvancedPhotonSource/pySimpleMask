@@ -65,11 +65,11 @@ def text_to_array(pts, dtype=np.int64):
 
 
 PVMAP = {
-    "bcx": "db_cenx",
-    "bcy": "db_ceny",
+    "beam_center_x": "db_cenx",
+    "beam_center_y": "db_ceny",
     "energy": "db_energy",
-    "pix_dim": "db_pix_dim",
-    "det_dist": "db_det_dist",
+    "pixel_size": "db_pix_dim",
+    "detector_distance": "db_det_dist",
 }
 
 
@@ -399,16 +399,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         new_metadata = {}
         for name, widget_name in PVMAP.items():
-            scale = 1e-6 if name == "pix_dim" else 1
+            scale = 1e-6 if name == "pixel_size" else 1
             widget = getattr(self, widget_name)
             new_metadata[name] = widget.value() * scale
 
         if new_center:
-            new_metadata["bcy"], new_metadata["bcx"] = new_center
+            new_metadata["beam_center_y"], new_metadata["beam_center_x"] = new_center
 
         if swapxy:
-            y, x = new_metadata["bcx"], new_metadata["bcy"]
-            new_metadata["bcx"], new_metadata["bcy"] = x, y
+            y, x = new_metadata["beam_center_x"], new_metadata["beam_center_y"]
+            new_metadata["beam_center_x"], new_metadata["beam_center_y"] = x, y
             self.db_cenx.setValue(x)
             self.db_ceny.setValue(y)
 
@@ -517,7 +517,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def display_metadata(self):
         for label, widget_name in PVMAP.items():
             widget = getattr(self, widget_name)
-            scale = 1e6 if label == "pix_dim" else 1
+            scale = 1e6 if label == "pixel_size" else 1
             widget.setValue(self.sm.dset.metadata[label] * scale)
 
         self.le_shape.setText(str(self.sm.shape))

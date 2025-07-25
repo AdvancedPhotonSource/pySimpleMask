@@ -404,10 +404,10 @@ class SimpleMask(object):
         partition = {
             "beam_center_x": center[0],
             "beam_center_y": center[1],
-            "pixel_size": self.dset.metadata["pix_dim"],
+            "pixel_size": self.dset.metadata["pixel_size"],
             "mask": self.mask,
             "energy": self.dset.metadata["energy"],
-            "detector_distance": self.dset.metadata["det_dist"],
+            "detector_distance": self.dset.metadata["detector_distance"],
             "map_names": list(map_names),
             "map_units": [self.qmap_unit[name0], self.qmap_unit[name1]],
             "source_file": os.path.realpath(self.dset.fname),

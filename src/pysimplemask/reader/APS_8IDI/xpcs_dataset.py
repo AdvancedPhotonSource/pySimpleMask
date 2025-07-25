@@ -248,7 +248,7 @@ def get_hdf_metadata(fname):
         "y_pixel_size": "/entry/instrument/detector_1/y_pixel_size",
         "bcx0": "/entry/instrument/detector_1/beam_center_x",
         "bcy0": "/entry/instrument/detector_1/beam_center_y",
-        "det_dist": "/entry/instrument/detector_1/distance",
+        "detector_distance": "/entry/instrument/detector_1/distance",
         "swing_angle": "/entry/instrument/detector_1/flightpath_swing",
     }
 
@@ -268,11 +268,11 @@ def get_hdf_metadata(fname):
     ccdx, ccdx0 = meta["ccdx"], meta["ccdx0"]
     ccdy, ccdy0 = meta["ccdy"], meta["ccdy0"]
 
-    meta["bcx"] = meta["bcx0"] + (ccdx - ccdx0) / meta["x_pixel_size"]
-    meta["bcy"] = meta["bcy0"] + (ccdy - ccdy0) / meta["y_pixel_size"]
+    meta["beam_center_x"] = meta["bcx0"] + (ccdx - ccdx0) / meta["x_pixel_size"]
+    meta["beam_center_y"] = meta["bcy0"] + (ccdy - ccdy0) / meta["y_pixel_size"]
     meta.pop("bcx0", None)
     meta.pop("bcy0", None)
-    meta["pix_dim"] = meta["x_pixel_size"]
+    meta["pixel_size"] = meta["x_pixel_size"]
     meta.pop("x_pixel_size", None)
     meta.pop("y_pixel_size", None)
     return meta

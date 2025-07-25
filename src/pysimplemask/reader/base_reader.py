@@ -1,32 +1,68 @@
 import logging
 import numpy as np
 import traceback
+import re
 from ..qmap import compute_qmap, compute_display_center
 
 logger = logging.getLogger(__name__)
 
 
-def dict_to_params(name, d):
-    """Recursively convert a Python dictionary to ParameterTree structure."""
-    children = []
-    for key, value in d.items():
-        if isinstance(value, dict):
-            children.append(dict_to_params(key, value))
+def dict_to_params(name, data_dict, meta_units_formats=None):
+    def get_param_type(value):
+        """Determines the parameter type based on the value's Python type."""
+        if isinstance(value, bool):
+            return "bool"
+        elif isinstance(value, int):
+            return "int"
+        elif isinstance(value, float):
+            return "float"
         else:
-            param_type = "str"  # default
-            if isinstance(value, int):
-                param_type = "int"
-            elif isinstance(value, float):
-                param_type = "float"
-            elif isinstance(value, bool):
-                param_type = "bool"
-            if param_type == "float":
-                children.append(
-                    {"name": key, "type": param_type, "value": value, "decimals": 6}
-                )
-            else:
-                children.append({"name": key, "type": param_type, "value": value})
-    return {"name": name, "type": "group", "children": children}
+            return "str"
+
+    # Convert the dictionary to a list of parameter definitions
+    params = []
+    for key, value in data_dict.items():
+        param_type = get_param_type(value)
+        line = {"name": key, "type": param_type, "value": value}
+
+        if meta_units_formats and key in meta_units_formats:
+            # Unpack the metadata tuple
+            _, unit, fmt_str = meta_units_formats[key]
+            # Set the unit as a suffix for display
+            line["suffix"] = f" {unit}"  # Add a leading space for readability
+            line["siPrefix"] = False
+            # This is crucial for custom formatting of floats
+            # 2. Parse format string to set the number of decimals
+            match = re.search(r"%\.(\d+)f", fmt_str)
+            if match:
+                line["decimals"] = int(match.group(1))
+
+        params.append(line)
+
+    return {"name": name, "type": "group", "children": params}
+
+
+# def dict_to_params(name, d, meta_units_fmts=None):
+#     """Recursively convert a Python dictionary to ParameterTree structure."""
+#     children = []
+#     for key, value in d.items():
+#         if isinstance(value, dict):
+#             children.append(dict_to_params(key, value))
+#         else:
+#             param_type = "str"  # default
+#             if isinstance(value, int):
+#                 param_type = "int"
+#             elif isinstance(value, float):
+#                 param_type = "float"
+#             elif isinstance(value, bool):
+#                 param_type = "bool"
+#             if param_type == "float":
+#                 children.append(
+#                     {"name": key, "type": param_type, "value": value, "decimals": 6}
+#                 )
+#             else:
+#                 children.append({"name": key, "type": param_type, "value": value})
+#     return {"name": name, "type": "group", "children": children}
 
 
 def parameter_to_dict(parameter):
@@ -48,10 +84,10 @@ def get_fake_metadata():
     metadata = {
         # 'datetime': "2022-05-08 14:00:51,799",
         "energy": 12.3,  # keV
-        "det_dist": 12.3456,  # meter
-        "pix_dim": 75e-6,  # meter
-        "bcx": 512,
-        "bcy": 256,
+        "detector_distance": 12.3456,  # meter
+        "pixel_size": 75e-6,  # meter
+        "beam_center_x": 512,
+        "beam_center_y": 256,
         "stype": "transmission",
     }
     return metadata
@@ -87,6 +123,7 @@ class FileReader(object):
         self.shape = None
         self.qmap = None
         self.qmap_unit = None
+        self.meta_units_fmts = None
         self.data_display = None
 
     def prepare_data(self, *args, **kwargs):
@@ -160,7 +197,7 @@ class FileReader(object):
         raise NotImplementedError
 
     def get_parametertree_structure(self):
-        return dict_to_params("metadata", self.metadata)
+        return dict_to_params("metadata", self.metadata, self.meta_units_fmts)
 
     def update_metadata_from_changes(self, changes):
         for changed_param, change_type, new_value in changes:
@@ -180,9 +217,9 @@ class FileReader(object):
 
     def get_center(self, mode="vh"):
         display_center = compute_display_center(
-            (self.metadata["bcy"], self.metadata["bcx"]),
-            self.metadata["det_dist"],
-            self.metadata["pix_dim"],
+            (self.metadata["beam_center_y"], self.metadata["beam_center_x"]),
+            self.metadata["detector_distance"],
+            self.metadata["pixel_size"],
             self.metadata.get("swing_angle", 0),
         )
         if mode == "xy":
