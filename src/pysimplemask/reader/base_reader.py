@@ -254,24 +254,24 @@ class FileReader(object):
         elif self.stype == "Transmission":
             labels = ["phi", "TTH", "qx", "qy", "q"]
 
-        qmap_labels = list(self.qmap.keys())
-        begin = len(DISPLAY_FIELD)
-        selection = [begin + qmap_labels.index(k) for k in labels]
-        selection.append(index)
-        labels.append("data")
+        msg = f"xy=[{col:d},{row:d}]  "
+        if self.qmap:
+            qmap_labels = list(self.qmap.keys())
+            begin = len(DISPLAY_FIELD)
+            selection = [begin + qmap_labels.index(k) for k in labels]
+            selection.append(index)
+            labels.append("data")
 
-        values = self.data_display[:, row, col][selection]
-        values = [smart_float(v) for v in values]
-
-        msg = f"xy=[{col:d},{row:d}] "
-        for k, v in zip(labels, values):
-            if k in ["qx", "qy", "qz", "q", "qr"]:
-                v = f"{v}Å⁻¹"
-            elif k in ["tth", "alpha_f", "phi", "TTH"]:
-                v = f"{v}°"
-            elif k == "data":
-                v = f"{v}"
-            msg += f"{k}={v}, "
+            values = self.data_display[:, row, col][selection]
+            values = [smart_float(v) for v in values]
+            for k, v in zip(labels, values):
+                if k in ["qx", "qy", "qz", "q", "qr"]:
+                    v = f"{v}Å⁻¹"
+                elif k in ["tth", "alpha_f", "phi", "TTH"]:
+                    v = f"{v}°"
+                elif k == "data":
+                    v = f"{v}"
+                msg += f"{k}={v}, "
 
         return msg[:-2]
 
