@@ -51,7 +51,7 @@ METADATA_KEYMAPS = {
 }
 
 
-def get_metadata(fname, flag_samefile=True, detector_shape=(1000, 1000)):
+def get_metadata(fname, detector_shape=(1000, 1000)):
     """
     Read metadata from NeXus format HDF5 files.
 
@@ -62,16 +62,23 @@ def get_metadata(fname, flag_samefile=True, detector_shape=(1000, 1000)):
     Returns:
         dict: Metadata dictionary
     """
-    if flag_samefile:
-        meta_fname = fname
-    else:
-        realpath = os.path.realpath(fname)
-        prefix = os.path.join(os.path.dirname(realpath), "*_metadata.hdf")
-        meta_fnames = glob.glob(prefix)
-        assert len(meta_fnames) > 0, f"no *_metadata.hdf found in the folder of {fname}"
-        if len(meta_fnames) > 1:
-            logger.warning("More than one metadata file found, using the first one")
-        meta_fname = meta_fnames[0]
+    with h5py.File(fname, "r") as f:
+        if (
+            "/entry/instrument/detector_1" in f
+            and "/entry/sample" in f
+            and "/entry/instrument/incident_beam/incident_energy" in f
+        ):
+            meta_fname = fname
+        else:
+            realpath = os.path.realpath(fname)
+            prefix = os.path.join(os.path.dirname(realpath), "*_metadata.hdf")
+            meta_fnames = glob.glob(prefix)
+            assert (
+                len(meta_fnames) > 0
+            ), f"no *_metadata.hdf found in the folder of {fname}"
+            if len(meta_fnames) > 1:
+                logger.warning("More than one metadata file found, using the first one")
+            meta_fname = meta_fnames[0]
 
     # Use the keymap-based reader
     metadata = get_metadata_from_keymap(meta_fname, METADATA_KEYMAPS)
