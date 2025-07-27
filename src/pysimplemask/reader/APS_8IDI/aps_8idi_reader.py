@@ -15,12 +15,12 @@ logger = logging.getLogger(__file__)
 DEFAULT_METADATA_WITHUNITS = {
     "energy": (10.0, "keV", "%.6f"),
     "detector_distance": (5.0, "m", "%.6f"),
-    "pixel_size": (0.000172, "m", "%.6f"),
+    "swing_angle": (0.0, "degree", "%.4f"),
     "beam_center_x": (512.0, "pixel", "%.4f"),
     "beam_center_y": (256.0, "pixel", "%.4f"),
+    "pixel_size": (0.000075, "m", "%.6f"),
     "detector_shape_x": (1024, "pixel", "%.4f"),
     "detector_shape_y": (512, "pixel", "%.4f"),
-    "swing_angle": (0.0, "degree", "%.4f"),
 }
 
 DEFAULT_METADATA = {key: value[0] for key, value in DEFAULT_METADATA_WITHUNITS.items()}
@@ -28,20 +28,43 @@ DEFAULT_METADATA = {key: value[0] for key, value in DEFAULT_METADATA_WITHUNITS.i
 # Metadata key mappings for different HDF5 data formats
 METADATA_KEYMAPS = {
     "energy": "/entry/instrument/incident_beam/incident_energy",
+    "detector_distance": "/entry/instrument/detector_1/distance",
+    "swing_angle": "/entry/instrument/detector_1/flightpath_swing",
+    "x_pixel_size": "/entry/instrument/detector_1/x_pixel_size",
+    "y_pixel_size": "/entry/instrument/detector_1/y_pixel_size",
     "ccdx": "/entry/instrument/detector_1/position_x",
     "ccdy": "/entry/instrument/detector_1/position_y",
     "ccdx0": "/entry/instrument/detector_1/beam_center_position_x",
     "ccdy0": "/entry/instrument/detector_1/beam_center_position_y",
-    "x_pixel_size": "/entry/instrument/detector_1/x_pixel_size",
-    "y_pixel_size": "/entry/instrument/detector_1/y_pixel_size",
     "bcx0": "/entry/instrument/detector_1/beam_center_x",
     "bcy0": "/entry/instrument/detector_1/beam_center_y",
-    "detector_distance": "/entry/instrument/detector_1/distance",
-    "swing_angle": "/entry/instrument/detector_1/flightpath_swing",
 }
 
 
-def get_hdf_metadata(fname):
+def has_nexus_fields(fname):
+    with h5py.File(fname, "r") as f:
+        for key in ["/enry/instrument/detector_1", "/entry/instrument/incident_beam"]:
+            if key not in f:
+                return False
+    return True
+
+
+def find_metadata_same_folder(fname):
+    prefix = os.path.join(os.path.dirname(fname), "*_metadata.hdf")
+    meta_fnames = glob.glob(prefix)
+    num_found = len(meta_fnames)
+    assert num_found > 0, f"no *_metadata.hdf found in the folder of {fname}"
+    if num_found >= 1:
+        if num_found > 1:
+            logger.warning(
+                f"multiple *_metadata.hdf found in the folder of {fname}. using the first one"
+            )
+        return meta_fnames[0]
+    elif num_found == 0:
+        raise FileNotFoundError(f"no *_metadata.hdf found in the folder of {fname}")
+
+
+def get_nexus_metadata(fname):
     """
     Read metadata from HDF5 files with fallback to default values.
 
@@ -51,57 +74,52 @@ def get_hdf_metadata(fname):
     Returns:
         dict: Metadata dictionary
     """
-    prefix = os.path.join(os.path.dirname(fname), "*_metadata.hdf")
-    meta_fnames = glob.glob(prefix)
-    assert len(meta_fnames) > 0, f"no *_metadata.hdf found in the folder of {fname}"
-    if len(meta_fnames) > 1:
-        logger.warning(
-            f"multiple *_metadata.hdf found in the folder of {fname}. using the first one"
-        )
-    meta_fname = meta_fnames[0]
+    if has_nexus_fields(fname):
+        meta_fname = fname
+    else:
+        meta_fname = find_metadata_same_folder(fname)
+
     logger.info(f"using metadata file: {meta_fname}")
+    # Use the keymap-based reader
+    meta = get_metadata_from_keymap(meta_fname, METADATA_KEYMAPS)
 
+    # Handle special case for swing_angle
+    if meta.get("swing_angle") is None:
+        logger.warning("flight path swing angle not found metadata, set to 0.0 degree")
+        meta["swing_angle"] = 0.0
+
+    # Calculate beam center positions with null checks
+    ccdx, ccdx0 = meta["ccdx"], meta["ccdx0"]
+    ccdy, ccdy0 = meta["ccdy"], meta["ccdy0"]
+
+    meta["beam_center_x"] = meta["bcx0"] + (ccdx - ccdx0) / meta["x_pixel_size"]
+    meta["beam_center_y"] = meta["bcy0"] + (ccdy - ccdy0) / meta["y_pixel_size"]
+    meta["pixel_size"] = meta["x_pixel_size"]
+
+    # Clean up intermediate values
+    for key in [
+        "bcx0",
+        "bcy0",
+        "ccdx",
+        "ccdy",
+        "ccdx0",
+        "ccdy0",
+        "x_pixel_size",
+        "y_pixel_size",
+    ]:
+        meta.pop(key, None)
+
+    meta["meta_fname"] = meta_fname
+    return meta
+
+
+def get_metadata(fname):
     try:
-        # Use the keymap-based reader
-        meta = get_metadata_from_keymap(meta_fname, METADATA_KEYMAPS)
-
-        # Handle special case for swing_angle
-        if meta.get("swing_angle") is None:
-            logger.warning(
-                "flight path swing angle not found metadata, set to 0.0 degree"
-            )
-            meta["swing_angle"] = 0.0
-
-        meta["data_name"] = os.path.basename(meta_fname)
-
-        # Calculate beam center positions with null checks
-        ccdx, ccdx0 = meta["ccdx"], meta["ccdx0"]
-        ccdy, ccdy0 = meta["ccdy"], meta["ccdy0"]
-
-        meta["beam_center_x"] = meta["bcx0"] + (ccdx - ccdx0) / meta["x_pixel_size"]
-        meta["beam_center_y"] = meta["bcy0"] + (ccdy - ccdy0) / meta["y_pixel_size"]
-        meta["pixel_size"] = meta["x_pixel_size"]
-
-        # Clean up intermediate values
-        for key in [
-            "bcx0",
-            "bcy0",
-            "ccdx",
-            "ccdy",
-            "ccdx0",
-            "ccdy0",
-            "x_pixel_size",
-            "y_pixel_size",
-        ]:
-            meta.pop(key, None)
-
+        meta = get_nexus_metadata(fname)
     except Exception as e:
-        logger.warning(f"Failed to read metadata from {meta_fname}: {e}")
-        logger.info("Using default metadata values")
-        # Use DEFAULT_METADATA as fallback
+        logger.info("Failed to read metadata from file: %s. using default metadata.", e)
         meta = DEFAULT_METADATA.copy()
-        meta["data_name"] = os.path.basename(meta_fname) if meta_fnames else "unknown"
-
+        meta["meta_fname"] = "default_metadata"
     return meta
 
 
@@ -111,6 +129,7 @@ class APS8IDIReader(FileReader):
         self.handler = None
         self.ftype = "APS_8IDI"
         self.stype = "Transmission"
+        self.shape = (0, 0)
         self.meta_units_fmts = DEFAULT_METADATA_WITHUNITS.copy()
 
         rigaku_endings = tuple(f".bin.00{i}" for i in range(6))
@@ -136,4 +155,4 @@ class APS8IDIReader(FileReader):
         return self.handler.get_scattering(**kwargs)
 
     def _get_metadata(self):
-        return get_hdf_metadata(self.fname)
+        return get_metadata(self.fname)

@@ -35,7 +35,7 @@ CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s %(name)-24s: %(message)s",
+    format="%(asctime)s [%(levelname)s][%(module)s]: %(message)s",
     handlers=[logging.StreamHandler()],
 )
 

@@ -13,7 +13,7 @@ def compute_qmap(stype, metadata):
         return compute_transmission_qmap(
             metadata["energy"],
             (metadata["beam_center_y"], metadata["beam_center_x"]),
-            metadata["shape"],
+            (metadata["detector_shape_y"], metadata["detector_shape_x"]),
             metadata["pixel_size"],
             metadata["detector_distance"],
             metadata["swing_angle"],
@@ -22,7 +22,7 @@ def compute_qmap(stype, metadata):
         return compute_reflection_qmap(
             metadata["energy"],
             (metadata["beam_center_y"], metadata["beam_center_x"]),
-            metadata["shape"],
+            (metadata["detector_shape_y"], metadata["detector_shape_x"]),
             metadata["pixel_size"],
             metadata["detector_distance"],
             alpha_i_deg=metadata["incident_angle"],

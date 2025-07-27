@@ -108,7 +108,9 @@ class FileReader(object):
         self.metadata = self.get_metadata()
         self.scat = self.get_scattering(*args, **kwargs).astype(np.float32)
         self.shape = self.scat.shape
-        self.metadata["shape"] = self.shape
+        # update metadata shape with the real values
+        self.metadata["detector_shape_x"] = self.shape[1]
+        self.metadata["detector_shape_y"] = self.shape[0]
         len_qmap = 7 if self.stype == "Transmission" else 11
         self.data_display = np.zeros((len(DISPLAY_FIELD) + len_qmap, *self.shape))
         self.scat_log = self.get_scat_with_mask(mask=None, mode="log")
