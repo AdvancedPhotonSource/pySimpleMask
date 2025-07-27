@@ -75,19 +75,12 @@ def get_hdf_metadata(fname):
         meta["data_name"] = os.path.basename(meta_fname)
 
         # Calculate beam center positions with null checks
-        try:
-            ccdx, ccdx0 = meta["ccdx"], meta["ccdx0"]
-            ccdy, ccdy0 = meta["ccdy"], meta["ccdy0"]
+        ccdx, ccdx0 = meta["ccdx"], meta["ccdx0"]
+        ccdy, ccdy0 = meta["ccdy"], meta["ccdy0"]
 
-            meta["beam_center_x"] = meta["bcx0"] + (ccdx - ccdx0) / meta["x_pixel_size"]
-            meta["beam_center_y"] = meta["bcy0"] + (ccdy - ccdy0) / meta["y_pixel_size"]
-            meta["pixel_size"] = meta["x_pixel_size"]
-        except (TypeError, KeyError) as e:
-            logger.warning(f"Error calculating beam center positions: {e}")
-            # Use default values if calculation fails
-            meta["beam_center_x"] = DEFAULT_METADATA["beam_center_x"]
-            meta["beam_center_y"] = DEFAULT_METADATA["beam_center_y"]
-            meta["pixel_size"] = DEFAULT_METADATA["pixel_size"]
+        meta["beam_center_x"] = meta["bcx0"] + (ccdx - ccdx0) / meta["x_pixel_size"]
+        meta["beam_center_y"] = meta["bcy0"] + (ccdy - ccdy0) / meta["y_pixel_size"]
+        meta["pixel_size"] = meta["x_pixel_size"]
 
         # Clean up intermediate values
         for key in [
@@ -101,12 +94,6 @@ def get_hdf_metadata(fname):
             "y_pixel_size",
         ]:
             meta.pop(key, None)
-
-        # Fill in any missing values with defaults
-        for key, default_value in DEFAULT_METADATA.items():
-            if meta.get(key) is None:
-                logger.debug(f"Using default value for {key}: {default_value}")
-                meta[key] = default_value
 
     except Exception as e:
         logger.warning(f"Failed to read metadata from {meta_fname}: {e}")
