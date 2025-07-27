@@ -4,7 +4,12 @@ import h5py
 import os
 import glob
 from ..base_reader import FileReader
-from ..utils import sum_frames_parallel, get_metadata_from_keymap
+from ..utils import (
+    sum_frames_parallel,
+    get_metadata_from_keymap,
+    has_nexus_fields,
+    find_metadata_same_folder,
+)
 import re
 
 logger = logging.getLogger(__name__)
@@ -51,7 +56,7 @@ METADATA_KEYMAPS = {
 }
 
 
-def get_metadata(fname, detector_shape=(1000, 1000)):
+def get_nexus_metadata(fname):
     """
     Read metadata from NeXus format HDF5 files.
 
@@ -62,45 +67,22 @@ def get_metadata(fname, detector_shape=(1000, 1000)):
     Returns:
         dict: Metadata dictionary
     """
-    with h5py.File(fname, "r") as f:
-        if (
-            "/entry/instrument/detector_1" in f
-            and "/entry/sample" in f
-            and "/entry/instrument/incident_beam/incident_energy" in f
-        ):
-            meta_fname = fname
-        else:
-            realpath = os.path.realpath(fname)
-            prefix = os.path.join(os.path.dirname(realpath), "*_metadata.hdf")
-            meta_fnames = glob.glob(prefix)
-            assert (
-                len(meta_fnames) > 0
-            ), f"no *_metadata.hdf found in the folder of {fname}"
-            if len(meta_fnames) > 1:
-                logger.warning("More than one metadata file found, using the first one")
-            meta_fname = meta_fnames[0]
+    if has_nexus_fields(fname, METADATA_KEYMAPS.keys()):
+        meta_fname = fname
+    else:
+        meta_fname = find_metadata_same_folder(fname)
+        if not has_nexus_fields(meta_fname, METADATA_KEYMAPS.keys()):
+            raise FileNotFoundError(f"No valid metadata file found for {fname}.")
 
     # Use the keymap-based reader
     metadata = get_metadata_from_keymap(meta_fname, METADATA_KEYMAPS)
     m = metadata
 
     # Calculate beam center and specular positions with null checks
-    try:
-        beam_center_x = (
-            m["_bcx"] + (m["detector_x"] - m["_bc_det_x0"]) / m["pixel_size"]
-        )
-        beam_center_y = (
-            m["_bcy"] + (m["detector_y"] - m["_bc_det_y0"]) / m["pixel_size"]
-        )
-        specular_x = m["_spx"] + (m["detector_x"] - m["_sp_det_x0"]) / m["pixel_size"]
-        specular_y = m["_spy"] + (m["detector_y"] - m["_sp_det_y0"]) / m["pixel_size"]
-    except (TypeError, KeyError) as e:
-        logger.warning(f"Error calculating beam/specular positions: {e}")
-        # Use default values if calculation fails
-        beam_center_x = DEFAULT_METADATA["beam_center_x"]
-        beam_center_y = DEFAULT_METADATA["beam_center_y"]
-        specular_x = DEFAULT_METADATA["specular_x"]
-        specular_y = DEFAULT_METADATA["specular_y"]
+    beam_center_x = m["_bcx"] + (m["detector_x"] - m["_bc_det_x0"]) / m["pixel_size"]
+    beam_center_y = m["_bcy"] + (m["detector_y"] - m["_bc_det_y0"]) / m["pixel_size"]
+    specular_x = m["_spx"] + (m["detector_x"] - m["_sp_det_x0"]) / m["pixel_size"]
+    specular_y = m["_spy"] + (m["detector_y"] - m["_sp_det_y0"]) / m["pixel_size"]
 
     # remove unused keys
     delete_keys = [key for key in metadata if key.startswith("_")]
@@ -111,10 +93,19 @@ def get_metadata(fname, detector_shape=(1000, 1000)):
     metadata["beam_center_y"] = round(beam_center_y, 3)
     metadata["specular_x"] = round(specular_x, 3)
     metadata["specular_y"] = round(specular_y, 3)
-    metadata["detector_shape_x"] = detector_shape[1]
-    metadata["detector_shape_y"] = detector_shape[0]
-
+    metadata["meta_fname"] = meta_fname
     return metadata
+
+
+def get_metadata(fname):
+    try:
+        meta = get_nexus_metadata(fname)
+    except Exception as e:
+        logger.info("Failed to read metadata from file: %s. using default metadata.", e)
+        meta = DEFAULT_METADATA.copy()
+        meta["meta_fname"] = "default_metadata"
+    meta["scattering_type"] = "Reflection"
+    return meta
 
 
 class APS9IDDReader(FileReader):
@@ -145,22 +136,4 @@ class APS9IDDReader(FileReader):
         Returns:
             meta: metadata dictionary
         """
-        with h5py.File(self.fname, "r") as f:
-            dset = f["/entry/data/data"]
-            if dset.ndim == 2:
-                detector_shape = dset.shape
-            elif dset.ndim == 3:
-                detector_shape = dset.shape[-2:]  # Use last two dimensions
-
-        try:
-            meta = get_metadata(self.fname, detector_shape=detector_shape)
-        except Exception as e:
-            logger.warning(f"Failed to read metadata from {self.fname}: {e}")
-            logger.info("Using default metadata values")
-            # Use METADATA_DEFAULT_WITHUNITS and extract values from tuples
-            meta = DEFAULT_METADATA.copy()
-            # Update detector shape if we have it
-            if detector_shape is not None:
-                meta["detector_shape_x"] = detector_shape[1]
-                meta["detector_shape_y"] = detector_shape[0]
-        return meta
+        return get_metadata(self.fname)

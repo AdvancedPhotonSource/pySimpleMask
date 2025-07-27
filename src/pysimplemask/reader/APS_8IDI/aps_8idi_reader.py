@@ -2,7 +2,7 @@ import logging
 
 from ..base_reader import FileReader
 from . import HdfDataset, ImmDataset, Rigaku3MDataset, RigakuDataset
-from ..utils import get_metadata_from_keymap
+from ..utils import get_metadata_from_keymap, has_nexus_fields, find_metadata_same_folder
 import os
 import glob
 import h5py
@@ -40,30 +40,6 @@ METADATA_KEYMAPS = {
     "bcy0": "/entry/instrument/detector_1/beam_center_y",
 }
 
-
-def has_nexus_fields(fname):
-    with h5py.File(fname, "r") as f:
-        for key in ["/enry/instrument/detector_1", "/entry/instrument/incident_beam"]:
-            if key not in f:
-                return False
-    return True
-
-
-def find_metadata_same_folder(fname):
-    prefix = os.path.join(os.path.dirname(fname), "*_metadata.hdf")
-    meta_fnames = glob.glob(prefix)
-    num_found = len(meta_fnames)
-    assert num_found > 0, f"no *_metadata.hdf found in the folder of {fname}"
-    if num_found >= 1:
-        if num_found > 1:
-            logger.warning(
-                f"multiple *_metadata.hdf found in the folder of {fname}. using the first one"
-            )
-        return meta_fnames[0]
-    elif num_found == 0:
-        raise FileNotFoundError(f"no *_metadata.hdf found in the folder of {fname}")
-
-
 def get_nexus_metadata(fname):
     """
     Read metadata from HDF5 files with fallback to default values.
@@ -74,14 +50,17 @@ def get_nexus_metadata(fname):
     Returns:
         dict: Metadata dictionary
     """
-    if has_nexus_fields(fname):
+    optional_fields = ["swing_angle"]
+    if has_nexus_fields(fname, METADATA_KEYMAPS.keys(), optional_fields):
         meta_fname = fname
     else:
         meta_fname = find_metadata_same_folder(fname)
+        if not has_nexus_fields(meta_fname, METADATA_KEYMAPS.key(), optional_fields):
+            raise FileNotFoundError(f"No valid metadata found in {meta_fname}")
 
     logger.info(f"using metadata file: {meta_fname}")
-    # Use the keymap-based reader
-    meta = get_metadata_from_keymap(meta_fname, METADATA_KEYMAPS)
+    # Use the keymap-based reader; swing_angle is optional and defaults to None 
+    meta = get_metadata_from_keymap(meta_fname, METADATA_KEYMAPS, optional_fields)
 
     # Handle special case for swing_angle
     if meta.get("swing_angle") is None:
@@ -120,6 +99,7 @@ def get_metadata(fname):
         logger.info("Failed to read metadata from file: %s. using default metadata.", e)
         meta = DEFAULT_METADATA.copy()
         meta["meta_fname"] = "default_metadata"
+    meta["scattering_type"] = "Transmission"
     return meta
 
 

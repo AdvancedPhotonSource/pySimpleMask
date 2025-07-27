@@ -2,6 +2,8 @@ import numpy as np
 import h5py
 import hdf5plugin
 import logging
+import os
+import glob
 import re
 
 
@@ -14,14 +16,15 @@ from multiprocessing import Pool, cpu_count
 def create_pg_parameter_list(data_dict, metadata_withunits):
     """
     Create a parameter list for PyQtGraph from a data dictionary.
-    
+
     Args:
         data_dict: Dictionary of parameter values
         metadata_withunits: Dictionary mapping parameter names to (value, unit, format_string) tuples
-        
+
     Returns:
         list: List of parameter definitions for PyQtGraph
     """
+
     def get_param_type(value):
         """Determines the parameter type based on the value's Python type."""
         if isinstance(value, bool):
@@ -56,13 +59,14 @@ def create_pg_parameter_list(data_dict, metadata_withunits):
     return params
 
 
-def get_metadata_from_keymap(fname, metadata_keymaps):
+def get_metadata_from_keymap(fname, metadata_keymaps, optional_fields=None):
     """
     Generic metadata reader using configurable key mappings.
 
     Args:
         fname: HDF5 file path
         metadata_keymaps: Dictionary mapping metadata keys to HDF5 paths
+        optional_fields: List of field names that are optional and can be None if not found
 
     Returns:
         dict: Metadata dictionary with standardized keys
@@ -70,13 +74,10 @@ def get_metadata_from_keymap(fname, metadata_keymaps):
     metadata = {}
     with h5py.File(fname, "r") as f:
         for key, hdf_path in metadata_keymaps.items():
-            try:
-                metadata[key] = f[hdf_path][()]
-            except KeyError:
-                logger.debug(
-                    f"Could not find HDF5 path '{hdf_path}' for key '{key}' in file {fname}"
-                )
+            if optional_fields and key in optional_fields and key not in f:
                 metadata[key] = None
+            else:
+                metadata[key] = f[hdf_path][()]
 
     return metadata
 
@@ -126,7 +127,7 @@ def sum_frames_parallel(
         assert dataset.ndim in [2, 3], "Dataset must be 2D or 3D"
         if dataset.ndim == 2:
             return dataset[()]
-        
+
         total_frames = dataset.shape[0]
         logger.info(f"Total frames in dataset: {total_frames}")
 
@@ -145,10 +146,10 @@ def sum_frames_parallel(
             raise ValueError("num_frames must be positive")
         if (start_frame + num_frames) > total_frames:
             num_frames = total_frames - start_frame
-       
-        # If num_frames is small, process directly 
+
+        # If num_frames is small, process directly
         if num_frames < chunk_size:
-            return np.sum(dataset[start_frame:start_frame + num_frames], axis=0)
+            return np.sum(dataset[start_frame : start_frame + num_frames], axis=0)
 
         # Create chunks
         chunks = []
@@ -168,3 +169,52 @@ def sum_frames_parallel(
 
     # Sum all results
     return np.sum(np.array(results), axis=0)
+
+
+def has_nexus_fields(fname, fields, optional_fields=None):
+    """
+    Check if an HDF5 file contains all required NeXus fields.
+
+    Args:
+        fname: Path to the HDF5 file
+        fields: List of field names to check for
+        optional_fields: List of field names that are optional and can be skipped
+
+    Returns:
+        bool: True if all required fields are present, False otherwise
+    """
+    with h5py.File(fname, "r") as f:
+        for key in fields:
+            if optional_fields is not None and key in optional_fields:
+                continue
+            if key not in f:
+                return False
+    return True
+
+
+def find_metadata_same_folder(fname):
+    """
+    Find a metadata HDF5 file in the same folder as the given file.
+
+    Args:
+        fname: Path to the data file
+
+    Returns:
+        str: Path to the metadata file (*_metadata.hdf)
+
+    Raises:
+        FileNotFoundError: If no metadata file is found
+        AssertionError: If no metadata file is found (legacy behavior)
+    """
+    prefix = os.path.join(os.path.dirname(fname), "*_metadata.hdf")
+    meta_fnames = glob.glob(prefix)
+    num_found = len(meta_fnames)
+    assert num_found > 0, f"no *_metadata.hdf found in the folder of {fname}"
+    if num_found >= 1:
+        if num_found > 1:
+            logger.warning(
+                f"multiple *_metadata.hdf found in the folder of {fname}. using the first one"
+            )
+        return meta_fnames[0]
+    elif num_found == 0:
+        raise FileNotFoundError(f"no *_metadata.hdf found in the folder of {fname}")
