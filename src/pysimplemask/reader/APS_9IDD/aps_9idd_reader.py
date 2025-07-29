@@ -1,16 +1,8 @@
 import logging
 
-import h5py
-import os
-import glob
 from ..base_reader import FileReader
-from ..utils import (
-    sum_frames_parallel,
-    get_metadata_from_keymap,
-    has_nexus_fields,
-    find_metadata_same_folder,
-)
-import re
+from ..utils import (find_metadata_same_folder, get_metadata_from_keymap,
+                     has_nexus_fields, sum_frames_parallel)
 
 logger = logging.getLogger(__name__)
 
