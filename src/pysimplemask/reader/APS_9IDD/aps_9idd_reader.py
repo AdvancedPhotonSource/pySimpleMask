@@ -59,11 +59,11 @@ def get_nexus_metadata(fname):
     Returns:
         dict: Metadata dictionary
     """
-    if has_nexus_fields(fname, METADATA_KEYMAPS.values()):
+    if has_nexus_fields(fname, METADATA_KEYMAPS):
         meta_fname = fname
     else:
         meta_fname = find_metadata_same_folder(fname)
-        if not has_nexus_fields(meta_fname, METADATA_KEYMAPS.values()):
+        if not has_nexus_fields(meta_fname, METADATA_KEYMAPS):
             raise FileNotFoundError(f"No valid metadata file found for {fname}.")
 
     # Use the keymap-based reader

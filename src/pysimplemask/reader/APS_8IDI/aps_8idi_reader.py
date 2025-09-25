@@ -51,11 +51,11 @@ def get_nexus_metadata(fname):
         dict: Metadata dictionary
     """
     optional_fields = ["swing_angle"]
-    if has_nexus_fields(fname, METADATA_KEYMAPS.values(), optional_fields):
+    if has_nexus_fields(fname, METADATA_KEYMAPS, optional_fields):
         meta_fname = fname
     else:
         meta_fname = find_metadata_same_folder(fname)
-        if not has_nexus_fields(meta_fname, METADATA_KEYMAPS.values(), optional_fields):
+        if not has_nexus_fields(meta_fname, METADATA_KEYMAPS, optional_fields):
             raise FileNotFoundError(f"No valid metadata found in {meta_fname}")
 
     logger.info(f"using metadata file: {meta_fname}")

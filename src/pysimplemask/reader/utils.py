@@ -72,9 +72,13 @@ def get_metadata_from_keymap(fname, metadata_keymaps, optional_fields=None):
         dict: Metadata dictionary with standardized keys
     """
     metadata = {}
+
+    if optional_fields is None:
+        optional_fields = []
+
     with h5py.File(fname, "r") as f:
         for key, hdf_path in metadata_keymaps.items():
-            if optional_fields and key in optional_fields and key not in f:
+            if key in optional_fields and hdf_path not in f:
                 metadata[key] = None
             else:
                 metadata[key] = f[hdf_path][()]
@@ -171,7 +175,7 @@ def sum_frames_parallel(
     return np.sum(np.array(results), axis=0)
 
 
-def has_nexus_fields(fname, fields, optional_fields=None):
+def has_nexus_fields(fname, metadata_keymaps, optional_fields=None):
     """
     Check if an HDF5 file contains all required NeXus fields.
 
@@ -183,11 +187,14 @@ def has_nexus_fields(fname, fields, optional_fields=None):
     Returns:
         bool: True if all required fields are present, False otherwise
     """
+    if optional_fields is None:
+        optional_fields = []
+
     with h5py.File(fname, "r") as f:
-        for key in fields:
-            if optional_fields is not None and key in optional_fields:
+        for key, hdf_path in metadata_keymaps.items():
+            if key in optional_fields:
                 continue
-            if key not in f:
+            elif hdf_path not in f:
                 return False
     return True
 
