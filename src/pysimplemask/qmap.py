@@ -52,11 +52,11 @@ def compute_transmission_qmap(
     # the horizontal center shift towards the nagative direction when angle < 0
 
     # before swing angle correction
-    v = np.arange(shape[0], dtype=np.uint32) - center[0]
-    h = np.arange(shape[1], dtype=np.uint32) - center[1]
-    vg, hg = np.meshgrid(v, h, indexing="ij")
-    vg = vg * pixel_size  # vertical grid
-    hg = hg * pixel_size  # horizontal grid
+    v = np.arange(shape[0], dtype=np.uint32)
+    h = np.arange(shape[1], dtype=np.uint32)
+    vg_pxl, hg_pxl = np.meshgrid(v, h, indexing="ij")
+    vg = (vg_pxl - center[0]) * pixel_size  # vertical grid
+    hg = (hg_pxl - center[1]) * pixel_size  # horizontal grid
     lg = np.ones_like(vg) * detector_distance  # longitudinal grid
 
     # pixel-wise distance to the detector
@@ -88,8 +88,8 @@ def compute_transmission_qmap(
         "q": qr,
         "qx": qx.astype(np.float32),
         "qy": qy.astype(np.float32),
-        "x": hg,
-        "y": vg,
+        "x": hg_pxl,
+        "y": vg_pxl,
     }
 
     qmap_unit = {
