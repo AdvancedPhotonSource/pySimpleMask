@@ -143,6 +143,7 @@ def compute_reflection_qmap(
     TTH = np.arctan(r / detector_distance)
 
     alpha_i = np.deg2rad(alpha_i_deg)
+    # vg = 0 yields (-alpha_i)
     alpha_f = np.arctan(vg * pixel_size / detector_distance) - alpha_i
     tth = np.arctan(hg * pixel_size / detector_distance)
 
