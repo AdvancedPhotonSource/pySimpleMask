@@ -124,7 +124,10 @@ def generate_partition(
         v_span = np.linspace(v_min, v_max, num_pts + 1)
         v_list = (v_span[1:] + v_span[:-1]) / 2.0
 
-    partition = np.digitize(xmap, v_span).astype(np.uint32) * mask
+    # np.digitize is very sensitive to floating point precision, so we round the values
+    # to 12 decimal places to avoid issues with values that are very close to the bin edges.
+    # e.g. xmap = 0.0015398376679056104, v_span 0.0015398376679056109 yield 0
+    partition = np.digitize(np.round(xmap, 12), np.round(v_span, 12)).astype(np.uint32) * mask
     partition[partition > num_pts] = 0
     # Ensure the maximum value (excluding unmasked) is assigned to the last bin
     partition[(xmap == v_max) * mask] = num_pts
