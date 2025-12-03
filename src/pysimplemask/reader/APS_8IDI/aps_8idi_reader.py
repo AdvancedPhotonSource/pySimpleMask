@@ -2,10 +2,12 @@ import logging
 
 from ..base_reader import FileReader
 from . import HdfDataset, ImmDataset, Rigaku3MDataset, RigakuDataset
-from ..utils import get_metadata_from_keymap, has_nexus_fields, find_metadata_same_folder
-import os
-import glob
-import h5py
+from ..utils import (
+    get_metadata_from_keymap,
+    has_nexus_fields,
+    find_metadata_same_folder,
+)
+import traceback
 
 
 logger = logging.getLogger(__file__)
@@ -40,6 +42,7 @@ METADATA_KEYMAPS = {
     "bcy0": "/entry/instrument/detector_1/beam_center_y",
 }
 
+
 def get_nexus_metadata(fname):
     """
     Read metadata from HDF5 files with fallback to default values.
@@ -56,10 +59,11 @@ def get_nexus_metadata(fname):
     else:
         meta_fname = find_metadata_same_folder(fname)
         if not has_nexus_fields(meta_fname, METADATA_KEYMAPS, optional_fields):
+            logger.error(f"{meta_fname} does not have the minimal nexus fields.")
             raise FileNotFoundError(f"No valid metadata found in {meta_fname}")
 
     logger.info(f"using metadata file: {meta_fname}")
-    # Use the keymap-based reader; swing_angle is optional and defaults to None 
+    # Use the keymap-based reader; swing_angle is optional and defaults to None
     meta = get_metadata_from_keymap(meta_fname, METADATA_KEYMAPS, optional_fields)
 
     # Handle special case for swing_angle
@@ -96,7 +100,10 @@ def get_metadata(fname):
     try:
         meta = get_nexus_metadata(fname)
     except Exception as e:
-        logger.info("Failed to read metadata from file: %s. using default metadata.", e)
+        logger.info(
+            f"Failed to read metadata from file: {fname} because {e}. using default metadata."
+        )
+        traceback.print_exc()
         meta = DEFAULT_METADATA.copy()
         meta["meta_fname"] = "default_metadata"
     meta["scattering_type"] = "Transmission"

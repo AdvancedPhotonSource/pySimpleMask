@@ -137,7 +137,7 @@ def sum_frames_parallel(
 
         # Validate inputs
         if start_frame < 0 or start_frame >= total_frames:
-            raise ValueError(f"start_frame must be between 0 and {total_frames-1}")
+            raise ValueError(f"start_frame must be between 0 and {total_frames - 1}")
 
         # If num_frames is None, use all remaining frames
         if num_frames is None or num_frames == 0:
@@ -187,6 +187,9 @@ def has_nexus_fields(fname, metadata_keymaps, optional_fields=None):
     Returns:
         bool: True if all required fields are present, False otherwise
     """
+    if not h5py.is_hdf5(fname):
+        return False
+
     if optional_fields is None:
         optional_fields = []
 
