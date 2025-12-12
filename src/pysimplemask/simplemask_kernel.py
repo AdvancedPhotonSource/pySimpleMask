@@ -265,13 +265,14 @@ class SimpleMask(object):
         if sl_type == "Ellipse":
             new_roi = pg.EllipseROI(cen, [60, 80], **kwargs)
             # add scale handle
-            new_roi.addScaleHandle(
-                [0.5, 0],
-                [0.5, 1],
-            )
+            new_roi.addScaleHandle([0.5, 0], [0.5, 1])
             new_roi.addScaleHandle([0.5, 1], [0.5, 0])
             new_roi.addScaleHandle([0, 0.5], [1, 0.5])
-            new_roi.addScaleHandle([1, 0.5], [0, 0.5])
+            # new_roi.addScaleHandle([1, 0.5], [0, 0.5])
+            new_roi.addScaleHandle([0.1464, 0.1464], [1, 1])  # bottom-left
+            new_roi.addScaleHandle([0.1464, 0.8536], [1, 0])  # bottom-right
+            new_roi.addScaleHandle([0.8536, 0.1464], [0, 1])  # top-left
+            new_roi.addScaleHandle([0.8536, 0.8536], [0, 0])  # top-right
 
         elif sl_type == "Circle":
             if second_point is not None:
@@ -281,6 +282,8 @@ class SimpleMask(object):
             new_roi = pg.CircleROI(
                 pos=[cen[0] - radius, cen[1] - radius], radius=radius, **kwargs
             )
+            new_roi.addScaleHandle([0.5, 0], [0.5, 0.5])
+            new_roi.addScaleHandle([0.5, 1], [0.5, 0.5])
 
         elif sl_type == "Polygon":
             if num_edges is None:
@@ -296,9 +299,16 @@ class SimpleMask(object):
             new_roi = pg.PolyLineROI(pts, closed=True, **kwargs)
 
         elif sl_type == "Rectangle":
-            new_roi = pg.RectROI(cen, [30, 150], **kwargs)
+            new_roi = pg.RectROI(cen, [200, 150], **kwargs)
+            # new_roi.addScaleHandle([0, 0], [1, 1])
             new_roi.addScaleHandle([0, 0], [1, 1])
-            # new_roi.addRotateHandle([0, 1], [0.5, 0.5])
+            new_roi.addScaleHandle([0, 0.5], [1, 0.5])
+            new_roi.addScaleHandle([0, 1], [1, 0])
+            new_roi.addScaleHandle([0.5, 0], [0.5, 1])
+            new_roi.addScaleHandle([0.5, 1], [0.5, 0])
+            new_roi.addScaleHandle([1, 0], [0, 1])
+            new_roi.addScaleHandle([1, 0.5], [0, 0.5])
+            new_roi.addScaleHandle([1, 1], [0, 0])
 
         elif sl_type == "Line":
             if second_point is None:
@@ -427,7 +437,7 @@ class SimpleMask(object):
             assert mode in ("xy", "vh"), "mode must be either 'xy' or 'vh'"
             center = self.dset.get_center(mode=mode)
             return center
-    
+
     def goto_max(self):
         center_vh = self.dset.find_maximal_intensity_center()
         self.dset.set_center_vh(center_vh)
