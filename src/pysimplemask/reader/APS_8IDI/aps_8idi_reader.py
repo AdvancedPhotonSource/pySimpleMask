@@ -133,10 +133,10 @@ class APS8IDIReader(FileReader):
         elif fname.endswith(".h5") or fname.endswith(".hdf"):
             logger.info("APS HDF dataset")
             self.handler = HdfDataset(fname, batch_size=100)
-        elif fname.endswith(".tpx"):
-            from timepix_dataset.dataset import TimepixDataset
+        elif fname.endswith(".tpx") or fname.endswith(".tpx.000"):
+            from timepix_dataset.dataset import TimepixRawDataset
 
-            self.handler = TimepixDataset(fname)
+            self.handler = TimepixRawDataset(fname)
         else:
             logger.error("Unsupported APS dataset")
             return None

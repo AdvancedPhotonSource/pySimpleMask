@@ -75,7 +75,6 @@ PVMAP = {
 
 class SimpleMaskGUI(QMainWindow, Ui):
     def __init__(self, path=None):
-
         super(SimpleMaskGUI, self).__init__()
 
         self.setupUi(self)
@@ -418,7 +417,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self,
             caption="Select raw file hdf",
             dir=default_dir,  # <-- Fixed!
-            filter="Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.tif *.tiff *.fits *.raw *.bin.* *.tpx)",
+            filter="Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.tif *.tiff *.fits *.raw *.bin.* *.tpx *.tpx.*)",
         )[0]
         if fname:
             self.fname.setText(fname)
