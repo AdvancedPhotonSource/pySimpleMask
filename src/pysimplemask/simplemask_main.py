@@ -79,6 +79,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         self.setupUi(self)
         self.setWindowTitle(f"pySimpleMask {__version__}")
+        
+        # Set application icon
+        try:
+            from PySide6.QtGui import QIcon
+            icon_path = os.path.join(os.path.dirname(__file__), "resources", "logo.svg")
+            if os.path.exists(icon_path):
+                self.setWindowIcon(QIcon(icon_path))
+        except Exception:
+            pass
+            
         self.btn_load.clicked.connect(self.load)
         self.btn_plot.clicked.connect(self.plot)
         self.btn_compute_qpartition.clicked.connect(self.compute_partition)
