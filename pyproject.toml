@@ -6,15 +6,15 @@ build-backend = "setuptools.build_meta"
 name = "pysimplemask"
 dynamic = ["version"]
 description = "A GUI for creating mask and q-partition maps for scattering patterns in preparation for SAXS/WAXS/XPCS data reduction"
-readme = "README.rst"
+readme = "README.md"
 authors = [{ name = "Miaoqi Chu", email = "mqichu@anl.gov" }]
 maintainers = [{ name = "Miaoqi Chu", email = "mqichu@anl.gov" }]
-license = { text = "MIT license" }
+license = { file = "LICENSE" }
 
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: MIT License",
+  "License :: OSI Approved :: BSD License",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.12",
   "Topic :: Scientific/Engineering :: Visualization",
@@ -32,7 +32,7 @@ dependencies = [
   "PySide6==6.8.3",
   "astropy",
   "imagecodecs",
-  "tiffile",
+  "tifffile",
 ]
 
 [project.optional-dependencies]
@@ -47,9 +47,9 @@ dev = [
 pysimplemask = "pysimplemask.cli:main"
 
 [project.urls]
-bugs = "https://github.com/AZjk/pysimplemask/issues"
-changelog = "https://github.com/AZjk/pysimplemask/blob/master/changelog.md"
-homepage = "https://github.com/AZjk/pysimplemask"
+bugs = "https://github.com/AdvancedPhotonSource/pySimpleMask/issues"
+changelog = "https://github.com/AdvancedPhotonSource/pySimpleMask/blob/master/changelog.md"
+homepage = "https://github.com/AdvancedPhotonSource/pySimpleMask"
 
 [tool.setuptools]
 package-dir = { "" = "src" }
@@ -60,6 +60,7 @@ local_scheme = "node-and-timestamp"
 
 [tool.setuptools.package-data]
 "*" = ["*.*"]
+"pysimplemask.resources" = ["*.svg"]
 
 # ---- Mypy ----
 [tool.mypy]
