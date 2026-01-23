@@ -15,8 +15,13 @@ from .file_handler import get_handler
 from .find_center import find_center
 from .outlier_removal import outlier_removal_with_saxs
 from .pyqtgraph_mod import LineROI
-from .utils import (check_consistency, combine_partitions, generate_partition,
-                    hash_numpy_dict, optimize_integer_array)
+from .utils import (
+    check_consistency,
+    combine_partitions,
+    generate_partition,
+    hash_numpy_dict,
+    optimize_integer_array,
+)
 
 pg.setConfigOptions(imageAxisOrder="row-major")
 
@@ -66,10 +71,9 @@ class SimpleMask(object):
         self.mask_apply()
 
     def mask_apply(self, target=None):
-        if target == "default_mask":
-            self.mask = self.mask_kernel.apply_default_mask()
+        if target == "default_blemish":
+            self.mask = self.mask_kernel.blemish
         else:
-            # if target is None, apply will return the current mask
             self.mask = self.mask_kernel.apply(target)
         self.dset.update_mask(self.mask)
 
@@ -129,14 +133,11 @@ class SimpleMask(object):
         self.shape = self.dset.shape
         self.mask = np.ones(self.shape, dtype=bool)
 
-        self.qmap, self.qmap_unit, _ = self.compute_qmap()
+        self.qmap, self.qmap_unit, _ = self.dset.compute_qmap()
         self.mask_kernel = MaskAssemble(self.shape, self.dset.scat)
-        self.mask_apply(target="default_mask")
+        self.mask_apply(target="default_blemish")
         self.mask_kernel.update_qmap(self.qmap)
         return True
-
-    def compute_qmap(self):
-        return self.dset.get_qmap()
 
     def show_location(self, pos):
         if not self.hdl.scene.itemsBoundingRect().contains(pos) or self.shape is None:
@@ -162,7 +163,6 @@ class SimpleMask(object):
         if self.dset is None:
             return
         self.hdl.clear()
-        center = self.get_center()
         self.hdl.setImage(self.dset.data_display)
         self.hdl.adjust_viewbox()
         self.hdl.set_colormap(cmap)
@@ -170,7 +170,9 @@ class SimpleMask(object):
         # plot center
         if plot_center:
             t = pg.ScatterPlotItem()
-            t.addPoints(x=[center[0]], y=[center[1]], symbol="+", size=15)
+            center = self.get_center(mode="vh")
+            logger.info(f"direct beam center is ({center[1]}, {center[0]})")
+            t.addPoints(x=[center[1]], y=[center[0]], symbol="+", size=15)
             self.hdl.add_item(t, label="center")
 
         self.hdl.setCurrentIndex(plot_index)
@@ -240,7 +242,7 @@ class SimpleMask(object):
         if label is not None and label in self.hdl.roi:
             self.hdl.remove_item(label)
 
-        cen = self.get_center()
+        cen = self.get_center(mode="xy")
         if cen[0] < 0 or cen[1] < 0 or cen[0] > self.shape[1] or cen[1] > self.shape[0]:
             logger.warning("beam center is out of range, use image center instead")
             cen = (self.shape[1] // 2, self.shape[0] // 2)
@@ -262,13 +264,14 @@ class SimpleMask(object):
         if sl_type == "Ellipse":
             new_roi = pg.EllipseROI(cen, [60, 80], **kwargs)
             # add scale handle
-            new_roi.addScaleHandle(
-                [0.5, 0],
-                [0.5, 1],
-            )
+            new_roi.addScaleHandle([0.5, 0], [0.5, 1])
             new_roi.addScaleHandle([0.5, 1], [0.5, 0])
             new_roi.addScaleHandle([0, 0.5], [1, 0.5])
-            new_roi.addScaleHandle([1, 0.5], [0, 0.5])
+            # new_roi.addScaleHandle([1, 0.5], [0, 0.5])
+            new_roi.addScaleHandle([0.1464, 0.1464], [1, 1])  # bottom-left
+            new_roi.addScaleHandle([0.1464, 0.8536], [1, 0])  # bottom-right
+            new_roi.addScaleHandle([0.8536, 0.1464], [0, 1])  # top-left
+            new_roi.addScaleHandle([0.8536, 0.8536], [0, 0])  # top-right
 
         elif sl_type == "Circle":
             if second_point is not None:
@@ -278,6 +281,8 @@ class SimpleMask(object):
             new_roi = pg.CircleROI(
                 pos=[cen[0] - radius, cen[1] - radius], radius=radius, **kwargs
             )
+            new_roi.addScaleHandle([0.5, 0], [0.5, 0.5])
+            new_roi.addScaleHandle([0.5, 1], [0.5, 0.5])
 
         elif sl_type == "Polygon":
             if num_edges is None:
@@ -293,9 +298,16 @@ class SimpleMask(object):
             new_roi = pg.PolyLineROI(pts, closed=True, **kwargs)
 
         elif sl_type == "Rectangle":
-            new_roi = pg.RectROI(cen, [30, 150], **kwargs)
+            new_roi = pg.RectROI(cen, [200, 150], **kwargs)
+            # new_roi.addScaleHandle([0, 0], [1, 1])
             new_roi.addScaleHandle([0, 0], [1, 1])
-            # new_roi.addRotateHandle([0, 1], [0.5, 0.5])
+            new_roi.addScaleHandle([0, 0.5], [1, 0.5])
+            new_roi.addScaleHandle([0, 1], [1, 0])
+            new_roi.addScaleHandle([0.5, 0], [0.5, 1])
+            new_roi.addScaleHandle([0.5, 1], [0.5, 0])
+            new_roi.addScaleHandle([1, 0], [0, 1])
+            new_roi.addScaleHandle([1, 0.5], [0, 0.5])
+            new_roi.addScaleHandle([1, 1], [0, 0])
 
         elif sl_type == "Line":
             if second_point is None:
@@ -394,14 +406,15 @@ class SimpleMask(object):
         )
         logger.info("dqmap/sqmap consistency check: {}".format(flag_consistency))
 
-        center = self.get_center()
+        center = self.get_center("xy")
         partition = {
             "beam_center_x": center[0],
             "beam_center_y": center[1],
-            "pixel_size": self.dset.metadata["pix_dim"],
+            "pixel_size": self.dset.metadata["pixel_size"],
             "mask": self.mask,
+            "blemish": self.mask_kernel.blemish,
             "energy": self.dset.metadata["energy"],
-            "detector_distance": self.dset.metadata["det_dist"],
+            "detector_distance": self.dset.metadata["detector_distance"],
             "map_names": list(map_names),
             "map_units": [self.qmap_unit[name0], self.qmap_unit[name1]],
             "source_file": os.path.realpath(self.dset.fname),
@@ -412,9 +425,9 @@ class SimpleMask(object):
         self.new_partition = partition
         return partition
 
-    def update_parameters(self, new_metadata):
+    def update_parameters(self, new_metadata=None):
         self.dset.update_metadata(new_metadata)
-        self.qmap, self.qmap_unit, _labels = self.compute_qmap()
+        self.qmap, self.qmap_unit, _labels = self.dset.compute_qmap()
         self.mask_kernel.update_qmap(self.qmap)
 
     def get_center(self, mode="xy"):
@@ -422,11 +435,13 @@ class SimpleMask(object):
             return (None, None)
         else:
             assert mode in ("xy", "vh"), "mode must be either 'xy' or 'vh'"
-            if mode == "xy":
-                center = (self.dset.metadata["bcx"], self.dset.metadata["bcy"])
-            elif mode == "vh":
-                center = (self.dset.metadata["bcy"], self.dset.metadata["bcx"])
+            center = self.dset.get_center(mode=mode)
             return center
+
+    def goto_max(self):
+        center_vh = self.dset.find_maximal_intensity_center()
+        self.dset.set_center_vh(center_vh)
+        return center_vh
 
 
 def test01():

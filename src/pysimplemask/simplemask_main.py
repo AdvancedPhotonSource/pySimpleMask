@@ -35,7 +35,7 @@ CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s %(name)-24s: %(message)s",
+    format="%(asctime)s [%(levelname)s][%(module)s]: %(message)s",
     handlers=[logging.StreamHandler()],
 )
 
@@ -65,17 +65,16 @@ def text_to_array(pts, dtype=np.int64):
 
 
 PVMAP = {
-    "bcx": "db_cenx",
-    "bcy": "db_ceny",
+    "beam_center_x": "db_cenx",
+    "beam_center_y": "db_ceny",
     "energy": "db_energy",
-    "pix_dim": "db_pix_dim",
-    "det_dist": "db_det_dist",
+    "pixel_size": "db_pix_dim",
+    "detector_distance": "db_det_dist",
 }
 
 
 class SimpleMaskGUI(QMainWindow, Ui):
     def __init__(self, path=None):
-
         super(SimpleMaskGUI, self).__init__()
 
         self.setupUi(self)
@@ -90,6 +89,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # self.btn_select_txt.clicked.connect(self.select_txt)
         self.btn_update_parameters.clicked.connect(self.update_parameters)
         self.btn_swapxy.clicked.connect(lambda: self.update_parameters(swapxy=True))
+        self.pushButton_goto_max.clicked.connect(self.goto_max)
 
         self.btn_find_center.clicked.connect(self.find_center)
 
@@ -203,6 +203,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.save_load_settings(mode="load")
         self.show()
 
+    def goto_max(self):
+        self.sm.goto_max()
+        self.display_metadata()
+        self.plot()
+
     def update_partition_mapname(self):
         idx0 = self.comboBox_partition_mapname0.currentIndex()
         idx1 = self.comboBox_partition_mapname1.currentIndex()
@@ -257,7 +262,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.statusbar.showMessage("Failed to find center. Abort", 2000)
         else:
             cen_old = self.sm.get_center()
-            self.update_parameters(new_center=center_vh)
+            self.update_parameters(new_center_vh=center_vh)
             cen_new = self.sm.get_center()
             logger.info(f"found center: {cen_old} --> {cen_new}")
         finally:
@@ -393,28 +398,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return False
         return True
 
-    def update_parameters(self, swapxy=False, new_center=None):
+    def update_parameters(self, swapxy=False, new_center_vh=None):
         if not self.is_ready():
             return
 
-        new_metadata = {}
-        for name, widget_name in PVMAP.items():
-            scale = 1e-6 if name == "pix_dim" else 1
-            widget = getattr(self, widget_name)
-            new_metadata[name] = widget.value() * scale
-
-        if new_center:
-            new_metadata["bcy"], new_metadata["bcx"] = new_center
-
         if swapxy:
-            y, x = new_metadata["bcx"], new_metadata["bcy"]
-            new_metadata["bcx"], new_metadata["bcy"] = x, y
-            self.db_cenx.setValue(x)
-            self.db_ceny.setValue(y)
-
-        self.sm.update_parameters(new_metadata)
+            self.sm.dset.swapxy()
+        if new_center_vh:
+            self.sm.dset.set_center_vh(new_center_vh)
+        self.sm.update_parameters()
         self.display_metadata()
-        self.groupBox.repaint()
         self.plot()
 
     def select_raw(self):
@@ -424,7 +417,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self,
             caption="Select raw file hdf",
             dir=default_dir,  # <-- Fixed!
-            filter="Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.tif *.tiff *.fits *.raw, *.bin.*)",
+            filter="Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.tif *.tiff *.fits *.raw *.bin.* *.tpx *.tpx.*)",
         )[0]
         if fname:
             self.fname.setText(fname)
@@ -482,12 +475,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         }
         if not self.sm.read_data(fname, **kwargs):
             return
-        else:
-            stype = self.sm.dset.stype
-            if stype == "Transmission":
-                self.tabWidget_2.setCurrentIndex(0)
-            elif stype == "Reflection":
-                self.tabWidget_2.setCurrentIndex(1)
+        # else:
+        #     stype = self.sm.dset.stype
 
         for key in (
             "comboBox_param_xmap_name",
@@ -515,14 +504,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_load.repaint()
 
     def display_metadata(self):
-        for label, widget_name in PVMAP.items():
-            widget = getattr(self, widget_name)
-            scale = 1e6 if label == "pix_dim" else 1
-            widget.setValue(self.sm.dset.metadata[label] * scale)
-
-        self.le_shape.setText(str(self.sm.shape))
-        self.groupBox.repaint()
-
         param_struct = self.sm.dset.get_parametertree_structure()
         self.metadata_parameter = Parameter.create(**param_struct)
         self.metadata_parameter.sigTreeStateChanged.connect(
@@ -677,6 +658,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
             save_fname = QFileDialog.getSaveFileName(
                 self, caption="Save mask/qmap as", filter="HDF (*.hdf)"
             )[0]
+            if save_fname == "":
+                logger.warning("received empty filename; exit without saving")
+                return
             if not save_fname.endswith(".hdf"):
                 save_fname += ".hdf"
             if self.sm.new_partition is None:

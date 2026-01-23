@@ -1,8 +1,6 @@
 import numpy as np
 import logging
 import os
-import glob
-import h5py
 
 
 logger = logging.getLogger(__name__)
@@ -222,49 +220,3 @@ class XpcsDataset(object):
             x[frame, index] = count
 
         return x
-
-    def _get_metadata(self):
-        return get_hdf_metadata(self.fname)
-
-
-def get_hdf_metadata(fname):
-    prefix = os.path.join(os.path.dirname(fname), "*_metadata.hdf")
-    meta_fnames = glob.glob(prefix)
-    assert len(meta_fnames) > 0, f"no *_metadata.hdf found in the folder of {fname}"
-    if len(meta_fnames) > 1:
-        logger.warning(
-            f"multiple *_metadata.hdf found in the folder of {fname}. using the first one"
-        )
-    meta_fname = meta_fnames[0]
-    logger.info(f"using metadata file: {meta_fname}")
-    # read real metadata
-    keys = {
-        "energy": "/entry/instrument/incident_beam/incident_energy",
-        "ccdx": "/entry/instrument/detector_1/position_x",
-        "ccdy": "/entry/instrument/detector_1/position_y",
-        "ccdx0": "/entry/instrument/detector_1/beam_center_position_x",
-        "ccdy0": "/entry/instrument/detector_1/beam_center_position_y",
-        "x_pixel_size": "/entry/instrument/detector_1/x_pixel_size",
-        "y_pixel_size": "/entry/instrument/detector_1/y_pixel_size",
-        "bcx0": "/entry/instrument/detector_1/beam_center_x",
-        "bcy0": "/entry/instrument/detector_1/beam_center_y",
-        "det_dist": "/entry/instrument/detector_1/distance",
-    }
-
-    meta = {}
-    with h5py.File(meta_fname, "r") as f:
-        for key, val in keys.items():
-            meta[key] = f[val][()]
-        meta["data_name"] = os.path.basename(meta_fname)
-
-    ccdx, ccdx0 = meta["ccdx"], meta["ccdx0"]
-    ccdy, ccdy0 = meta["ccdy"], meta["ccdy0"]
-
-    meta["bcx"] = meta["bcx0"] + (ccdx - ccdx0) / meta["x_pixel_size"]
-    meta["bcy"] = meta["bcy0"] + (ccdy - ccdy0) / meta["y_pixel_size"]
-    meta.pop("bcx0", None)
-    meta.pop("bcy0", None)
-    meta["pix_dim"] = meta["x_pixel_size"]
-    meta.pop("x_pixel_size", None)
-    meta.pop("y_pixel_size", None)
-    return meta

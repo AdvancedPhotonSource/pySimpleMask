@@ -1,32 +1,46 @@
 import logging
 import numpy as np
 import traceback
-from ..qmap import compute_qmap
+import re
+from ..qmap import compute_qmap, compute_display_center
+from scipy.ndimage import median_filter, gaussian_filter
 
 logger = logging.getLogger(__name__)
 
 
-def dict_to_params(name, d):
-    """Recursively convert a Python dictionary to ParameterTree structure."""
-    children = []
-    for key, value in d.items():
-        if isinstance(value, dict):
-            children.append(dict_to_params(key, value))
+def dict_to_params(name, data_dict, meta_units_formats=None):
+    def get_param_type(value):
+        """Determines the parameter type based on the value's Python type."""
+        if isinstance(value, bool):
+            return "bool"
+        elif isinstance(value, int):
+            return "int"
+        elif isinstance(value, float):
+            return "float"
         else:
-            param_type = "str"  # default
-            if isinstance(value, int):
-                param_type = "int"
-            elif isinstance(value, float):
-                param_type = "float"
-            elif isinstance(value, bool):
-                param_type = "bool"
-            if param_type == "float":
-                children.append(
-                    {"name": key, "type": param_type, "value": value, "decimals": 6}
-                )
-            else:
-                children.append({"name": key, "type": param_type, "value": value})
-    return {"name": name, "type": "group", "children": children}
+            return "str"
+
+    # Convert the dictionary to a list of parameter definitions
+    params = []
+    for key, value in data_dict.items():
+        param_type = get_param_type(value)
+        line = {"name": key, "type": param_type, "value": value}
+
+        if meta_units_formats and key in meta_units_formats:
+            # Unpack the metadata tuple
+            _, unit, fmt_str = meta_units_formats[key]
+            # Set the unit as a suffix for display
+            line["suffix"] = f" {unit}"  # Add a leading space for readability
+            line["siPrefix"] = False
+            # This is crucial for custom formatting of floats
+            # 2. Parse format string to set the number of decimals
+            match = re.search(r"%\.(\d+)f", fmt_str)
+            if match:
+                line["decimals"] = int(match.group(1))
+
+        params.append(line)
+
+    return {"name": name, "type": "group", "children": params}
 
 
 def parameter_to_dict(parameter):
@@ -48,22 +62,22 @@ def get_fake_metadata():
     metadata = {
         # 'datetime': "2022-05-08 14:00:51,799",
         "energy": 12.3,  # keV
-        "det_dist": 12.3456,  # meter
-        "pix_dim": 75e-6,  # meter
-        "bcx": 512,
-        "bcy": 256,
+        "detector_distance": 12.3456,  # meter
+        "pixel_size": 75e-6,  # meter
+        "beam_center_x": 512,
+        "beam_center_y": 256,
         "stype": "transmission",
     }
     return metadata
 
 
-def smart_float(x, precision=2):
+def smart_float(x, precision=4):
     """
     Convert a float to a string, either in scientific notation or fixed-point notation.
     The precision is the number of digits after the decimal point.
     """
-    if x == 0 or (1e-4 <= abs(x) < 1e4):
-        return f"{x:.{precision}f}".rstrip("0").rstrip(".")  # clean float
+    if x == 0 or (1e-2 <= abs(x) < 1e2):
+        return f"{x:.4f}".rstrip("0").rstrip(".")  # clean float
     else:
         return f"{x:.{precision}e}"  # scientific
 
@@ -87,13 +101,16 @@ class FileReader(object):
         self.shape = None
         self.qmap = None
         self.qmap_unit = None
+        self.meta_units_fmts = None
         self.data_display = None
 
     def prepare_data(self, *args, **kwargs):
         self.metadata = self.get_metadata()
         self.scat = self.get_scattering(*args, **kwargs).astype(np.float32)
         self.shape = self.scat.shape
-        self.metadata["shape"] = self.shape
+        # update metadata shape with the real values
+        self.metadata["detector_shape_x"] = self.shape[1]
+        self.metadata["detector_shape_y"] = self.shape[0]
         len_qmap = 7 if self.stype == "Transmission" else 11
         self.data_display = np.zeros((len(DISPLAY_FIELD) + len_qmap, *self.shape))
         self.scat_log = self.get_scat_with_mask(mask=None, mode="log")
@@ -103,14 +120,9 @@ class FileReader(object):
     def get_scat_with_mask(self, mask=None, mode="log"):
         if mask is None:
             mask = np.ones(self.shape, dtype=bool)
-        min_mask = (self.scat > 0) * mask
-        if np.sum(min_mask) == 0:
-            return self.scat
-
-        # nonzero min
-        nz_min = np.min(self.scat[min_mask > 0])
-        temp = np.copy(self.scat)
-        temp[~min_mask] = nz_min
+        temp = self.scat * mask
+        nz_min = np.min(temp[temp > 0])
+        temp[temp <= 0] = nz_min
         if mode == "log":
             return np.log10(temp)
         else:
@@ -147,8 +159,12 @@ class FileReader(object):
 
     def get_metadata(self, *args, **kwargs):
         try:
-            metdata = self._get_metadata(*args, **kwargs)
-            return metdata
+            metadata = self._get_metadata(*args, **kwargs)
+            for k, v in metadata.items():
+                # convert to float for consistency and compatibility with downstream processing
+                if isinstance(v, (int, np.floating)):
+                    metadata[k] = float(v)
+            return metadata
         except Exception as e:
             traceback.print_exc()
             logger.warning(
@@ -156,11 +172,33 @@ class FileReader(object):
             )
             return get_fake_metadata()
 
+    def find_maximal_intensity_center(
+        self, median_size: int = 3, gaussian_sigma: float = 1.0
+    ) -> tuple:
+        """
+        Find the position of the maximum point in a 2D image robustly,
+        using median and Gaussian filtering to reduce noise.
+
+        Parameters:
+            image (np.ndarray): 2D input image.
+            median_size (int): Kernel size for median filtering (default: 3).
+            gaussian_sigma (float): Sigma for Gaussian filtering (default: 1.0).
+
+        Returns:
+            tuple: Coordinates (row, col) of the maximum point in the smoothed image.
+        """
+        scat_mask_loc = DISPLAY_FIELD.index("scattering * mask")
+        scat_mask = self.data_display[scat_mask_loc]
+        cleaned = median_filter(scat_mask, size=median_size)
+        smoothed = gaussian_filter(cleaned, sigma=gaussian_sigma)
+        max_pos_vh = np.unravel_index(np.argmax(smoothed), smoothed.shape)
+        return max_pos_vh
+
     def _get_metadata(self, *args, **kwargs):
         raise NotImplementedError
 
     def get_parametertree_structure(self):
-        return dict_to_params("metadata", self.metadata)
+        return dict_to_params("metadata", self.metadata, self.meta_units_fmts)
 
     def update_metadata_from_changes(self, changes):
         for changed_param, change_type, new_value in changes:
@@ -169,14 +207,37 @@ class FileReader(object):
             self.metadata[changed_param.name()] = new_value
 
     def update_metadata(self, new_metadata):
-        self.metadata.update(new_metadata)
+        if new_metadata:
+            self.metadata.update(new_metadata)
 
-    def get_qmap(self):
+    def compute_qmap(self):
         self.qmap, self.qmap_unit = compute_qmap(self.stype, self.metadata)
         for index, (k, v) in enumerate(self.qmap.items()):
             self.data_display[len(DISPLAY_FIELD) + index] = v
         labels = list(DISPLAY_FIELD) + list(self.qmap.keys())
         return self.qmap, self.qmap_unit, labels
+
+    def get_center(self, mode="vh"):
+        display_center = compute_display_center(
+            (self.metadata["beam_center_y"], self.metadata["beam_center_x"]),
+            self.metadata["detector_distance"],
+            self.metadata["pixel_size"],
+            self.metadata.get("swing_angle", 0),
+        )
+        if mode == "xy":
+            return (display_center[1], display_center[0])
+        elif mode == "vh":
+            return display_center
+
+    def swapxy(self):
+        newx = self.metadata["beam_center_y"]
+        newy = self.metadata["beam_center_x"]
+        self.metadata["beam_center_x"] = newx
+        self.metadata["beam_center_y"] = newy
+
+    def set_center_vh(self, new_center_vh):
+        self.metadata["beam_center_y"] = float(new_center_vh[0])
+        self.metadata["beam_center_x"] = float(new_center_vh[1])
 
     def get_coordinates(self, col, row, index):
         shape = self.shape
@@ -190,24 +251,24 @@ class FileReader(object):
         elif self.stype == "Transmission":
             labels = ["phi", "TTH", "qx", "qy", "q"]
 
-        qmap_labels = list(self.qmap.keys())
-        begin = len(DISPLAY_FIELD)
-        selection = [begin + qmap_labels.index(k) for k in labels]
-        selection.append(index)
-        labels.append("data")
+        msg = f"xy=[{col:d},{row:d}]  "
+        if self.qmap:
+            qmap_labels = list(self.qmap.keys())
+            begin = len(DISPLAY_FIELD)
+            selection = [begin + qmap_labels.index(k) for k in labels]
+            selection.append(index)
+            labels.append("data")
 
-        values = self.data_display[:, row, col][selection]
-        values = [smart_float(v) for v in values]
-
-        msg = f"xy=[{col:d},{row:d}] "
-        for k, v in zip(labels, values):
-            if k in ["qx", "qy", "qz", "q", "qr"]:
-                v = f"{v}Å⁻¹"
-            elif k in ["tth", "alpha_f", "phi", "TTH"]:
-                v = f"{v}°"
-            elif k == "data":
-                v = f"{v}"
-            msg += f"{k}={v}, "
+            values = self.data_display[:, row, col][selection]
+            values = [smart_float(v) for v in values]
+            for k, v in zip(labels, values):
+                if k in ["qx", "qy", "qz", "q", "qr"]:
+                    v = f"{v}Å⁻¹"
+                elif k in ["tth", "alpha_f", "phi", "TTH"]:
+                    v = f"{v}°"
+                elif k == "data":
+                    v = f"{v}"
+                msg += f"{k}={v}, "
 
         return msg[:-2]
 
