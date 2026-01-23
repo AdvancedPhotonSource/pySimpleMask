@@ -71,10 +71,9 @@ class SimpleMask(object):
         self.mask_apply()
 
     def mask_apply(self, target=None):
-        if target == "default_mask":
-            self.mask = self.mask_kernel.apply_default_mask()
+        if target == "default_blemish":
+            self.mask = self.mask_kernel.blemish
         else:
-            # if target is None, apply will return the current mask
             self.mask = self.mask_kernel.apply(target)
         self.dset.update_mask(self.mask)
 
@@ -136,7 +135,7 @@ class SimpleMask(object):
 
         self.qmap, self.qmap_unit, _ = self.dset.compute_qmap()
         self.mask_kernel = MaskAssemble(self.shape, self.dset.scat)
-        self.mask_apply(target="default_mask")
+        self.mask_apply(target="default_blemish")
         self.mask_kernel.update_qmap(self.qmap)
         return True
 

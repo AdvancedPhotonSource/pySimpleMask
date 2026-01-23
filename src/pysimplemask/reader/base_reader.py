@@ -120,14 +120,9 @@ class FileReader(object):
     def get_scat_with_mask(self, mask=None, mode="log"):
         if mask is None:
             mask = np.ones(self.shape, dtype=bool)
-        min_mask = (self.scat > 0) * mask
-        if np.sum(min_mask) == 0:
-            return self.scat
-
-        # nonzero min
-        nz_min = np.min(self.scat[min_mask > 0])
-        temp = np.copy(self.scat)
-        temp[~min_mask] = nz_min
+        temp = self.scat * mask
+        nz_min = np.min(temp[temp > 0])
+        temp[temp <= 0] = nz_min
         if mode == "log":
             return np.log10(temp)
         else:

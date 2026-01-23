@@ -180,55 +180,49 @@ class MaskAssemble:
         self.shape = shape
         self.saxs_lin = saxs_lin
         self.qmap = qmap
-        self.mask_record = [np.ones_like(saxs_lin, dtype=bool)]
-        self.mask_ptr = 0
+
+        self.blemish = self.get_default_blemish()
+        self.mask_record = [np.ones_like(self.saxs_lin, dtype=bool), 
+                            self.blemish]
+        self.mask_ptr = 1
         # 0: no mask; 1: apply the default mask
         self.mask_ptr_min = 0
 
     def update_qmap(self, qmap_all):
         self.qmap = qmap_all
 
-    def apply_default_mask(
+    def get_default_blemish(
         self, default_blemish_path="~/Documents/areaDetectorBlemish"
     ):
-        basename = os.path.expanduser(default_blemish_path)
+        shape = tuple(self.shape)
+        _detector_blemish_files = {
+            (1813, 1558): "8idLambda2m/latest_blemish.tif",
+            (2162, 2068): "8idEiger4m/latest_blemish.tif",
+            (1676, 2100): "8idRigaku3m/latest_blemish.tif",
+            (4362, 4148): "9idEiger16m/latest_blemish.tif",
+            (516, 1556): "8idLambda750k/latest_blemish.tif",
+            (516, 1554): "detLambda750k/latest_blemish.tif",
+            (512, 1024): "8idRigaku500k/latest_blemish.tif",
+        }
+        rel_path = _detector_blemish_files.get(shape, None)
+        fname = os.path.join(os.path.expanduser(default_blemish_path), rel_path) if rel_path else None
 
-        if tuple(self.shape) == (1813, 1558):
-            fname = os.path.join(basename, "8idLambda2m/latest_blemish.tif")
-        elif tuple(self.shape) == (2162, 2068):
-            fname = os.path.join(basename, "8idEiger4m/latest_blemish.tif")
-        elif tuple(self.shape) == (1676, 2100):
-            fname = os.path.join(basename, "8idRigaku3m/latest_blemish.tif")
-        elif tuple(self.shape) == (4362, 4148):
-            fname = os.path.join(basename, "9idEiger16m/latest_blemish.tif")
-        elif tuple(self.shape) == (516, 1556):
-            fname = os.path.join(basename, "8idLambda750k/latest_blemish.tif")
-        elif tuple(self.shape) == (516, 1554):
-            fname = os.path.join(basename, "detLambda750k/latest_blemish.tif")
-        elif tuple(self.shape) == (512, 1024):
-            fname = os.path.join(basename, '8idRigaku500k/latest_blemish.tif')
-        else:
-            logger.warning("detector shape/type not supported")
-            self.mask_ptr_min = 0
-            return self.get_mask()
+        try:
+            if not fname or not os.path.isfile(fname):
+                raise FileNotFoundError(f"not found for shape {shape}")
+            # logger.info(f"apply blemish: {os.path.realpath(fname)}")
+            # self.evaluate("mask_blemish", fname=fname)
+            # self.apply("mask_blemish")
+            blemish = skio.imread(fname)
+        except Exception as e:
+            logger.warning(f"Failed to load default blemish: {e}")
+            logger.info(f"Use default blemish: np.ones(self.shape, dtype=bool)") 
+            blemish = np.ones(self.shape, dtype=bool)
 
-        if os.path.isfile(fname):  # returns True for symbolic links too
-            realpath = os.path.realpath(fname)
-            logger.info(f"apply blemish: {realpath}")
-            # default blemish is tif format with lzw compression
-            try:
-                self.evaluate("mask_blemish", fname=fname)
-                self.apply("mask_blemish")
-                self.mask_ptr_min = 1
-            except:
-                logger.warning(f"default blemish {fname} not supported")
-                self.mask_ptr_min = 0
-                return self.get_mask()
-        else:
-            logger.warning(f"default blemish {fname} not found")
-        return self.get_mask()
+        return blemish
+         
 
-    def apply(self, target):
+    def apply(self, target=None):
         if target is None:
             return self.get_mask()
 
