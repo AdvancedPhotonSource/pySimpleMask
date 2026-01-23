@@ -412,6 +412,7 @@ class SimpleMask(object):
             "beam_center_y": center[1],
             "pixel_size": self.dset.metadata["pixel_size"],
             "mask": self.mask,
+            "blemish": self.mask_kernel.blemish,
             "energy": self.dset.metadata["energy"],
             "detector_distance": self.dset.metadata["detector_distance"],
             "map_names": list(map_names),
