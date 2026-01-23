@@ -1,8 +1,6 @@
 # pySimpleMask
 
 [![PyPI version](https://img.shields.io/pypi/v/pysimplemask.svg)](https://pypi.python.org/pypi/pysimplemask)
-[![Build Status](https://img.shields.io/travis/AdvancedPhotonSource/pySimpleMask.svg)](https://travis-ci.com/AdvancedPhotonSource/pySimpleMask)
-[![Documentation Status](https://readthedocs.org/projects/pysimplemask/badge/?version=latest)](https://pysimplemask.readthedocs.io/en/latest/?version=latest)
 
 **pySimpleMask** is a graphical user interface (GUI) tool designed for creating masks and Q-partition maps for scattering patterns, specifically facilitating SAXS, WAXS, and XPCS data reduction.
 
