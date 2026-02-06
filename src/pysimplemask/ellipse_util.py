@@ -2,9 +2,47 @@ import numpy as np
 from skimage.draw import ellipse
 from skimage.measure import label, regionprops
 from matplotlib.patches import Ellipse
+from skimage.measure import moments, moments_central
 
 
 def find_ellipse_parameters(image):
+    # Calculate moments for all non-zero pixels combined
+    m = moments(image, order=1)
+    if m[0, 0] == 0: return None
+    
+    # Centroid
+    y0 = m[0, 1] / m[0, 0]
+    x0 = m[1, 0] / m[0, 0]
+    
+    # Central moments for rotation and axes
+    mu = moments_central(image, center=(y0, x0), order=2)
+    
+    # Covariance matrix components
+    mu20 = mu[0, 2] / mu[0, 0] # Note: skimage moments use (row, col)
+    mu02 = mu[2, 0] / mu[0, 0]
+    mu11 = mu[1, 1] / mu[0, 0]
+    
+    # Calculate angle (orientation)
+    # This matches the logic of regionprops but for the whole image
+    orientation = 0.5 * np.arctan2(2 * mu11, mu02 - mu20)
+    
+    # Eigenvalues for axis lengths
+    term = np.sqrt((mu02 - mu20)**2 + 4 * mu11**2)
+    l1 = (mu02 + mu20 + term) / 2
+    l2 = (mu02 + mu20 - term) / 2
+    
+    major_axis = 4 * np.sqrt(l1)
+    minor_axis = 4 * np.sqrt(l2)
+
+    return {
+        "x0": x0, "y0": y0, 
+        "angle": np.pi / 2 - orientation,
+        "major_axis": major_axis, 
+        "minor_axis": minor_axis
+    }
+
+
+def find_ellipse_parameters_connected(image):
     label_img = label(image)
     props = regionprops(label_img)
     target = props[0]
