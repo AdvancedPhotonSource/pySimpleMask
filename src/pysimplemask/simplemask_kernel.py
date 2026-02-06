@@ -6,7 +6,7 @@ import h5py
 import numpy as np
 import pyqtgraph as pg
 import tifffile
-from pyqtgraph.Qt import QtCore
+from pyqtgraph.Qt import QtCore, QtGui
 
 from pysimplemask import __version__
 
@@ -22,6 +22,7 @@ from .utils import (
     hash_numpy_dict,
     optimize_integer_array,
 )
+from .ellipse_util import compute_ellipse_gradient, find_ellipse_parameters
 
 pg.setConfigOptions(imageAxisOrder="row-major")
 
@@ -179,51 +180,91 @@ class SimpleMask(object):
 
         return
 
-    def apply_drawing(self):
+    def evaluate_drawing(self):
+        """
+        Apply current ROI drawings to the mask.
+        
+        This method uses QPainter to rasterize the ROI shapes into a QImage, which is then
+        converted to a numpy boolean mask. This approach correctly handles rotated ROIs
+        (e.g., rotated ellipses) by transforming the vector shape of the ROI into the 
+        image coordinate system before rasterization.
+        """
         if self.dset is None:
             return
-        shape = self.dset.shape
-        ones = np.ones((shape[0] + 1, shape[1] + 1), dtype=bool)
-        mask_n = np.zeros_like(ones, dtype=bool)
-        mask_e = np.zeros_like(mask_n)
-        mask_i = np.zeros_like(mask_n)
-
+        
+        # shape is (rows, cols) -> (height, width)
+        h, w = self.dset.shape
+        
+        # Create QImages for mask accumulation.
+        # We use QImage.Format_Grayscale8, where we'll draw with white (255) on black (0).
+        # img_e collects "exclusive" ROIs (masked out regions)
+        # img_i collects "inclusive" ROIs (regions to keep)
+        img_e = QtGui.QImage(w, h, QtGui.QImage.Format.Format_Grayscale8)
+        img_e.fill(0)
+        img_i = QtGui.QImage(w, h, QtGui.QImage.Format.Format_Grayscale8)
+        img_i.fill(0)
+        
+        p_e = QtGui.QPainter(img_e)
+        p_i = QtGui.QPainter(img_i)
+        
+        # Setup painters: no border (NoPen), white fill (SolidPattern)
+        for p in (p_e, p_i):
+             p.setPen(QtCore.Qt.PenStyle.NoPen)
+             p.setBrush(QtGui.QBrush(QtCore.Qt.GlobalColor.white))
+        
+        has_inclusive = False
+        
         for k, x in self.hdl.roi.items():
             if not k.startswith("roi_"):
                 continue
-
-            mask_temp = np.zeros_like(ones, dtype=bool)
-            # return slice and transfrom
-            sl, _ = x.getArraySlice(self.dset.data_display[1], self.hdl.imageItem)
-            y = x.getArrayRegion(ones, self.hdl.imageItem)
-
-            # sometimes the roi size returned from getArraySlice and
-            # getArrayRegion are different;
-            nz_idx = np.nonzero(y)
-
-            h_beg = np.min(nz_idx[1])
-            h_end = np.max(nz_idx[1]) + 1
-
-            v_beg = np.min(nz_idx[0])
-            v_end = np.max(nz_idx[0]) + 1
-
-            sl_v = slice(sl[0].start, sl[0].start + v_end - v_beg)
-            sl_h = slice(sl[1].start, sl[1].start + h_end - h_beg)
-            mask_temp[sl_v, sl_h] = y[v_beg:v_end, h_beg:h_end]
-
+            
+            # Retrieve the ROI's shape as a QPainterPath in its local coordinates.
+            path = x.shape()
+            # Map the path to the ImageItem's coordinate system to handle position, scale, and rotation.
+            path = x.mapToItem(self.hdl.imageItem, path)
+            
             if x.sl_mode == "exclusive":
-                mask_e[mask_temp] = 1
+                p_e.drawPath(path)
             elif x.sl_mode == "inclusive":
-                mask_i[mask_temp] = 1
-
+                has_inclusive = True
+                p_i.drawPath(path)
+        
+        p_e.end()
+        p_i.end()
+        
+        def qimage_to_mask(qimg, h, w):
+            """Convert QImage to numpy boolean mask."""
+            ptr = qimg.constBits()
+            stride = qimg.bytesPerLine()
+            # If stride != width, the image data has padding at the end of each row.
+            # We reshape to (h, stride) first, then crop to (h, w).
+            arr_padded = np.array(ptr).reshape(h, stride)
+            if stride != w:
+                arr = arr_padded[:, :w]
+            else:
+                arr = arr_padded
+            # Pixels drawn with white are True; background is False.
+            return arr > 0
+            
+        mask_e = qimage_to_mask(img_e, h, w)
+        mask_i_raw = qimage_to_mask(img_i, h, w)
+        
         self.hdl.remove_rois(filter_str="roi_")
+        
+        # Logic for processing inclusive/exclusive masks:
+        # 1. Exclusive masks (mask_e) define pixels to REMOVE (False in final mask).
+        # 2. Inclusive masks (mask_i) define pixels to KEEP.
+        #    - If NO inclusive masks are drawn, everything is included by default (mask_i=True).
+        #    - If ANY inclusive masks are drawn, only those regions are included.
+        
+        if not has_inclusive:
+            mask_i_final = True
+        else:
+            mask_i_final = mask_i_raw
 
-        if np.sum(mask_i) == 0:
-            mask_i = 1
-
-        mask_p = np.logical_not(mask_e) * mask_i
-        mask_p = mask_p[:-1, :-1]
-
+        # Final Mask = (NOT Exclusive) AND (Inclusive)
+        mask_p = np.logical_not(mask_e) * mask_i_final
+        
         return mask_p
 
     def add_drawing(
@@ -341,14 +382,29 @@ class SimpleMask(object):
         return saxs1d, zero_loc
 
     def compute_partition(self, mode="q-phi", **kwargs):
+        if mode == "eq-ephi":
+            ellipse_param = find_ellipse_parameters(self.mask)
+            rho, phi = compute_ellipse_gradient(self.qmap["y"], self.qmap["x"], ellipse_param)
+            q_rev = self.qmap["q"].copy()
+            phi_rev = self.qmap["phi"].copy()
+            self.qmap["q"] = rho 
+            self.qmap["phi"] = phi
+            mode = "q-phi"
+
         map_names = mode.split("-")
         logger.info(f"compute partition with mode {mode}: map_names {map_names}")
         t0 = time.perf_counter()
         flag = self.compute_partition_general(map_names=map_names, **kwargs)
         t1 = time.perf_counter()
         logger.info("compute partition finished in %f seconds" % (t1 - t0))
-        return flag
 
+        if mode == "eq-ephi":
+            # copy back
+            self.qmap["q"] = q_rev
+            self.qmap["phi"] = phi_rev
+
+        return flag
+    
     def compute_partition_general(
         self,
         map_names=("q", "phi"),

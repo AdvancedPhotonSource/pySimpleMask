@@ -932,12 +932,12 @@ class Ui_SimpleMask(object):
 
         self.splitter.addWidget(self.groupBox_2)
         self.splitter_2.addWidget(self.splitter)
-        self.widget = QWidget(self.splitter_2)
-        self.widget.setObjectName(u"widget")
-        self.verticalLayout = QVBoxLayout(self.widget)
+        self.layoutWidget = QWidget(self.splitter_2)
+        self.layoutWidget.setObjectName(u"layoutWidget")
+        self.verticalLayout = QVBoxLayout(self.layoutWidget)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
-        self.groupBox_5 = QGroupBox(self.widget)
+        self.groupBox_5 = QGroupBox(self.layoutWidget)
         self.groupBox_5.setObjectName(u"groupBox_5")
         sizePolicy15 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
         sizePolicy15.setHorizontalStretch(2)
@@ -1039,7 +1039,7 @@ class Ui_SimpleMask(object):
 
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.groupBox_3 = QGroupBox(self.widget)
+        self.groupBox_3 = QGroupBox(self.layoutWidget)
         self.groupBox_3.setObjectName(u"groupBox_3")
         sizePolicy17 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         sizePolicy17.setHorizontalStretch(2)
@@ -1315,13 +1315,80 @@ class Ui_SimpleMask(object):
         self.gridLayout_31.addLayout(self.gridLayout_30, 0, 0, 1, 1)
 
         self.tabWidget.addTab(self.tab_8, "")
+        self.tab = QWidget()
+        self.tab.setObjectName(u"tab")
+        self.gridLayout_26 = QGridLayout(self.tab)
+        self.gridLayout_26.setObjectName(u"gridLayout_26")
+        self.gridLayout_35 = QGridLayout()
+        self.gridLayout_35.setObjectName(u"gridLayout_35")
+        self.sb_dynum_2 = QSpinBox(self.tab)
+        self.sb_dynum_2.setObjectName(u"sb_dynum_2")
+        self.sb_dynum_2.setMinimum(1)
+        self.sb_dynum_2.setMaximum(999)
+        self.sb_dynum_2.setValue(1)
+
+        self.gridLayout_35.addWidget(self.sb_dynum_2, 1, 4, 1, 1)
+
+        self.sb_synum_2 = QSpinBox(self.tab)
+        self.sb_synum_2.setObjectName(u"sb_synum_2")
+        self.sb_synum_2.setMinimum(1)
+        self.sb_synum_2.setMaximum(9999)
+        self.sb_synum_2.setValue(8)
+
+        self.gridLayout_35.addWidget(self.sb_synum_2, 1, 2, 1, 1)
+
+        self.label_35 = QLabel(self.tab)
+        self.label_35.setObjectName(u"label_35")
+
+        self.gridLayout_35.addWidget(self.label_35, 0, 1, 1, 1)
+
+        self.sb_dxnum_2 = QSpinBox(self.tab)
+        self.sb_dxnum_2.setObjectName(u"sb_dxnum_2")
+        self.sb_dxnum_2.setMinimum(1)
+        self.sb_dxnum_2.setMaximum(999)
+        self.sb_dxnum_2.setValue(1)
+
+        self.gridLayout_35.addWidget(self.sb_dxnum_2, 0, 4, 1, 1)
+
+        self.sb_sxnum_2 = QSpinBox(self.tab)
+        self.sb_sxnum_2.setObjectName(u"sb_sxnum_2")
+        self.sb_sxnum_2.setMinimum(1)
+        self.sb_sxnum_2.setMaximum(9999)
+        self.sb_sxnum_2.setValue(6)
+
+        self.gridLayout_35.addWidget(self.sb_sxnum_2, 0, 2, 1, 1)
+
+        self.label_40 = QLabel(self.tab)
+        self.label_40.setObjectName(u"label_40")
+
+        self.gridLayout_35.addWidget(self.label_40, 1, 1, 1, 1)
+
+        self.label_49 = QLabel(self.tab)
+        self.label_49.setObjectName(u"label_49")
+
+        self.gridLayout_35.addWidget(self.label_49, 0, 3, 1, 1)
+
+        self.label_51 = QLabel(self.tab)
+        self.label_51.setObjectName(u"label_51")
+
+        self.gridLayout_35.addWidget(self.label_51, 1, 3, 1, 1)
+
+        self.btn_compute_qpartition4 = QPushButton(self.tab)
+        self.btn_compute_qpartition4.setObjectName(u"btn_compute_qpartition4")
+
+        self.gridLayout_35.addWidget(self.btn_compute_qpartition4, 1, 5, 1, 1)
+
+
+        self.gridLayout_26.addLayout(self.gridLayout_35, 0, 0, 1, 1)
+
+        self.tabWidget.addTab(self.tab, "")
 
         self.gridLayout_11.addWidget(self.tabWidget, 1, 0, 1, 1)
 
 
         self.horizontalLayout_3.addWidget(self.groupBox_3)
 
-        self.groupBox_6 = QGroupBox(self.widget)
+        self.groupBox_6 = QGroupBox(self.layoutWidget)
         self.groupBox_6.setObjectName(u"groupBox_6")
         sizePolicy18 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         sizePolicy18.setHorizontalStretch(1)
@@ -1358,7 +1425,7 @@ class Ui_SimpleMask(object):
 
         self.verticalLayout.addLayout(self.horizontalLayout_3)
 
-        self.splitter_2.addWidget(self.widget)
+        self.splitter_2.addWidget(self.layoutWidget)
 
         self.gridLayout.addWidget(self.splitter_2, 0, 0, 1, 1)
 
@@ -1374,7 +1441,7 @@ class Ui_SimpleMask(object):
         self.mask_list_include.toggled.connect(self.mask_list_variation.setEnabled)
 
         self.MaskWidget.setCurrentIndex(5)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(3)
 
 
         QMetaObject.connectSlotsByName(SimpleMask)
@@ -1573,6 +1640,12 @@ class Ui_SimpleMask(object):
 
         self.label_46.setText(QCoreApplication.translate("SimpleMask", u"Style", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_8), QCoreApplication.translate("SimpleMask", u"General", None))
+        self.label_35.setText(QCoreApplication.translate("SimpleMask", u"static x:", None))
+        self.label_40.setText(QCoreApplication.translate("SimpleMask", u"static y:", None))
+        self.label_49.setText(QCoreApplication.translate("SimpleMask", u"dynamic x:", None))
+        self.label_51.setText(QCoreApplication.translate("SimpleMask", u"dynamic y:", None))
+        self.btn_compute_qpartition4.setText(QCoreApplication.translate("SimpleMask", u"compute", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("SimpleMask", u"ellipse", None))
         self.groupBox_6.setTitle(QCoreApplication.translate("SimpleMask", u"Output", None))
         self.label_47.setText(QCoreApplication.translate("SimpleMask", u"Format", None))
         self.comboBox_output_type.setItemText(0, QCoreApplication.translate("SimpleMask", u"Nexus-XPCS", None))

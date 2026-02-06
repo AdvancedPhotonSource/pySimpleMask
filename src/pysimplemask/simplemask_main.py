@@ -94,6 +94,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_compute_qpartition.clicked.connect(self.compute_partition)
         self.btn_compute_qpartition2.clicked.connect(self.compute_partition)
         self.btn_compute_qpartition3.clicked.connect(self.compute_partition)
+        self.btn_compute_qpartition4.clicked.connect(self.compute_partition)
 
         self.btn_select_raw.clicked.connect(self.select_raw)
         # self.btn_select_txt.clicked.connect(self.select_txt)
@@ -302,7 +303,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             xy = np.roll(xy, shift=1, axis=0)
             kwargs = {"zero_loc": xy}
         elif target == "mask_draw":
-            kwargs = {"arr": np.logical_not(self.sm.apply_drawing())}
+            kwargs = {"arr": np.logical_not(self.sm.evaluate_drawing())}
         elif target == "mask_threshold":
             kwargs = {
                 "low": self.binary_threshold_low.value(),
@@ -581,7 +582,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     # self.btn_mask_draw_apply_corr.clicked.connect(self.corr_add_roi)
     def corr_add_roi(self):
-        roi = self.sm.apply_drawing()
+        roi = self.sm.evaluate_drawing()
         self.sm.set_corr_roi(roi)
         return
 
@@ -628,6 +629,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 "sp_num": self.sb_partition_sn1.value(),
                 "dq_num": self.sb_partition_dn0.value(),
                 "dp_num": self.sb_partition_dn1.value(),
+            }
+        elif self.tabWidget.currentIndex() == 3:
+            kwargs = {
+                "mode": "eq-ephi",
+                "sq_num": self.sb_sxnum_2.value(),
+                "sp_num": self.sb_synum_2.value(),
+                "dq_num": self.sb_dxnum_2.value(),
+                "dp_num": self.sb_dynum_2.value(),
             }
 
         sq_num = least_multiple(kwargs["dq_num"], kwargs["sq_num"])
