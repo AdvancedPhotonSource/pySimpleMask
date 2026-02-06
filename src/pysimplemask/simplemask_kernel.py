@@ -303,16 +303,16 @@ class SimpleMask(object):
             "movable": movable,
         }
         if sl_type == "Ellipse":
-            new_roi = pg.EllipseROI(cen, [60, 80], **kwargs)
+            size = (120, 160)
+            new_roi = pg.EllipseROI((cen[0] - size[0]//2, cen[1] - size[1]//2),
+                                    size, **kwargs)
             # add scale handle
-            new_roi.addScaleHandle([0.5, 0], [0.5, 1])
-            new_roi.addScaleHandle([0.5, 1], [0.5, 0])
-            new_roi.addScaleHandle([0, 0.5], [1, 0.5])
-            # new_roi.addScaleHandle([1, 0.5], [0, 0.5])
-            new_roi.addScaleHandle([0.1464, 0.1464], [1, 1])  # bottom-left
-            new_roi.addScaleHandle([0.1464, 0.8536], [1, 0])  # bottom-right
-            new_roi.addScaleHandle([0.8536, 0.1464], [0, 1])  # top-left
-            new_roi.addScaleHandle([0.8536, 0.8536], [0, 0])  # top-right
+            new_roi.addScaleHandle([0.5, 0], [0.5, 0.5])
+            new_roi.addScaleHandle([0.5, 1], [0.5, 0.5])
+            new_roi.addScaleHandle([0, 0.5], [0.5, 0.5])
+            # it's a rotation handle by default
+            # new_roi.addScaleHandle([1, 0.5], [0.5, 0.5])
+            
 
         elif sl_type == "Circle":
             if second_point is not None:

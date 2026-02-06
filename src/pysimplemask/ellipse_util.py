@@ -11,8 +11,8 @@ def find_ellipse_parameters(image):
     if m[0, 0] == 0: return None
     
     # Centroid
-    y0 = m[0, 1] / m[0, 0]
-    x0 = m[1, 0] / m[0, 0]
+    x0 = m[0, 1] / m[0, 0] # horizontal, column
+    y0 = m[1, 0] / m[0, 0] # vertical, row
     
     # Central moments for rotation and axes
     mu = moments_central(image, center=(y0, x0), order=2)
@@ -33,7 +33,6 @@ def find_ellipse_parameters(image):
     
     major_axis = 4 * np.sqrt(l1)
     minor_axis = 4 * np.sqrt(l2)
-
     return {
         "x0": x0, "y0": y0, 
         "angle": np.pi / 2 - orientation,
