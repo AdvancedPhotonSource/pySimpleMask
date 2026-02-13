@@ -4,17 +4,6 @@
       <stop offset="0%" style="stop-color:#3498db;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#2c3e50;stop-opacity:1" />
     </linearGradient>
-    <filter id="dropshadow" height="130%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
-      <feOffset dx="2" dy="2" result="offsetblur"/>
-      <feComponentTransfer>
-        <feFuncA type="linear" slope="0.3"/>
-      </feComponentTransfer>
-      <feMerge> 
-        <feMergeNode/>
-        <feMergeNode in="SourceGraphic"/> 
-      </feMerge>
-    </filter>
   </defs>
 
   <!-- Background Circle (Scattering Detector Area) -->
@@ -32,11 +21,11 @@
 
   <!-- Masking Element (The "SimpleMask") -->
   <!-- Representing a sector mask and some bad pixels -->
-  <path d="M100,100 L160,40 A90,90 0 0,1 185,130 Z" fill="#e74c3c" opacity="0.8" stroke="#c0392b" stroke-width="1" filter="url(#dropshadow)"/>
+  <path d="M100,100 L160,40 A90,90 0 0,1 185,130 Z" fill="#e74c3c" opacity="0.8" stroke="#c0392b" stroke-width="1"/>
   
   <!-- Random "Dead Pixels" Masked out -->
-  <rect x="60" y="50" width="10" height="10" fill="#e74c3c" opacity="0.9" filter="url(#dropshadow)"/>
-  <rect x="55" y="140" width="12" height="12" fill="#e74c3c" opacity="0.9" filter="url(#dropshadow)"/>
-  <rect x="130" y="150" width="8" height="8" fill="#e74c3c" opacity="0.9" filter="url(#dropshadow)"/>
+  <rect x="60" y="50" width="10" height="10" fill="#e74c3c" opacity="0.9"/>
+  <rect x="55" y="140" width="12" height="12" fill="#e74c3c" opacity="0.9"/>
+  <rect x="130" y="150" width="8" height="8" fill="#e74c3c" opacity="0.9"/>
 
 </svg>
