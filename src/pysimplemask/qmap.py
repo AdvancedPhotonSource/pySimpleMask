@@ -16,7 +16,8 @@ def compute_qmap(stype, metadata):
             (metadata["detector_shape_y"], metadata["detector_shape_x"]),
             metadata["pixel_size"],
             metadata["detector_distance"],
-            metadata["swing_angle"],
+            metadata["swing_angle_horizontal"],
+            metadata.get("swing_angle_vertical", 0.0),
         )
     elif stype == "Reflection":
         return compute_reflection_qmap(
@@ -30,26 +31,38 @@ def compute_qmap(stype, metadata):
         )
 
 
-def compute_display_center(center, detector_distance, pixel_size, swing_angle=0):
-    center_v = center[0]
-    # if swing_angle < 0, the center shift towards the nagative direction (DOOR)
-    center_h = (
-        center[1] + detector_distance * np.tan(np.deg2rad(swing_angle)) / pixel_size
+def compute_display_center(
+    center, detector_distance, pixel_size, swing_angle_horizontal=0, swing_angle_vertical=0
+):
+    # center shift follows the same logic as horizontal:
+    # swing > 0 (Outboard/Up) -> Beam hits "Lower/Inboard" on detector
+    # Based on existing horizontal logic: swing < 0 -> center shift negative.
+    # So swing > 0 -> center shift positive.
+    # We apply same sign for vertical.
+    center_v = (
+        center[0] + detector_distance * np.tan(np.deg2rad(swing_angle_vertical)) / pixel_size
     )
-    # make it a python native float to avoid 2 types of floats
-    center_h = float(center_h)
-    return (center_v, center_h)
+    center_h = (
+        center[1] + detector_distance * np.tan(np.deg2rad(swing_angle_horizontal)) / pixel_size
+    )
+    return (float(center_v), float(center_h))
 
 
 @lru_cache(maxsize=128)
 def compute_transmission_qmap(
-    energy, center, shape, pixel_size, detector_distance, swing_angle
+    energy,
+    center,
+    shape,
+    pixel_size,
+    detector_distance,
+    swing_angle_horizontal,
+    swing_angle_vertical=0,
 ):
     k0 = 2 * np.pi / (E2KCONST / energy)
 
-    # swing_angle is negative when swin towards the wall
-    swing_angle_rad = np.deg2rad(swing_angle)
-    # the horizontal center shift towards the nagative direction when angle < 0
+    # swing_angle_horizontal is negative when swin towards the wall
+    swing_angle_horizontal_rad = np.deg2rad(swing_angle_horizontal)
+    swing_angle_vertical_rad = np.deg2rad(swing_angle_vertical)
 
     # before swing angle correction
     v = np.arange(shape[0], dtype=np.uint32)
@@ -59,22 +72,60 @@ def compute_transmission_qmap(
     hg = (hg_pxl - center[1]) * pixel_size  # horizontal grid
     lg = np.ones_like(vg) * detector_distance  # longitudinal grid
 
-    # pixel-wise distance to the detector
-    pixel_det = np.sqrt(vg**2 + hg**2 + lg**2)
-    # apply the swing angle correction. outboard is positive, inboard is negative
-    pixel_angle = np.arctan2(hg, pixel_det) * (-1) + swing_angle_rad
+    # Rotation Matrices
+    # Vertical Swing (around X): Z (beam) -> +Y (Up) for positive angle
+    # (0, 0, 1) -> (0, sin, cos)
+    
+    cv = np.cos(swing_angle_vertical_rad)
+    sv = np.sin(swing_angle_vertical_rad)
 
-    # the left part is positive, the right part is negative
-    hg_rot = np.sin(pixel_angle) * pixel_det * (-1)
-    lg_rot = np.cos(pixel_angle) * pixel_det  # along the beam
-    vg_rot = vg  # swing does not change the vertical direction
-    coor_mat = np.stack([hg_rot, vg_rot, lg_rot], axis=-1)  # shape (v, h, 3), lab frame
+    Rx = np.array([
+        [1, 0, 0],
+        [0, cv, -sv],
+        [0, sv, cv]
+    ])
+
+    ch = np.cos(swing_angle_horizontal_rad)
+    sh = np.sin(swing_angle_horizontal_rad)
+    # Ry for Horizontal. Previously validated as [[c, 0, -s], [0, 1, 0], [s, 0, c]]
+    # This maps (0,0,1) -> (-s, 0, c).
+    # If swing > 0 is Outboard (+X?), then -s should be +X? No.
+    # Assumed previous logic was correct.
+    Ry = np.array([
+        [ch, 0, -sh],
+        [0, 1, 0],
+        [sh, 0, ch]
+    ])
+
+    # Combined Rotation: Horizontal First (parent), then Vertical (child)
+    # But usually "first horizontal" means horizontal motor is at base.
+    # So R_total = R_horizontal @ R_Vertical.
+    R = Ry @ Rx
+
+    # Apply rotation
+    # v_lab = R @ v_det
+    # v_det components are hg, vg, lg
+    # hg is x, vg is y, lg is z
+    det_vec = np.stack([hg, vg, lg], axis=-1)
+    coor_mat = np.dot(det_vec, R.T)
+
+    hg_rot = coor_mat[..., 0]
+    vg_rot = coor_mat[..., 1]
+    lg_rot = coor_mat[..., 2]
 
     direct_beam = np.array([0, 0, detector_distance])  # incoming direct beam vector
-    norm = np.linalg.norm(coor_mat, axis=-1) * np.linalg.norm(direct_beam)
-    # compute the angle between the direct beam and the scattered pixel vector
-    alpha = np.arccos(np.dot(coor_mat, direct_beam) / norm)
+    
+    # Calculate alpha (scattering angle 2theta)
+    # cos(alpha) = (v . beam) / (|v| |beam|)
+    # |beam| = D. beam = (0,0,D).
+    # v . beam = lg_rot * D
+    # |v| = sqrt(hg_r^2 + vg_r^2 + lg_r^2)
+    norm = np.linalg.norm(coor_mat, axis=-1)
+    cos_alpha = (lg_rot * detector_distance) / (norm * detector_distance)
+    cos_alpha = np.clip(cos_alpha, -1.0, 1.0)
+    alpha = np.arccos(cos_alpha)
 
+    # phi (azimuth).
     phi = np.arctan2(vg_rot, hg_rot) * (-1)
 
     qr = np.sin(alpha) * k0

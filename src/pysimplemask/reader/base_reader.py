@@ -222,7 +222,8 @@ class FileReader(object):
             (self.metadata["beam_center_y"], self.metadata["beam_center_x"]),
             self.metadata["detector_distance"],
             self.metadata["pixel_size"],
-            self.metadata.get("swing_angle", 0),
+            self.metadata.get("swing_angle_horizontal", 0),
+            self.metadata.get("swing_angle_vertical", 0),
         )
         if mode == "xy":
             return (display_center[1], display_center[0])

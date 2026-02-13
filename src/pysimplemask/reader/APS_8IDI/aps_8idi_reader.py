@@ -17,7 +17,8 @@ logger = logging.getLogger(__file__)
 DEFAULT_METADATA_WITHUNITS = {
     "energy": (10.0, "keV", "%.6f"),
     "detector_distance": (5.0, "m", "%.6f"),
-    "swing_angle": (0.0, "degree", "%.4f"),
+    "swing_angle_horizontal": (0.0, "degree", "%.4f"),
+    "swing_angle_vertical": (0.0, "degree", "%.4f"),
     "beam_center_x": (512.0, "pixel", "%.4f"),
     "beam_center_y": (256.0, "pixel", "%.4f"),
     "pixel_size": (0.000075, "m", "%.6f"),
@@ -31,7 +32,8 @@ DEFAULT_METADATA = {key: value[0] for key, value in DEFAULT_METADATA_WITHUNITS.i
 METADATA_KEYMAPS = {
     "energy": "/entry/instrument/incident_beam/incident_energy",
     "detector_distance": "/entry/instrument/detector_1/distance",
-    "swing_angle": "/entry/instrument/detector_1/flightpath_swing",
+    "swing_angle_horizontal": "/entry/instrument/detector_1/flightpath_swing",
+    "swing_angle_vertical": "/entry/instrument/detector_1/flightpath_swing_vertical",
     "x_pixel_size": "/entry/instrument/detector_1/x_pixel_size",
     "y_pixel_size": "/entry/instrument/detector_1/y_pixel_size",
     "ccdx": "/entry/instrument/detector_1/position_x",
@@ -53,7 +55,7 @@ def get_nexus_metadata(fname):
     Returns:
         dict: Metadata dictionary
     """
-    optional_fields = ["swing_angle"]
+    optional_fields = ["swing_angle_horizontal", "swing_angle_vertical"]
     if has_nexus_fields(fname, METADATA_KEYMAPS, optional_fields):
         meta_fname = fname
     else:
@@ -63,13 +65,17 @@ def get_nexus_metadata(fname):
             raise FileNotFoundError(f"No valid metadata found in {meta_fname}")
 
     logger.info(f"using metadata file: {meta_fname}")
-    # Use the keymap-based reader; swing_angle is optional and defaults to None
+    # Use the keymap-based reader; swing_angle_horizontal is optional and defaults to None
     meta = get_metadata_from_keymap(meta_fname, METADATA_KEYMAPS, optional_fields)
 
-    # Handle special case for swing_angle
-    if meta.get("swing_angle") is None:
-        logger.warning("flight path swing angle not found metadata, set to 0.0 degree")
-        meta["swing_angle"] = 0.0
+    # Handle special case for swing_angle_horizontal
+    if meta.get("swing_angle_horizontal") is None:
+        logger.warning("flight path swing angle horizontal not found metadata, set to 0.0 degree")
+        meta["swing_angle_horizontal"] = 0.0
+
+    if meta.get("swing_angle_vertical") is None:
+        logger.warning("flight path swing angle vertical not found metadata, set to 0.0 degree")
+        meta["swing_angle_vertical"] = 0.0
 
     # Calculate beam center positions with null checks
     ccdx, ccdx0 = meta["ccdx"], meta["ccdx0"]
