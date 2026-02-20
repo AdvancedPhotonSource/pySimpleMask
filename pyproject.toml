@@ -45,6 +45,7 @@ dev = [
 
 [project.scripts]
 pysimplemask = "pysimplemask.cli:main"
+pysimplemask-combine-qmaps = "pysimplemask.cli:combine_qmaps"
 
 [project.urls]
 bugs = "https://github.com/AdvancedPhotonSource/pySimpleMask/issues"
