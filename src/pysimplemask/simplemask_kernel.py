@@ -183,18 +183,18 @@ class SimpleMask(object):
     def evaluate_drawing(self):
         """
         Apply current ROI drawings to the mask.
-        
+
         This method uses QPainter to rasterize the ROI shapes into a QImage, which is then
         converted to a numpy boolean mask. This approach correctly handles rotated ROIs
-        (e.g., rotated ellipses) by transforming the vector shape of the ROI into the 
+        (e.g., rotated ellipses) by transforming the vector shape of the ROI into the
         image coordinate system before rasterization.
         """
         if self.dset is None:
             return
-        
+
         # shape is (rows, cols) -> (height, width)
         h, w = self.dset.shape
-        
+
         # Create QImages for mask accumulation.
         # We use QImage.Format_Grayscale8, where we'll draw with white (255) on black (0).
         # img_e collects "exclusive" ROIs (masked out regions)
@@ -203,35 +203,43 @@ class SimpleMask(object):
         img_e.fill(0)
         img_i = QtGui.QImage(w, h, QtGui.QImage.Format.Format_Grayscale8)
         img_i.fill(0)
-        
+
         p_e = QtGui.QPainter(img_e)
         p_i = QtGui.QPainter(img_i)
-        
+
         # Setup painters: no border (NoPen), white fill (SolidPattern)
         for p in (p_e, p_i):
-             p.setPen(QtCore.Qt.PenStyle.NoPen)
-             p.setBrush(QtGui.QBrush(QtCore.Qt.GlobalColor.white))
-        
+            p.setPen(QtCore.Qt.PenStyle.NoPen)
+            p.setBrush(QtGui.QBrush(QtCore.Qt.GlobalColor.white))
+
         has_inclusive = False
-        
+
         for k, x in self.hdl.roi.items():
             if not k.startswith("roi_"):
                 continue
-            
+
             # Retrieve the ROI's shape as a QPainterPath in its local coordinates.
-            path = x.shape()
+            # pyqtgraph's EllipseROI.shape() (inherited by CircleROI) returns only a
+            # 24-point polygon approximation -- a workaround for a Qt hit-testing bug --
+            # which makes large circles/ellipses rasterize with visible straight edges.
+            # Build a true ellipse path from the bounding rect instead so the mask is smooth.
+            if isinstance(x, pg.EllipseROI):
+                path = QtGui.QPainterPath()
+                path.addEllipse(x.boundingRect())
+            else:
+                path = x.shape()
             # Map the path to the ImageItem's coordinate system to handle position, scale, and rotation.
             path = x.mapToItem(self.hdl.imageItem, path)
-            
+
             if x.sl_mode == "exclusive":
                 p_e.drawPath(path)
             elif x.sl_mode == "inclusive":
                 has_inclusive = True
                 p_i.drawPath(path)
-        
+
         p_e.end()
         p_i.end()
-        
+
         def qimage_to_mask(qimg, h, w):
             """Convert QImage to numpy boolean mask."""
             ptr = qimg.constBits()
@@ -245,18 +253,18 @@ class SimpleMask(object):
                 arr = arr_padded
             # Pixels drawn with white are True; background is False.
             return arr > 0
-            
+
         mask_e = qimage_to_mask(img_e, h, w)
         mask_i_raw = qimage_to_mask(img_i, h, w)
-        
+
         self.hdl.remove_rois(filter_str="roi_")
-        
+
         # Logic for processing inclusive/exclusive masks:
         # 1. Exclusive masks (mask_e) define pixels to REMOVE (False in final mask).
         # 2. Inclusive masks (mask_i) define pixels to KEEP.
         #    - If NO inclusive masks are drawn, everything is included by default (mask_i=True).
         #    - If ANY inclusive masks are drawn, only those regions are included.
-        
+
         if not has_inclusive:
             mask_i_final = True
         else:
@@ -264,7 +272,7 @@ class SimpleMask(object):
 
         # Final Mask = (NOT Exclusive) AND (Inclusive)
         mask_p = np.logical_not(mask_e) * mask_i_final
-        
+
         return mask_p
 
     def add_drawing(
@@ -304,15 +312,15 @@ class SimpleMask(object):
         }
         if sl_type == "Ellipse":
             size = (120, 160)
-            new_roi = pg.EllipseROI((cen[0] - size[0]//2, cen[1] - size[1]//2),
-                                    size, **kwargs)
+            new_roi = pg.EllipseROI(
+                (cen[0] - size[0] // 2, cen[1] - size[1] // 2), size, **kwargs
+            )
             # add scale handle
             new_roi.addScaleHandle([0.5, 0], [0.5, 0.5])
             new_roi.addScaleHandle([0.5, 1], [0.5, 0.5])
             new_roi.addScaleHandle([0, 0.5], [0.5, 0.5])
             # it's a rotation handle by default
             # new_roi.addScaleHandle([1, 0.5], [0.5, 0.5])
-            
 
         elif sl_type == "Circle":
             if second_point is not None:
@@ -384,10 +392,12 @@ class SimpleMask(object):
     def compute_partition(self, mode="q-phi", **kwargs):
         if mode == "eq-ephi":
             ellipse_param = find_ellipse_parameters(self.mask)
-            rho, phi = compute_ellipse_gradient(self.qmap["y"], self.qmap["x"], ellipse_param)
+            rho, phi = compute_ellipse_gradient(
+                self.qmap["y"], self.qmap["x"], ellipse_param
+            )
             q_rev = self.qmap["q"].copy()
             phi_rev = self.qmap["phi"].copy()
-            self.qmap["q"] = rho 
+            self.qmap["q"] = rho
             self.qmap["phi"] = phi
             mode = "q-phi"
 
@@ -404,7 +414,7 @@ class SimpleMask(object):
             self.qmap["phi"] = phi_rev
 
         return flag
-    
+
     def compute_partition_general(
         self,
         map_names=("q", "phi"),
