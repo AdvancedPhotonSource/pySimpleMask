@@ -32,7 +32,11 @@ def compute_qmap(stype, metadata):
 
 
 def compute_display_center(
-    center, detector_distance, pixel_size, swing_angle_horizontal=0, swing_angle_vertical=0
+    center,
+    detector_distance,
+    pixel_size,
+    swing_angle_horizontal=0,
+    swing_angle_vertical=0,
 ):
     # center shift follows the same logic as horizontal:
     # swing > 0 (Outboard/Up) -> Beam hits "Lower/Inboard" on detector
@@ -40,10 +44,12 @@ def compute_display_center(
     # So swing > 0 -> center shift positive.
     # We apply same sign for vertical.
     center_v = (
-        center[0] + detector_distance * np.tan(np.deg2rad(swing_angle_vertical)) / pixel_size
+        center[0]
+        + detector_distance * np.tan(np.deg2rad(swing_angle_vertical)) / pixel_size
     )
     center_h = (
-        center[1] + detector_distance * np.tan(np.deg2rad(swing_angle_horizontal)) / pixel_size
+        center[1]
+        + detector_distance * np.tan(np.deg2rad(swing_angle_horizontal)) / pixel_size
     )
     return (float(center_v), float(center_h))
 
@@ -65,8 +71,8 @@ def compute_transmission_qmap(
     swing_angle_vertical_rad = np.deg2rad(swing_angle_vertical)
 
     # before swing angle correction
-    v = np.arange(shape[0], dtype=np.uint32)
-    h = np.arange(shape[1], dtype=np.uint32)
+    v = np.arange(shape[0], dtype=np.int32)
+    h = np.arange(shape[1], dtype=np.int32)
     vg_pxl, hg_pxl = np.meshgrid(v, h, indexing="ij")
     vg = (vg_pxl - center[0]) * pixel_size  # vertical grid
     hg = (hg_pxl - center[1]) * pixel_size  # horizontal grid
@@ -75,15 +81,11 @@ def compute_transmission_qmap(
     # Rotation Matrices
     # Vertical Swing (around X): Z (beam) -> +Y (Up) for positive angle
     # (0, 0, 1) -> (0, sin, cos)
-    
+
     cv = np.cos(swing_angle_vertical_rad)
     sv = np.sin(swing_angle_vertical_rad)
 
-    Rx = np.array([
-        [1, 0, 0],
-        [0, cv, -sv],
-        [0, sv, cv]
-    ])
+    Rx = np.array([[1, 0, 0], [0, cv, -sv], [0, sv, cv]])
 
     ch = np.cos(swing_angle_horizontal_rad)
     sh = np.sin(swing_angle_horizontal_rad)
@@ -91,11 +93,7 @@ def compute_transmission_qmap(
     # This maps (0,0,1) -> (-s, 0, c).
     # If swing > 0 is Outboard (+X?), then -s should be +X? No.
     # Assumed previous logic was correct.
-    Ry = np.array([
-        [ch, 0, -sh],
-        [0, 1, 0],
-        [sh, 0, ch]
-    ])
+    Ry = np.array([[ch, 0, -sh], [0, 1, 0], [sh, 0, ch]])
 
     # Combined Rotation: Horizontal First (parent), then Vertical (child)
     # But usually "first horizontal" means horizontal motor is at base.
@@ -113,8 +111,7 @@ def compute_transmission_qmap(
     vg_rot = coor_mat[..., 1]
     lg_rot = coor_mat[..., 2]
 
-    direct_beam = np.array([0, 0, detector_distance])  # incoming direct beam vector
-    
+    # direct_beam = np.array([0, 0, detector_distance])  # incoming direct beam vector
     # Calculate alpha (scattering angle 2theta)
     # cos(alpha) = (v . beam) / (|v| |beam|)
     # |beam| = D. beam = (0,0,D).
@@ -131,12 +128,16 @@ def compute_transmission_qmap(
     qr = np.sin(alpha) * k0
     qx = qr * np.cos(phi)
     qy = qr * np.sin(phi)
+    # qz = k0 * (np.cos(alpha) - 1.0)
+    q = 2.0 * k0 * np.sin(alpha / 2.0)
 
     # keep phi and q as np.float64 to keep the precision.
     qmap = {
         "phi": np.rad2deg(phi),
         "TTH": np.rad2deg(alpha),
-        "q": qr,
+        "q": q,
+        # "qr": qr.astype(np.float32),
+        # "qz": qz.astype(np.float32),
         "qx": qx.astype(np.float32),
         "qy": qy.astype(np.float32),
         "x": hg_pxl,
@@ -147,6 +148,8 @@ def compute_transmission_qmap(
         "phi": "deg",
         "TTH": "deg",
         "q": "Å⁻¹",
+        # "qr": "Å⁻¹",
+        #  "qz": "Å⁻¹",
         "qx": "Å⁻¹",
         "qy": "Å⁻¹",
         "x": "pixel",
@@ -167,8 +170,8 @@ def compute_reflection_qmap(
 ):
     k0 = 2 * np.pi / (E2KCONST / energy)
 
-    v = np.arange(shape[0], dtype=np.uint32) - center[0]
-    h = np.arange(shape[1], dtype=np.uint32) - center[1]
+    v = np.arange(shape[0], dtype=np.int32) - center[0]
+    h = np.arange(shape[1], dtype=np.int32) - center[1]
     vg, hg = np.meshgrid(v, h, indexing="ij")
     vg *= -1
 
