@@ -414,3 +414,8 @@ def combine_qmap_files(qmap_file1, qmap_file2, output_file):
                 fo[f"/qmap/{prefix}_index_mapping"] = unique_idx[unique_idx > 0] - 1
 
     logger.info("Done. Output written to: %s", output_file)
+
+
+def least_multiple(a: int, b: int) -> int:
+    """Smallest multiple of ``a`` that is >= ``b`` (aligns static bins to dynamic)."""
+    return ((b + a - 1) // a) * a
