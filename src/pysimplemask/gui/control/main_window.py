@@ -291,12 +291,12 @@ class SimpleMaskGUI(QMainWindow, Ui):
             "then flags pixels more than cutoff × std from the clipped mean."
         ),
         ("AdjacentPixels", "median_absolute_deviation"): (
-            "Divides the image into fixed-size square boxes. "
+            "Divides the image into fixed-size square boxes (brightest first). "
             "Within each box, flags pixels whose intensity deviates from the "
             "median by more than cutoff × MAD."
         ),
         ("AdjacentPixels", "percentile"): (
-            "Divides the image into fixed-size square boxes. "
+            "Divides the image into fixed-size square boxes (brightest first). "
             "Within each box, clips extremes to the 5–95th percentile range, "
             "then flags pixels more than cutoff × std from the clipped mean."
         ),

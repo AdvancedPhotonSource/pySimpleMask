@@ -56,8 +56,8 @@ def test_boxes_sorted_by_mean():
     saxs1d, _ = outlier_removal_adjacent_boxes(img, mask, box_size=16)
     # row 0: integer rank (0,1,2,…) — strictly increasing by construction
     assert np.all(np.diff(saxs1d[0]) > 0)
-    # row 4: raw_avg must be non-decreasing (boxes are sorted by mean intensity)
-    assert np.all(np.diff(saxs1d[4]) >= 0)
+    # row 4: raw_avg must be non-increasing (brightest box first)
+    assert np.all(np.diff(saxs1d[4]) <= 0)
 
 
 def test_mad_method_works():

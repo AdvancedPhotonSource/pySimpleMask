@@ -281,8 +281,8 @@ def outlier_removal_adjacent_boxes(
     if not records:
         return np.zeros((5, 0)), np.zeros((2, 0), dtype=int)
 
-    # Sort boxes by raw mean intensity (ascending) so x-axis is meaningful
-    records.sort(key=lambda r: r[0])
+    # Sort boxes by raw mean intensity (descending: brightest first).
+    records.sort(key=lambda r: r[0], reverse=True)
 
     k = len(records)
     saxs1d = np.zeros((5, k), dtype=np.float64)
