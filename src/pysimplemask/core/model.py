@@ -12,7 +12,7 @@ from .ellipse_util import compute_ellipse_gradient, find_ellipse_parameters
 from .file_handler import get_handler
 from .find_center import find_center
 from .mask import MaskAssemble
-from .outlier_removal import outlier_removal_with_saxs
+from .outlier_removal import outlier_removal_adjacent_boxes, outlier_removal_with_saxs
 from .partition import (
     check_consistency,
     combine_partitions,
@@ -202,6 +202,22 @@ class SimpleMaskModel(object):
         t1 = time.perf_counter()
         logger.info(
             "outlier removal with azimuthal average finished in %f seconds", t1 - t0
+        )
+        return saxs1d, zero_loc
+
+    def compute_adjacent_saxs1d(self, method="percentile", cutoff=3.0, box_size=32):
+        """Outlier removal by adjacent square boxes instead of q-rings."""
+        t0 = time.perf_counter()
+        saxs1d, zero_loc = outlier_removal_adjacent_boxes(
+            self.dset.scat,
+            self.mask,
+            box_size=box_size,
+            method=method,
+            cutoff=cutoff,
+        )
+        logger.info(
+            "adjacent-box outlier removal finished in %f seconds",
+            time.perf_counter() - t0,
         )
         return saxs1d, zero_loc
 
