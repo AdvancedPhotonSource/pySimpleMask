@@ -58,9 +58,11 @@ def test_x_axis_is_sorted_box_index():
 
 
 def test_mad_method_works():
-    img = _uniform_image((64, 64), value=20.0)
+    # Use a box with real spread so MAD is non-zero and can flag the hot pixel.
+    rng = np.random.default_rng(7)
+    img = rng.uniform(10, 30, size=(64, 64)).astype(np.float32)
     mask = np.ones(img.shape, dtype=bool)
-    img[10, 10] = 9999.0
+    img[10, 10] = 9999.0  # hot pixel in top-left box
     _, bad = outlier_removal_adjacent_boxes(
         img, mask, box_size=16, method="mad", cutoff=3.0
     )

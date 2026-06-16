@@ -257,13 +257,6 @@ def outlier_removal_adjacent_boxes(
                 )
             elif method.lower() == "mad":
                 ref, thr, om = compute_outlier_mad(values, cutoff=cutoff, eps=eps)
-                # When MAD is zero (near-constant box) but extreme values exist,
-                # fall back to absolute-deviation from the median using the
-                # value range as a scale, so hot pixels are still flagged.
-                if thr <= ref + eps and values.max() > ref + eps:
-                    scale = values.max() - values.min()
-                    if scale > eps:
-                        om = np.abs(values - ref) >= cutoff * (scale / values.size)
             else:
                 raise ValueError(
                     f"Unknown method '{method}'. Use 'percentile' or 'mad'."
