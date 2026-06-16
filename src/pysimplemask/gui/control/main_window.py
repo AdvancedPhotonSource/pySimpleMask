@@ -169,6 +169,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.comboBox_outlier_target.currentIndexChanged.connect(
             self._on_outlier_target_changed
         )
+        self.comboBox_outlier_method.currentIndexChanged.connect(
+            self._update_outlier_info
+        )
         self._on_outlier_target_changed()  # sync label/default for the initial selection
         self.mp1.scene.sigMouseClicked.connect(self.mouse_clicked)
 
@@ -276,6 +279,29 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.btn_find_center.setText("Find Center")
             self.btn_find_center.setEnabled(True)
 
+    _OUTLIER_INFO = {
+        ("CircularRings", "median_absolute_deviation"): (
+            "Divides the image into concentric q-rings. "
+            "Within each ring, flags pixels whose intensity deviates from the "
+            "median by more than cutoff × MAD."
+        ),
+        ("CircularRings", "percentile"): (
+            "Divides the image into concentric q-rings. "
+            "Within each ring, clips extremes to the 5–95th percentile range, "
+            "then flags pixels more than cutoff × std from the clipped mean."
+        ),
+        ("AdjacentPixels", "median_absolute_deviation"): (
+            "Divides the image into fixed-size square boxes. "
+            "Within each box, flags pixels whose intensity deviates from the "
+            "median by more than cutoff × MAD."
+        ),
+        ("AdjacentPixels", "percentile"): (
+            "Divides the image into fixed-size square boxes. "
+            "Within each box, clips extremes to the 5–95th percentile range, "
+            "then flags pixels more than cutoff × std from the clipped mean."
+        ),
+    }
+
     def _on_outlier_target_changed(self):
         target = self.comboBox_outlier_target.currentText()
         if target == "CircularRings":
@@ -284,6 +310,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
         elif target == "AdjacentPixels":
             self.label_outlier_target_info.setText("adjacent box size (pixel):")
             self.outlier_num_roi.setValue(32)
+        self._update_outlier_info()
+
+    def _update_outlier_info(self):
+        target = self.comboBox_outlier_target.currentText()
+        method = self.comboBox_outlier_method.currentText()
+        text = self._OUTLIER_INFO.get((target, method), "")
+        self.label_outlier_info.setText(text)
 
     def mask_evaluate(self, target=None):
         if target is None or not self.is_ready():
