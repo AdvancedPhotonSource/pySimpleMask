@@ -231,8 +231,12 @@ def outlier_removal_adjacent_boxes(
     n_col = W // box_size
     n_boxes = n_row * n_col
 
-    if n_boxes == 0:
+    if n_row == 0 or n_col == 0:
         return np.zeros((5, 0)), np.zeros((2, 0), dtype=int)
+
+    method_lc = method.lower()
+    if method_lc not in ("percentile", "mad"):
+        raise ValueError(f"Unknown method '{method}'. Use 'percentile' or 'mad'.")
 
     records = []   # (raw_avg, ref, thr, max_val, bad_coords)
 
@@ -251,16 +255,12 @@ def outlier_removal_adjacent_boxes(
             values = box_data[rows_v, cols_v]
             raw_avg = float(values.mean())
 
-            if method.lower() == "percentile":
+            if method_lc == "percentile":
                 ref, thr, om = compute_outlier_percentile(
                     values, cutoff=cutoff, percentiles=percentile, eps=eps
                 )
-            elif method.lower() == "mad":
+            else:  # "mad"
                 ref, thr, om = compute_outlier_mad(values, cutoff=cutoff, eps=eps)
-            else:
-                raise ValueError(
-                    f"Unknown method '{method}'. Use 'percentile' or 'mad'."
-                )
 
             if ref <= 0:
                 continue
