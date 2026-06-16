@@ -166,6 +166,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
 
         self.mask_outlier_hdl.setBackground((255, 255, 255))
+        self.comboBox_outlier_target.currentIndexChanged.connect(
+            self._on_outlier_target_changed
+        )
         self.mp1.scene.sigMouseClicked.connect(self.mouse_clicked)
 
         # xmap constraint
@@ -272,6 +275,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.btn_find_center.setText("Find Center")
             self.btn_find_center.setEnabled(True)
 
+    def _on_outlier_target_changed(self):
+        target = self.comboBox_outlier_target.currentText()
+        if target == "CircularRings":
+            self.label_outlier_target_info.setText("num. circular ROI:")
+            self.outlier_num_roi.setValue(180)
+        elif target == "AdjacentPixels":
+            self.label_outlier_target_info.setText("adjacent box size (pixel):")
+            self.outlier_num_roi.setValue(32)
+
     def mask_evaluate(self, target=None):
         if target is None or not self.is_ready():
             return
@@ -315,9 +327,19 @@ class SimpleMaskGUI(QMainWindow, Ui):
             method = {"percentile": "percentile", "median_absolute_deviation": "mad"}[
                 method
             ]
-            saxs1d, zero_loc = self.sm.compute_saxs1d(
-                num=num, cutoff=cutoff, method=method
-            )
+            outlier_target = self.comboBox_outlier_target.currentText()
+
+            if outlier_target == "CircularRings":
+                saxs1d, zero_loc = self.sm.compute_saxs1d(
+                    num=num, cutoff=cutoff, method=method
+                )
+                x_label = "q (Å⁻¹)"
+            else:  # AdjacentPixels
+                saxs1d, zero_loc = self.sm.compute_adjacent_saxs1d(
+                    box_size=num, cutoff=cutoff, method=method
+                )
+                x_label = "box index (sorted by mean)"
+
             self.mask_outlier_hdl.clear()
             p = self.mask_outlier_hdl
             p.addLegend()
@@ -338,7 +360,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 name="maximum value",
                 pen=pg.mkPen(color="r", width=2),
             )
-            p.setLabel("bottom", "q (Å⁻¹)")
+            p.setLabel("bottom", x_label)
             p.setLabel("left", "Intensity (a.u.)")
             p.setLogMode(y=True)
             kwargs = {"zero_loc": zero_loc}
