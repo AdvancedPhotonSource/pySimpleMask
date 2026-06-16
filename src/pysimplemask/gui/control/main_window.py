@@ -316,7 +316,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         target = self.comboBox_outlier_target.currentText()
         method = self.comboBox_outlier_method.currentText()
         text = self._OUTLIER_INFO.get((target, method), "")
-        self.label_outlier_info.setText(text)
+        self.statusbar.showMessage(text)
 
     def mask_evaluate(self, target=None):
         if target is None or not self.is_ready():
