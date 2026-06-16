@@ -2592,7 +2592,7 @@
   <customwidget>
    <class>ImageViewROI</class>
    <extends>QWidget</extends>
-   <header>.pyqtgraph_mod</header>
+   <header>.widgets</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

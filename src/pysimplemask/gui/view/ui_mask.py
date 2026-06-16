@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'mask.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.8.3
+## Created by: Qt User Interface Compiler version 6.11.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBo
     QSpinBox, QSplitter, QStatusBar, QTabWidget,
     QTableView, QToolButton, QVBoxLayout, QWidget)
 
-from .pyqtgraph_mod import ImageViewROI
+from .widgets import ImageViewROI
 from pyqtgraph import PlotWidget
 from pyqtgraph.parametertree import ParameterTree
 
