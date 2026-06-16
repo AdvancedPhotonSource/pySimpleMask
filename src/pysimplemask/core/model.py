@@ -58,12 +58,14 @@ class SimpleMaskModel(object):
         if self.dset is None:
             return None
         center_guess = self.get_center(mode="vh")
+        t0 = time.perf_counter()
         center = find_center(
             self.dset.scat,
             mask=self.mask,
             center_guess=center_guess,
             scale="log",
         )
+        logger.info("find center finished in %.3f seconds", time.perf_counter() - t0)
         return center
 
     def mask_evaluate(self, target, **kwargs):
