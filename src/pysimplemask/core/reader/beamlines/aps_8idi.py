@@ -53,16 +53,24 @@ def get_nexus_metadata(fname):
             meta[key] = 0.0
 
     # Beam center = recorded center + detector translation in pixels.
-    meta["beam_center_x"] = meta["bcx0"] + (meta["ccdx"] - meta["ccdx0"]) / meta[
-        "x_pixel_size"
-    ]
-    meta["beam_center_y"] = meta["bcy0"] + (meta["ccdy"] - meta["ccdy0"]) / meta[
-        "y_pixel_size"
-    ]
+    meta["beam_center_x"] = (
+        meta["bcx0"] + (meta["ccdx"] - meta["ccdx0"]) / meta["x_pixel_size"]
+    )
+    meta["beam_center_y"] = (
+        meta["bcy0"] + (meta["ccdy"] - meta["ccdy0"]) / meta["y_pixel_size"]
+    )
     meta["pixel_size"] = meta["x_pixel_size"]
 
-    for key in ("bcx0", "bcy0", "ccdx", "ccdy", "ccdx0", "ccdy0",
-                "x_pixel_size", "y_pixel_size"):
+    for key in (
+        "bcx0",
+        "bcy0",
+        "ccdx",
+        "ccdy",
+        "ccdx0",
+        "ccdy0",
+        "x_pixel_size",
+        "y_pixel_size",
+    ):
         meta.pop(key, None)
 
     return meta
@@ -73,8 +81,9 @@ def get_metadata(fname):
     try:
         return get_nexus_metadata(fname)
     except Exception:
-        logger.info("Failed to read metadata from %s; using defaults.", fname,
-                    exc_info=True)
+        logger.info(
+            "Failed to read metadata from %s; using defaults.", fname, exc_info=True
+        )
         meta = DEFAULT_METADATA.copy()
         meta["meta_fname"] = "default_metadata"
         return meta

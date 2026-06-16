@@ -55,8 +55,12 @@ def get_nexus_metadata(fname):
     meta, _meta_fname = read_nexus_metadata(fname, METADATA_KEYMAPS)
 
     pixel_size = meta["pixel_size"]
-    beam_center_x = meta["_bcx"] + (meta["detector_x"] - meta["_bc_det_x0"]) / pixel_size
-    beam_center_y = meta["_bcy"] + (meta["detector_y"] - meta["_bc_det_y0"]) / pixel_size
+    beam_center_x = (
+        meta["_bcx"] + (meta["detector_x"] - meta["_bc_det_x0"]) / pixel_size
+    )
+    beam_center_y = (
+        meta["_bcy"] + (meta["detector_y"] - meta["_bc_det_y0"]) / pixel_size
+    )
     specular_x = meta["_spx"] + (meta["detector_x"] - meta["_sp_det_x0"]) / pixel_size
     specular_y = meta["_spy"] + (meta["detector_y"] - meta["_sp_det_y0"]) / pixel_size
 
@@ -75,8 +79,9 @@ def get_metadata(fname):
     try:
         return get_nexus_metadata(fname)
     except Exception:
-        logger.info("Failed to read metadata from %s; using defaults.", fname,
-                    exc_info=True)
+        logger.info(
+            "Failed to read metadata from %s; using defaults.", fname, exc_info=True
+        )
         meta = DEFAULT_METADATA.copy()
         meta["meta_fname"] = "default_metadata"
         return meta

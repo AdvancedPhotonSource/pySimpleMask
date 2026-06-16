@@ -2,10 +2,10 @@ import hashlib
 import json
 import logging
 import shutil
+from typing import Dict, Union
 
 import h5py
 import numpy as np
-from typing import Dict, Union
 
 logger = logging.getLogger(__name__)
 
@@ -133,7 +133,9 @@ def generate_partition(
     # np.digitize is very sensitive to floating point precision, so we round the values
     # to 12 decimal places to avoid issues with values that are very close to the bin edges.
     # e.g. xmap = 0.0015398376679056104, v_span 0.0015398376679056109 yield 0
-    partition = np.digitize(np.round(xmap, 12), np.round(v_span, 12)).astype(np.uint32) * mask
+    partition = (
+        np.digitize(np.round(xmap, 12), np.round(v_span, 12)).astype(np.uint32) * mask
+    )
     partition[partition > num_pts] = 0
     # Ensure the maximum value (excluding unmasked) is assigned to the last bin
     partition[(xmap == v_max) * mask] = num_pts
@@ -275,12 +277,12 @@ def check_consistency(dqmap: np.ndarray, sqmap: np.ndarray, mask: np.ndarray) ->
     if dqmap.shape != mask.shape:
         raise ValueError("dqmap and mask must have the same shape")
 
-    assert np.all(
-        (mask > 0) == (dqmap > 0)
-    ), "mask and dqmap must have the same valid pixels"
-    assert np.all(
-        (mask > 0) == (sqmap > 0)
-    ), "mask and sqmap must have the same valid pixels"
+    assert np.all((mask > 0) == (dqmap > 0)), (
+        "mask and dqmap must have the same valid pixels"
+    )
+    assert np.all((mask > 0) == (sqmap > 0)), (
+        "mask and sqmap must have the same valid pixels"
+    )
 
     # Flatten arrays for efficient processing
     sq_flat = sqmap.ravel()
@@ -336,7 +338,9 @@ def combine_qmap_files(qmap_file1, qmap_file2, output_file):
             combined_mask = np.logical_or(mask1, mask2)
             logger.info(
                 "Mask: file1 valid=%d  file2 valid=%d  combined valid=%d",
-                mask1.sum(), mask2.sum(), combined_mask.sum(),
+                mask1.sum(),
+                mask2.sum(),
+                combined_mask.sum(),
             )
             del fo["/qmap/mask"]
             fo["/qmap/mask"] = combined_mask
@@ -348,14 +352,18 @@ def combine_qmap_files(qmap_file1, qmap_file2, output_file):
                 f2_num_pts = f2[f"/qmap/{prefix}_num_pts"][()]
                 logger.debug(
                     "  num_pts: file1=%s  file2=%s",
-                    f1_num_pts.tolist(), f2_num_pts.tolist(),
+                    f1_num_pts.tolist(),
+                    f2_num_pts.tolist(),
                 )
 
                 dim0_num_pts = f1_num_pts[0] + f2_num_pts[0]
                 dim1_num_pts = max(f1_num_pts[1], f2_num_pts[1])
                 logger.info(
                     "  Combined num_pts: dim0=%d (file1 %d + file2 %d)  dim1=%d",
-                    dim0_num_pts, f1_num_pts[0], f2_num_pts[0], dim1_num_pts,
+                    dim0_num_pts,
+                    f1_num_pts[0],
+                    f2_num_pts[0],
+                    dim1_num_pts,
                 )
                 del fo[f"/qmap/{prefix}_num_pts"]
                 fo[f"/qmap/{prefix}_num_pts"] = np.array([dim0_num_pts, dim1_num_pts])
@@ -369,7 +377,9 @@ def combine_qmap_files(qmap_file1, qmap_file2, output_file):
                 )
                 logger.debug(
                     "  v_list_dim0: range [%.6g, %.6g], %d entries",
-                    v_list_dim0.min(), v_list_dim0.max(), len(v_list_dim0),
+                    v_list_dim0.min(),
+                    v_list_dim0.max(),
+                    len(v_list_dim0),
                 )
                 del fo[f"/qmap/{prefix}_v_list_dim0"]
                 fo[f"/qmap/{prefix}_v_list_dim0"] = v_list_dim0
@@ -378,10 +388,13 @@ def combine_qmap_files(qmap_file1, qmap_file2, output_file):
                 if f1_num_pts[1] < f2_num_pts[1]:
                     logger.debug(
                         "  v_list_dim1: using file2's list (%d > %d entries)",
-                        f2_num_pts[1], f1_num_pts[1],
+                        f2_num_pts[1],
+                        f1_num_pts[1],
                     )
                     del fo[f"/qmap/{prefix}_v_list_dim1"]
-                    fo[f"/qmap/{prefix}_v_list_dim1"] = f2[f"/qmap/{prefix}_v_list_dim1"][()]
+                    fo[f"/qmap/{prefix}_v_list_dim1"] = f2[
+                        f"/qmap/{prefix}_v_list_dim1"
+                    ][()]
 
                 # Merge roi maps: offset file2's non-zero indices so they don't
                 # collide with file1's, then add the two maps together.
@@ -389,7 +402,8 @@ def combine_qmap_files(qmap_file1, qmap_file2, output_file):
                 roi_map2 = f2[f"/qmap/{prefix}_roi_map"][()].copy()
                 logger.debug(
                     "  roi_map: file1 max=%d  file2 max=%d",
-                    roi_map1.max(), roi_map2.max(),
+                    roi_map1.max(),
+                    roi_map2.max(),
                 )
                 roi_map2[roi_map2 > 0] += np.max(roi_map1[roi_map1 > 0])
                 roi_map = roi_map1 + roi_map2
@@ -398,7 +412,9 @@ def combine_qmap_files(qmap_file1, qmap_file2, output_file):
 
                 # Re-index to natural order (0 = masked, 1-based = valid)
                 unique_idx, inverse = np.unique(roi_map, return_inverse=True)
-                partition_natural_order = inverse.reshape(roi_map.shape).astype(np.uint32)
+                partition_natural_order = inverse.reshape(roi_map.shape).astype(
+                    np.uint32
+                )
 
                 # If no masked pixels exist, shift up so index 0 stays reserved
                 if start_index > 0:

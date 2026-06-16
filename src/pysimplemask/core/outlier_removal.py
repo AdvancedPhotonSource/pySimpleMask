@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def compute_outlier_percentile(values, cutoff, percentiles, eps=1e-16):
     """
     For a given 1D array 'values', clip extremes based on the given 'percentiles',
@@ -11,7 +12,7 @@ def compute_outlier_percentile(values, cutoff, percentiles, eps=1e-16):
     where outlier_mask is a boolean array of the same shape as 'values'.
     """
     p_lo, p_hi = np.percentile(values, percentiles)
-    
+
     # Guard against degenerate p_lo == p_hi
     if p_lo >= p_hi:
         p_lo, p_hi = values.min() - eps, values.max() + eps
@@ -73,7 +74,7 @@ def outlier_removal_with_saxs(
     method="percentile",
     cutoff=3.0,
     percentile=(5, 95),
-    eps=1e-16
+    eps=1e-16,
 ):
     """
     Unified outlier removal for SAXS data using either a percentile-based method
@@ -137,7 +138,7 @@ def outlier_removal_with_saxs(
 
     for n in range(qlist.size):
         region_label = n + 1
-        roi_mask = (partition == region_label)
+        roi_mask = partition == region_label
         if not np.any(roi_mask):
             # No pixels for this label => skip
             continue
@@ -158,9 +159,9 @@ def outlier_removal_with_saxs(
             raise ValueError(f"Unknown method '{method}'. Use 'percentile' or 'mad'.")
 
         # 3) Record region stats
-        saxs1d[0, n] = qlist[n]      # q
-        saxs1d[1, n] = ref_val       # reference (mean_clipped or median)
-        saxs1d[2, n] = thr_val       # threshold
+        saxs1d[0, n] = qlist[n]  # q
+        saxs1d[1, n] = ref_val  # reference (mean_clipped or median)
+        saxs1d[2, n] = thr_val  # threshold
         saxs1d[3, n] = values.max()  # max value
         saxs1d[4, n] = scat_avg_raw[n]  # raw average (from bincount)
 

@@ -1,8 +1,8 @@
 import logging
+import math
 from functools import lru_cache
 
 import numpy as np
-import math
 
 logger = logging.getLogger(__name__)
 E2KCONST = 12.39841984

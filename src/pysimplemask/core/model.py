@@ -8,9 +8,10 @@ import tifffile
 
 from pysimplemask import __version__
 
-from .mask import MaskAssemble
+from .ellipse_util import compute_ellipse_gradient, find_ellipse_parameters
 from .file_handler import get_handler
 from .find_center import find_center
+from .mask import MaskAssemble
 from .outlier_removal import outlier_removal_with_saxs
 from .partition import (
     check_consistency,
@@ -19,7 +20,6 @@ from .partition import (
     hash_numpy_dict,
     optimize_integer_array,
 )
-from .ellipse_util import compute_ellipse_gradient, find_ellipse_parameters
 from .rasterize import (
     RoiPolygon,
     circle_vertices,
@@ -98,7 +98,9 @@ class SimpleMaskModel(object):
         self.draw_rois.append(RoiPolygon(circle_vertices(center, radius), mode))
 
     def add_ellipse(self, center, axes, angle_deg=0.0, mode="exclusive"):
-        self.draw_rois.append(RoiPolygon(ellipse_vertices(center, axes, angle_deg), mode))
+        self.draw_rois.append(
+            RoiPolygon(ellipse_vertices(center, axes, angle_deg), mode)
+        )
 
     def add_rectangle(self, center, size, angle_deg=0.0, mode="exclusive"):
         self.draw_rois.append(
@@ -137,7 +139,7 @@ class SimpleMaskModel(object):
             self.new_partition[key] = optimize_integer_array(val)
 
         hash_val = hash_numpy_dict(self.new_partition)
-        logger.info("Hash value of the partition: {}".format(hash_val))
+        logger.info("Hash value of the partition: %s", hash_val)
 
         def optimize_save(group_handle, key, val):
             if isinstance(val, np.ndarray) and val.size > 1024:
@@ -166,13 +168,13 @@ class SimpleMaskModel(object):
     def read_data(self, fname=None, beamline="APS_8IDI", **kwargs):
         self.dset = get_handler(beamline, fname)
         if self.dset is None:
-            logger.error(f"failed to create a dataset handler for {fname}")
+            logger.error("failed to create a dataset handler for %s", fname)
             return False
 
         t0 = time.perf_counter()
         self.dset.prepare_data(**kwargs)
         t1 = time.perf_counter()
-        logger.info(f"data loaded in {t1 - t0: .1f} seconds")
+        logger.info("data loaded in %.1f seconds", t1 - t0)
 
         self.shape = self.dset.shape
         self.mask = np.ones(self.shape, dtype=bool)
@@ -194,7 +196,7 @@ class SimpleMaskModel(object):
         )
         t1 = time.perf_counter()
         logger.info(
-            "outlier removal with azimuthal average finished in %f seconds" % (t1 - t0)
+            "outlier removal with azimuthal average finished in %f seconds", t1 - t0
         )
         return saxs1d, zero_loc
 
@@ -211,11 +213,11 @@ class SimpleMaskModel(object):
             mode = "q-phi"
 
         map_names = mode.split("-")
-        logger.info(f"compute partition with mode {mode}: map_names {map_names}")
+        logger.info("compute partition with mode %s: map_names %s", mode, map_names)
         t0 = time.perf_counter()
         flag = self.compute_partition_general(map_names=map_names, **kwargs)
         t1 = time.perf_counter()
-        logger.info("compute partition finished in %f seconds" % (t1 - t0))
+        logger.info("compute partition finished in %f seconds", t1 - t0)
 
         if mode == "eq-ephi":
             # copy back
@@ -276,7 +278,7 @@ class SimpleMaskModel(object):
         flag_consistency = check_consistency(
             dynamic_map["dynamic_roi_map"], static_map["static_roi_map"], self.mask
         )
-        logger.info("dqmap/sqmap consistency check: {}".format(flag_consistency))
+        logger.info("dqmap/sqmap consistency check: %s", flag_consistency)
 
         center = self.get_center("xy")
         partition = {

@@ -1,5 +1,6 @@
 import numpy as np
-import skimage.io as skio
+
+# import skimage.io as skio  # unused: only the commented-out __main__ below
 from skimage.registration import phase_cross_correlation
 
 
@@ -191,6 +192,7 @@ def find_center(img, mask=None, scale="log", iter_center=2, center_guess=None):
     return center
 
 
-if __name__ == "__main__":
-    img = skio.imread("../tests/data/saxs_test.tif")
-    print(find_center(img))
+# unused (debug entry point):
+# if __name__ == "__main__":
+#     img = skio.imread("../tests/data/saxs_test.tif")
+#     print(find_center(img))

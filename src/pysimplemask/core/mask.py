@@ -1,31 +1,32 @@
+# import matplotlib.pyplot as plt  # unused: only the commented-out show_mask helpers
+import logging
 import os
+
 import h5py
 import hdf5plugin  # noqa: F401  # registers HDF5 compression plugins (bitshuffle/lz4)
 import numpy as np
 import skimage.io as skio
-import matplotlib.pyplot as plt
-import logging
-
 
 logger = logging.getLogger(__name__)
 
 
-def create_qring(qmin, qmax, pmin, pmax, qnum=1, flag_const_width=True):
-    qrings = []
-    if qmin > qmax:
-        qmin, qmax = qmax, qmin
-    qcen = (qmin + qmax) / 2.0
-    qhalf = (qmax - qmin) / 2.0
-
-    for n in range(1, qnum + 1):
-        if flag_const_width:
-            low = qcen * n - qhalf
-            high = qcen * n + qhalf
-        else:
-            low = (qcen - qhalf) * n
-            high = (qcen + qhalf) * n
-        qrings.append((low, high, pmin, pmax))
-    return qrings
+# unused (no references):
+# def create_qring(qmin, qmax, pmin, pmax, qnum=1, flag_const_width=True):
+#     qrings = []
+#     if qmin > qmax:
+#         qmin, qmax = qmax, qmin
+#     qcen = (qmin + qmax) / 2.0
+#     qhalf = (qmax - qmin) / 2.0
+#
+#     for n in range(1, qnum + 1):
+#         if flag_const_width:
+#             low = qcen * n - qhalf
+#             high = qcen * n + qhalf
+#         else:
+#             low = (qcen - qhalf) * n
+#             high = (qcen + qhalf) * n
+#         qrings.append((low, high, pmin, pmax))
+#     return qrings
 
 
 class MaskBase:
@@ -58,9 +59,10 @@ class MaskBase:
                 mask[tuple(self.zero_loc)] = 0
         return mask
 
-    def show_mask(self):
-        plt.imshow(self.get_mask(), vmin=0, vmax=1, cmap=plt.cm.jet)
-        plt.show()
+    # unused (debug helper):
+    # def show_mask(self):
+    #     plt.imshow(self.get_mask(), vmin=0, vmax=1, cmap=plt.cm.jet)
+    #     plt.show()
 
 
 class MaskList(MaskBase):
@@ -69,10 +71,11 @@ class MaskList(MaskBase):
         self.mtype = "list"
         self.xylist = None
 
-    def append_zero_pt(self, row, col):
-        self.zero_loc = np.append(
-            self.zero_loc, np.array([row, col]).reshape(2, 1), axis=1
-        )
+    # unused (no references):
+    # def append_zero_pt(self, row, col):
+    #     self.zero_loc = np.append(
+    #         self.zero_loc, np.array([row, col]).reshape(2, 1), axis=1
+    #     )
 
     def evaluate(self, zero_loc=None):
         self.zero_loc = zero_loc
@@ -98,7 +101,7 @@ class MaskFile(MaskBase):
         elif ext in [".tiff", ".tif"]:
             mask = skio.imread(fname).astype(np.int64)
         else:
-            logger.error(f"MaskFile only support tif and hdf file. found {fname}")
+            logger.error("MaskFile only support tif and hdf file. found %s", fname)
 
         if mask is None:
             self.zero_loc = None
@@ -182,8 +185,7 @@ class MaskAssemble:
         self.qmap = qmap
 
         self.blemish = self.get_default_blemish()
-        self.mask_record = [np.ones_like(self.saxs_lin, dtype=bool), 
-                            self.blemish]
+        self.mask_record = [np.ones_like(self.saxs_lin, dtype=bool), self.blemish]
         self.mask_ptr = 1
         # 0: no mask; 1: apply the default mask
         self.mask_ptr_min = 0
@@ -205,7 +207,11 @@ class MaskAssemble:
             (512, 1024): "8idRigaku500k/latest_blemish.tif",
         }
         rel_path = _detector_blemish_files.get(shape, None)
-        fname = os.path.join(os.path.expanduser(default_blemish_path), rel_path) if rel_path else None
+        fname = (
+            os.path.join(os.path.expanduser(default_blemish_path), rel_path)
+            if rel_path
+            else None
+        )
 
         try:
             if not fname or not os.path.isfile(fname):
@@ -215,12 +221,11 @@ class MaskAssemble:
             # self.apply("mask_blemish")
             blemish = skio.imread(fname)
         except Exception as e:
-            logger.warning(f"Failed to load default blemish: {e}")
+            logger.warning("Failed to load default blemish: %s", e)
             logger.info("Use default blemish: np.ones(self.shape, dtype=bool)")
             blemish = np.ones(self.shape, dtype=bool)
 
         return blemish
-         
 
     def apply(self, target=None):
         if target is None:
@@ -268,38 +273,39 @@ class MaskAssemble:
         mask = self.mask_record[self.mask_ptr]
         return mask
 
-    def show_mask(self):
-        plt.imshow(self.get_mask())
-        plt.show()
+    # unused (debug helper):
+    # def show_mask(self):
+    #     plt.imshow(self.get_mask())
+    #     plt.show()
 
 
-def test_01(shape=(64, 64)):
-    a = MaskList(shape)
-    a.evaluate(np.array([[1, 2, 3], [1, 2, 3]], dtype=np.int64))
-    a.append_zero_pt(10, 20)
-    a.show_mask()
-
-
-def test_02(shape=(512, 1024)):
-    a = MaskFile(shape)
-    a.evaluate(fname="test_qmap.h5", key="/data/mask")
-    a.show_mask()
-
-
-def test_03(shape=(512, 1024)):
-    a = MaskArray(shape)
-    mask = np.random.randint(0, 2, size=shape)
-    a.evaluate(mask)
-    a.show_mask()
-
-
-def test_04(shape=(512, 1024)):
-    ma = MaskAssemble(shape)
-    ma.evaluate("blemish_file", fname="test_qmap.h5", key="/data/mask")
-    ma.evaluate("mask_list", zero_loc=np.array([[1, 2, 3], [1, 2, 3]], dtype=np.int64))
-    ma.show_mask()
-
-
-# test_03()
-if __name__ == "__main__":
-    test_01()
+# unused (debug/test helpers):
+# def test_01(shape=(64, 64)):
+#     a = MaskList(shape)
+#     a.evaluate(np.array([[1, 2, 3], [1, 2, 3]], dtype=np.int64))
+#     a.append_zero_pt(10, 20)
+#     a.show_mask()
+#
+#
+# def test_02(shape=(512, 1024)):
+#     a = MaskFile(shape)
+#     a.evaluate(fname="test_qmap.h5", key="/data/mask")
+#     a.show_mask()
+#
+#
+# def test_03(shape=(512, 1024)):
+#     a = MaskArray(shape)
+#     mask = np.random.randint(0, 2, size=shape)
+#     a.evaluate(mask)
+#     a.show_mask()
+#
+#
+# def test_04(shape=(512, 1024)):
+#     ma = MaskAssemble(shape)
+#     ma.evaluate("blemish_file", fname="test_qmap.h5", key="/data/mask")
+#     ma.evaluate("mask_list", zero_loc=np.array([[1, 2, 3], [1, 2, 3]], dtype=np.int64))
+#     ma.show_mask()
+#
+#
+# if __name__ == "__main__":
+#     test_01()
