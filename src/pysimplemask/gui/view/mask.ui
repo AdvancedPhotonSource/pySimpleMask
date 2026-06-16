@@ -289,7 +289,7 @@
             </size>
            </property>
            <property name="currentIndex">
-            <number>5</number>
+            <number>4</number>
            </property>
            <widget class="QWidget" name="tab_6">
             <attribute name="title">
@@ -1401,64 +1401,6 @@
              </item>
              <item row="0" column="0">
               <layout class="QGridLayout" name="gridLayout_13">
-               <item row="0" column="0">
-                <widget class="QLabel" name="label_16">
-                 <property name="text">
-                  <string>num. circular ROI:</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="1">
-                <widget class="QSpinBox" name="outlier_num_roi">
-                 <property name="maximum">
-                  <number>2000</number>
-                 </property>
-                 <property name="value">
-                  <number>400</number>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="2" colspan="2">
-                <widget class="QLabel" name="label_15">
-                 <property name="text">
-                  <string>cutoff (±std):</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="4" colspan="2">
-                <widget class="QDoubleSpinBox" name="outlier_cutoff">
-                 <property name="maximum">
-                  <double>999.000000000000000</double>
-                 </property>
-                 <property name="singleStep">
-                  <double>0.100000000000000</double>
-                 </property>
-                 <property name="value">
-                  <double>10.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="0">
-                <widget class="QLabel" name="label_44">
-                 <property name="text">
-                  <string>method</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="5">
-                <widget class="QPushButton" name="btn_mask_outlier_apply">
-                 <property name="text">
-                  <string>Apply</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="4">
-                <widget class="QPushButton" name="btn_mask_outlier_evaluate">
-                 <property name="text">
-                  <string>Evaluate</string>
-                 </property>
-                </widget>
-               </item>
                <item row="1" column="1" colspan="3">
                 <widget class="QComboBox" name="comboBox_outlier_method">
                  <item>
@@ -1471,6 +1413,110 @@
                    <string>percentile</string>
                   </property>
                  </item>
+                </widget>
+               </item>
+               <item row="1" column="4">
+                <widget class="QLabel" name="label_15">
+                 <property name="text">
+                  <string>cutoff (±std):</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="9" colspan="2">
+                <widget class="QPushButton" name="btn_mask_outlier_apply">
+                 <property name="text">
+                  <string>Apply</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1" colspan="2">
+                <widget class="QComboBox" name="comboBox_outlier_target">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>120</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>CircularRings</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>AdjacentPixels</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_4">
+                 <property name="text">
+                  <string>Target</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_44">
+                 <property name="text">
+                  <string>Method</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="5">
+                <widget class="QDoubleSpinBox" name="outlier_cutoff">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximum">
+                  <double>999.000000000000000</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.100000000000000</double>
+                 </property>
+                 <property name="value">
+                  <double>10.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="6" colspan="3">
+                <widget class="QPushButton" name="btn_mask_outlier_evaluate">
+                 <property name="text">
+                  <string>Evaluate</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="3">
+                <widget class="QLabel" name="label_outlier_target_info">
+                 <property name="text">
+                  <string>num. circular ROI:</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="4">
+                <widget class="QSpinBox" name="outlier_num_roi">
+                 <property name="maximum">
+                  <number>2000</number>
+                 </property>
+                 <property name="value">
+                  <number>400</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="5" colspan="6">
+                <widget class="QLabel" name="label_outlier_info">
+                 <property name="text">
+                  <string/>
+                 </property>
                 </widget>
                </item>
               </layout>
