@@ -30,8 +30,9 @@ class ScatteringDataset(abc.ABC):
         """Return the per-pixel mean scattering image over a frame range.
 
         Args:
-            num_frames: Number of frames to average. ``<= 0`` means all
-                available frames from ``begin_idx``.
+            num_frames: Frames to average, starting at ``begin_idx``. ``> 0`` is
+                that many frames; ``0``/``None`` is all remaining frames; ``< 0``
+                is a representative subset (see ``resolve_frame_range``).
             begin_idx: First frame index to include.
             num_processes: Optional worker count for loaders that parallelize;
                 ignored by loaders that do not.

@@ -5,6 +5,7 @@ import struct
 
 import numpy as np
 
+from ..io_utils import resolve_frame_range
 from .base import ScatteringDataset
 
 logger = logging.getLogger(__name__)
@@ -127,12 +128,8 @@ class ImmDataset(ScatteringDataset):
         return np.array(toc, dtype=np.int64), det_size, is_sparse
 
     def get_scattering(self, num_frames=-1, begin_idx=0, num_processes=None):
-        total = len(self.toc)
-        if num_frames is not None and num_frames > 0:
-            end_idx = min(begin_idx + num_frames, total)
-        else:
-            end_idx = total
-        n_frames = max(1, end_idx - begin_idx)
+        n_frames = resolve_frame_range(len(self.toc), begin_idx, num_frames)
+        end_idx = begin_idx + n_frames
 
         pixel_num = self.det_size[0] * self.det_size[1]
         accum = np.zeros(pixel_num, dtype=np.float64)

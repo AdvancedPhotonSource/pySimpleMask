@@ -90,14 +90,23 @@ def test_average_frames_parallel_large_path(make_hdf):
     assert np.allclose(result, frames.mean(axis=0))
 
 
-def test_average_frames_parallel_2d_returns_array(make_hdf):
-    """A 2-D dataset is returned as-is (cast to float32)."""
+def test_hdf_dataset_2d_returns_image(make_hdf):
+    """A 2-D dataset is returned as-is by HdfDataset (cast to float32)."""
     arr = np.arange(4 * 5).reshape(4, 5)
     path = make_hdf(arr)
-    result = average_frames_parallel(path)
+    ds = HdfDataset(path)
+    assert ds.ndim == 2
+    result = ds.get_scattering()
     assert result.dtype == np.float32
     assert result.shape == (4, 5)
     assert np.allclose(result, arr.astype(np.float32))
+
+
+def test_average_frames_parallel_rejects_2d(make_hdf):
+    """average_frames_parallel is 3-D only; 2-D input raises."""
+    path = make_hdf(np.arange(4 * 5).reshape(4, 5))
+    with pytest.raises(ValueError):
+        average_frames_parallel(path)
 
 
 # ---------------------------------------------------------------------------

@@ -4,6 +4,7 @@ import logging
 
 import h5py
 import hdf5plugin  # noqa: F401  # registers HDF5 compression plugins
+import numpy as np
 
 from ..io_utils import average_frames_parallel
 from .base import ScatteringDataset
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class HdfDataset(ScatteringDataset):
-    """Loader for 3-D (frame, y, x) detector stacks stored in HDF5."""
+    """Loader for 2-D or 3-D (frame, y, x) detector data stored in HDF5."""
 
     def __init__(self, fname, data_path="/entry/data/data", **kwargs):
         super().__init__(fname)
@@ -21,14 +22,19 @@ class HdfDataset(ScatteringDataset):
             if data_path not in f:
                 raise KeyError(f"dataset {data_path!r} not found in {fname}")
             shape = f[data_path].shape
-        if len(shape) == 2:
+        self.ndim = len(shape)
+        if self.ndim == 2:
             self.det_size = tuple(shape)
-        elif len(shape) == 3:
+        elif self.ndim == 3:
             self.det_size = tuple(shape[1:])
         else:
-            raise ValueError(f"unexpected dataset rank {len(shape)} for {data_path!r}")
+            raise ValueError(f"unexpected dataset rank {self.ndim} for {data_path!r}")
 
     def get_scattering(self, num_frames=-1, begin_idx=0, num_processes=None):
+        # A 2-D dataset is already a single image; there is nothing to average.
+        if self.ndim == 2:
+            with h5py.File(self.fname, "r") as f:
+                return f[self.data_path][()].astype(np.float32)
         return average_frames_parallel(
             self.fname,
             dataset_name=self.data_path,

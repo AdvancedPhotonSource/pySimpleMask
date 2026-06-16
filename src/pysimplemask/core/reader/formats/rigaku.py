@@ -7,6 +7,7 @@ import struct
 import numpy as np
 from scipy.sparse import coo_array
 
+from ..io_utils import resolve_frame_range
 from .base import ScatteringDataset
 
 logger = logging.getLogger(__name__)
@@ -81,17 +82,14 @@ class RigakuDataset(ScatteringDataset):
 
     def get_scattering(self, num_frames=-1, begin_idx=0, num_processes=None):
         total_frames = self.num_frames_total
+        n_frames = resolve_frame_range(total_frames, begin_idx, num_frames)
+        end_idx = begin_idx + n_frames
+
         pixel_num = self.det_size[0] * self.det_size[1]
         smat = coo_array(
             (self.count.astype(np.float64), (self.frame, self.index)),
             shape=(total_frames, pixel_num),
         ).tocsr()
-
-        if num_frames > 0:
-            end_idx = min(begin_idx + num_frames, total_frames)
-        else:
-            end_idx = total_frames
-        n_frames = max(1, end_idx - begin_idx)
 
         summed = np.asarray(smat[begin_idx:end_idx].sum(axis=0)).reshape(self.det_size)
         return (summed / n_frames).astype(np.float32)
