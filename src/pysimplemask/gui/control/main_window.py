@@ -169,6 +169,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.comboBox_outlier_target.currentIndexChanged.connect(
             self._on_outlier_target_changed
         )
+        self._on_outlier_target_changed()  # sync label/default for the initial selection
         self.mp1.scene.sigMouseClicked.connect(self.mouse_clicked)
 
         # xmap constraint

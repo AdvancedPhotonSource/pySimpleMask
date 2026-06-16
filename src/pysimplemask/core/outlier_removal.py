@@ -226,6 +226,8 @@ def outlier_removal_adjacent_boxes(
     bad_pixel_all : np.ndarray, shape (2, M)
         Row/col indices of all detected outlier pixels.
     """
+    if box_size < 1:
+        raise ValueError(f"box_size must be >= 1, got {box_size}")
     H, W = saxs_lin.shape
     n_row = H // box_size
     n_col = W // box_size
