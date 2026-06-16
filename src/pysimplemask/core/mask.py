@@ -1,6 +1,6 @@
 import os
 import h5py
-import hdf5plugin
+import hdf5plugin  # noqa: F401  # registers HDF5 compression plugins (bitshuffle/lz4)
 import numpy as np
 import skimage.io as skio
 import matplotlib.pyplot as plt
@@ -216,7 +216,7 @@ class MaskAssemble:
             blemish = skio.imread(fname)
         except Exception as e:
             logger.warning(f"Failed to load default blemish: {e}")
-            logger.info(f"Use default blemish: np.ones(self.shape, dtype=bool)") 
+            logger.info("Use default blemish: np.ones(self.shape, dtype=bool)")
             blemish = np.ones(self.shape, dtype=bool)
 
         return blemish

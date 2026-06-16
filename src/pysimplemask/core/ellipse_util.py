@@ -1,14 +1,14 @@
 import numpy as np
 from skimage.draw import ellipse
 from skimage.measure import label, regionprops
-from matplotlib.patches import Ellipse
 from skimage.measure import moments, moments_central
 
 
 def find_ellipse_parameters(image):
     # Calculate moments for all non-zero pixels combined
     m = moments(image, order=1)
-    if m[0, 0] == 0: return None
+    if m[0, 0] == 0:
+        return None
     
     # Centroid
     x0 = m[0, 1] / m[0, 0] # horizontal, column

@@ -1,6 +1,9 @@
 import pyqtgraph as pg
 import numpy as np
 
+# Images are indexed (row, col); match pyqtgraph's display orientation.
+pg.setConfigOptions(imageAxisOrder="row-major")
+
 
 class ImageViewROI(pg.ImageView):
     def __init__(self, *arg, **kwargs):
@@ -133,12 +136,12 @@ class LineROI(pg.ROI):
         pos1 = pg.Point(pos1)
         pos2 = pg.Point(pos2)
         d = pos2-pos1
-        l = d.length()
+        seg_len = d.length()
         ra = d.angle(pg.Point(1, 0), units="radians")
         c = pg.Point(width/2. * np.sin(ra), -width/2. * np.cos(ra))
         pos1 = pos1 + c
-        
-        pg.ROI.__init__(self, pos1, size=pg.Point(l, width), 
+
+        pg.ROI.__init__(self, pos1, size=pg.Point(seg_len, width),
                         angle=np.rad2deg(ra), **args)
         # self.addScaleRotateHandle([0, 0.5], [1, 0.5])
         self.addScaleRotateHandle([1, 0.5], [0, 0])

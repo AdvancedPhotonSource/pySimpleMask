@@ -3,8 +3,8 @@ import argparse
 import logging
 import sys
 import os
-from pysimplemask import main_gui, __version__
-from pysimplemask.utils import combine_qmap_files
+from pysimplemask import __version__
+from pysimplemask.core.partition import combine_qmap_files
 
 
 def main():
@@ -14,6 +14,9 @@ def main():
     parser.add_argument("--version", action="version",
                         version=f"pySimpleMask {__version__}")
     args = parser.parse_args()
+    # Import the GUI lazily so the (Qt-free) core stays importable without PySide6.
+    from pysimplemask.gui.app import main_gui
+
     sys.exit(main_gui(args.path))
 
 
