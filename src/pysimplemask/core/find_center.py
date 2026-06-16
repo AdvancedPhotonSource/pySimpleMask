@@ -94,13 +94,15 @@ def estimate_center_cross_correlation(img, mask, center, max_radius=None):
         upsample_factor=4,
         overlap_ratio=0.75,
     )
-    # Unmasked mode returns (shift, error, phasediff); masked mode returns shift.
+    # Current skimage returns (shift, error, phasediff) for both masked and
+    # unmasked modes; older versions returned a bare shift array when masked.
     shift = result[0] if isinstance(result, tuple) else result
     return center_int.astype(float) + np.asarray(shift, dtype=float) / 2.0
 
 
 def _fallback_center(img, center_guess):
-    """Best center to return when refinement cannot run."""
+    """Center of last resort when refinement cannot run (flat image, no positive
+    pixels, etc.): ``center_guess`` if given, else the geometric image center."""
     if center_guess is not None:
         return np.asarray(center_guess, dtype=float)
     return np.array([img.shape[0] / 2.0, img.shape[1] / 2.0])
