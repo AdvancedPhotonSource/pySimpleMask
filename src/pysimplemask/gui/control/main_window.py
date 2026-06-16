@@ -10,7 +10,6 @@ import pyqtgraph as pg
 from pyqtgraph.parametertree import Parameter
 from PySide6.QtCore import QByteArray
 from PySide6.QtWidgets import (
-    QApplication,
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
@@ -24,10 +23,15 @@ from PySide6.QtWidgets import (
     QTabWidget,
 )
 
-from . import __version__
-from .simplemask_kernel import SimpleMask
-from .simplemask_ui import Ui_SimpleMask as Ui
-from .table_model import XmapConstraintsTableModel
+from pyqtgraph.Qt import QtCore
+
+from pysimplemask import __version__
+from pysimplemask.core.io import load_pixel_list, text_to_array
+from pysimplemask.core.model import SimpleMaskModel
+from pysimplemask.core.partition import least_multiple
+from pysimplemask.gui.model.roi_extract import extract_roi_geometry
+from pysimplemask.gui.model.table_model import XmapConstraintsTableModel
+from pysimplemask.gui.view.ui_mask import Ui_SimpleMask as Ui
 
 HOME_DIR = Path.home()
 CONFIG_FILE = HOME_DIR / ".pysimplemask" / "config.json"
@@ -49,21 +53,6 @@ def exception_hook(exc_type, exc_value, exc_traceback):
 sys.excepthook = exception_hook
 
 
-def text_to_array(pts, dtype=np.int64):
-    for symbol in "[](),":
-        pts = pts.replace(symbol, " ")
-    pts = pts.split(" ")
-
-    if dtype == np.int64:
-        pts = [int(x) for x in pts if x != ""]
-    elif dtype == np.float64:
-        pts = [float(x) for x in pts if x != ""]
-
-    pts = np.array(pts).astype(dtype)
-
-    return pts
-
-
 PVMAP = {
     "beam_center_x": "db_cenx",
     "beam_center_y": "db_ceny",
@@ -83,7 +72,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # Set application icon
         try:
             from PySide6.QtGui import QIcon
-            icon_path = os.path.join(os.path.dirname(__file__), "resources", "logo.svg")
+            icon_path = os.path.join(
+                os.path.dirname(__file__), "..", "..", "resources", "logo.svg"
+            )
             if os.path.exists(icon_path):
                 self.setWindowIcon(QIcon(icon_path))
         except Exception:
@@ -114,8 +105,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_redo.clicked.connect(lambda: self.mask_action("redo"))
         self.btn_mask_undo.clicked.connect(lambda: self.mask_action("undo"))
 
-        # simple mask kernep
-        self.sm = SimpleMask(self.mp1, self.infobar)
+        # headless core model + view-side mouse hover
+        self.sm = SimpleMaskModel()
+        self.mp1.scene.sigMouseMoved.connect(self.show_location)
         self.metadata_parameter = None
         self.mp1.sigTimeChanged.connect(self.update_index)
         self.state = "lock"
@@ -303,7 +295,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
             xy = np.roll(xy, shift=1, axis=0)
             kwargs = {"zero_loc": xy}
         elif target == "mask_draw":
-            kwargs = {"arr": np.logical_not(self.sm.evaluate_drawing())}
+            rois = extract_roi_geometry(self.mp1.roi, self.mp1.imageItem)
+            self.sm.set_draw_rois(rois)
+            self.mp1.remove_rois(filter_str="roi_")
+            keep = self.sm.evaluate_draw_mask()
+            kwargs = {"arr": np.logical_not(keep)}
         elif target == "mask_threshold":
             kwargs = {
                 "low": self.binary_threshold_low.value(),
@@ -525,31 +521,94 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def update_parameter_to_dset(self, param, changes):
         self.sm.dset.update_metadata_from_changes(changes)
 
+    def show_location(self, pos):
+        if self.sm.shape is None:
+            return
+        if not self.mp1.scene.itemsBoundingRect().contains(pos):
+            return
+        mouse_point = self.mp1.getView().mapSceneToView(pos)
+        idx = self.mp1.currentIndex
+        col = int(mouse_point.x())
+        row = int(mouse_point.y())
+        msg = self.sm.dset.get_coordinates(col, row, idx)
+        if msg:
+            self.infobar.clear()
+            self.infobar.setText(msg)
+
     def plot(self):
-        kwargs = {
-            "cmap": self.plot_cmap.currentText(),
-            "log": self.plot_log.isChecked(),
-            "plot_center": self.plot_center.isChecked(),
-        }
-        self.sm.show_saxs(**kwargs)
+        if not self.is_ready():
+            return
+        cmap = self.plot_cmap.currentText()
+        plot_center = self.plot_center.isChecked()
+        self.mp1.clear()
+        self.mp1.setImage(self.sm.dset.data_display)
+        self.mp1.adjust_viewbox()
+        self.mp1.set_colormap(cmap)
+        if plot_center:
+            t = pg.ScatterPlotItem()
+            center = self.sm.get_center(mode="vh")
+            t.addPoints(x=[center[1]], y=[center[0]], symbol="+", size=15)
+            self.mp1.add_item(t, label="center")
+        self.mp1.setCurrentIndex(1)
         self.plot_index.setCurrentIndex(1)
 
     def add_drawing(self):
         if not self.is_ready():
             return
-        if self.MaskWidget.currentIndex() == 1:
-            color = ("r", "g", "y", "b", "c", "m", "k", "w")[
-                self.cb_selector_color.currentIndex()
-            ]
-            kwargs = {
-                "color": color,
-                "sl_type": self.cb_selector_type.currentText(),
-                "sl_mode": self.cb_selector_mode.currentText(),
-                "width": self.plot_width.value(),
-                "num_edges": self.spinBox_num_edges.value(),
-            }
-        self.sm.add_drawing(**kwargs)
-        return
+        if self.MaskWidget.currentIndex() != 1:
+            return
+        color = ("r", "g", "y", "b", "c", "m", "k", "w")[
+            self.cb_selector_color.currentIndex()
+        ]
+        sl_type = self.cb_selector_type.currentText()
+        sl_mode = self.cb_selector_mode.currentText()
+        width = self.plot_width.value()
+        num_edges = self.spinBox_num_edges.value()
+
+        cen = self.sm.get_center(mode="xy")
+        shape = self.sm.shape
+        if cen[0] < 0 or cen[1] < 0 or cen[0] > shape[1] or cen[1] > shape[0]:
+            logger.warning("beam center is out of range, use image center instead")
+            cen = (shape[1] // 2, shape[0] // 2)
+
+        if sl_mode == "inclusive":
+            pen = pg.mkPen(color=color, width=width, style=QtCore.Qt.DotLine)
+        else:
+            pen = pg.mkPen(color=color, width=width)
+        handle_pen = pg.mkPen(color=color, width=width)
+        kwargs = {"pen": pen, "removable": True, "hoverPen": pen,
+                  "handlePen": handle_pen, "movable": True}
+
+        if sl_type == "Ellipse":
+            size = (120, 160)
+            new_roi = pg.EllipseROI(
+                (cen[0] - size[0] // 2, cen[1] - size[1] // 2), size, **kwargs)
+            new_roi.addScaleHandle([0.5, 0], [0.5, 0.5])
+            new_roi.addScaleHandle([0.5, 1], [0.5, 0.5])
+            new_roi.addScaleHandle([0, 0.5], [0.5, 0.5])
+        elif sl_type == "Circle":
+            radius = 60
+            new_roi = pg.CircleROI(
+                pos=[cen[0] - radius, cen[1] - radius], radius=radius, **kwargs)
+            new_roi.addScaleHandle([0.5, 0], [0.5, 0.5])
+            new_roi.addScaleHandle([0.5, 1], [0.5, 0.5])
+        elif sl_type == "Polygon":
+            offset = np.random.randint(0, 360)
+            theta = np.linspace(0, np.pi * 2, num_edges + 1) + offset
+            x = 60 * np.cos(theta) + cen[0]
+            y = 60 * np.sin(theta) + cen[1]
+            new_roi = pg.PolyLineROI(np.vstack([x, y]).T, closed=True, **kwargs)
+        elif sl_type == "Rectangle":
+            new_roi = pg.RectROI(cen, [200, 150], **kwargs)
+            for h in ([0, 0], [0, 0.5], [0, 1], [0.5, 0],
+                      [0.5, 1], [1, 0], [1, 0.5], [1, 1]):
+                new_roi.addScaleHandle(h, [1 - h[0], 1 - h[1]])
+        else:
+            logger.error("unsupported ROI type %s for button add", sl_type)
+            return
+        new_roi.sl_mode = sl_mode
+        roi_key = self.mp1.add_item(new_roi)
+        new_roi.sigRemoveRequested.connect(lambda: self.mp1.remove_item(roi_key))
 
     def update_xmap_limits(self):
         xmap_name = self.comboBox_param_xmap_name.currentText()
@@ -580,26 +639,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         idx = self.tableView.currentIndex().row()
         self.model.removeRow(idx)
 
-    # self.btn_mask_draw_apply_corr.clicked.connect(self.corr_add_roi)
-    def corr_add_roi(self):
-        roi = self.sm.evaluate_drawing()
-        self.sm.set_corr_roi(roi)
-        return
-
-    def update_corr_angle(self):
-        angle_deg = 360.0 / self.angle_n_corr.value()
-        self.angle_corr_text.setText(f"{angle_deg:.2f} (deg)")
-
-    def perform_correlation(self):
-        angle = 2 * np.pi / self.angle_n_corr.value()
-        self.sm.perform_correlation(angle)
-
     def compute_partition(self):
         if not self.is_ready():
             return
-
-        def least_multiple(a: int, b: int) -> int:
-            return ((b + a - 1) // a) * a
 
         if self.tabWidget.currentIndex() == 0:
             kwargs = {
@@ -728,23 +770,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if fname in ["", None]:
             return
 
-        if fname.endswith(".json"):
-            with open(fname, "r") as f:
-                x = json.load(f)["Bad pixels"]
-            xy = []
-            for t in x:
-                xy.append(t["Pixel"])
-            xy = np.array(xy)
-        elif fname.endswith(".txt") or fname.endswith(".csv"):
-            try:
-                xy = np.loadtxt(fname, delimiter=",")
-            except ValueError:
-                xy = np.loadtxt(fname)
-            except Exception:
-                self.statusbar.showMessage(
-                    "only support csv and space separated file", 500
-                )
-                return
+        try:
+            xy = load_pixel_list(fname)
+        except Exception:
+            self.statusbar.showMessage(
+                "only support json, csv and space separated file", 500
+            )
+            return
 
         if self.mask_list_rowcol.isChecked():
             xy = np.roll(xy, shift=1, axis=1)
@@ -843,14 +875,3 @@ class SimpleMaskGUI(QMainWindow, Ui):
         event.accept()
 
 
-def main_gui(path=None):
-    # if os.name == 'nt':
-    #     setup_windows_icon()
-    # QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
-    app = QApplication(sys.argv)
-    window = SimpleMaskGUI(path)
-    app.exec_()
-
-
-if __name__ == "__main__":
-    main_gui()
