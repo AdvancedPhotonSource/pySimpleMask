@@ -40,6 +40,7 @@ pysimplemask-combine-qmaps a.h5 b.h5 out.h5   # merge two qmap HDF5 files
 make test                          # pytest tests   (or: pytest tests)
 make lint                          # ruff check src tests
 make ui                            # regenerate gui/view/ui_mask.py from gui/view/mask.ui
+python src/pysimplemask/gui/view/compile_ui.py   # same as make ui, portable (no make needed)
 mypy                               # strict type check (config in pyproject.toml; see note)
 ```
 
@@ -57,9 +58,11 @@ m.save_partition("out.hdf"); m.save_mask("mask.tif")
 ```
 
 **Tests** live in `tests/core/` (synthetic fixtures, no external data): `reader/` (52),
-plus io, rasterize, partition helpers, and a headless model test that asserts
-`import pysimplemask` stays Qt-free. There are no GUI unit tests; verify GUI changes by
-launching, or with an offscreen construct smoke (`QT_QPA_PLATFORM=offscreen`).
+plus io, rasterize, partition helpers, find-center, outlier removal, and a headless model
+test asserting `import pysimplemask` stays Qt-free. `tests/gui/` has offscreen GUI
+regression tests (find-center button path, update_parameters). 97 tests total.
+Verify GUI changes by launching, or with an offscreen construct smoke
+(`QT_QPA_PLATFORM=offscreen`).
 
 **mypy `strict` is aspirational, not passing.** The config in `pyproject.toml` sets
 `strict = true`, but the codebase is largely untyped (even untouched modules like
@@ -94,8 +97,13 @@ geometry directly. `core/` imports no Qt and is fully scriptable.
 - `partition.py` — `generate_partition`, `combine_partitions`, `check_consistency`,
   `optimize_integer_array`, `hash_numpy_dict`, `least_multiple`, `combine_qmap_files`.
 - `io.py` — `text_to_array`, `load_pixel_list` (json/txt/csv pixel parsing).
-- `find_center.py`, `outlier_removal.py`, `ellipse_util.py` — beam-center finding,
-  SAXS-1D outlier masking, ellipse-fit q-correction.
+- `find_center.py` — `find_center(img, mask, center_guess, tol, max_iter, max_radius)`:
+  iterative centro-symmetry cross-correlation (1–2 passes typical); `max_radius=384`
+  default in `SimpleMaskModel.find_center` caps the crop for speed on large detectors.
+- `outlier_removal.py` — two strategies: `outlier_removal_with_saxs` (circular q-rings)
+  and `outlier_removal_adjacent_boxes` (fixed-size spatial tiles, sorted brightest-first).
+  Both share `compute_outlier_percentile` / `compute_outlier_mad` helpers.
+- `ellipse_util.py` — ellipse-fit q-correction for the eq-ephi partition mode.
 
 **Readers** (`src/pysimplemask/core/reader/`)
 - `get_reader(beamline, fname)` (re-exported via `core/file_handler.get_handler`) →

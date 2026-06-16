@@ -29,7 +29,7 @@ dependencies = [
   "scikit-image",
   "matplotlib",
   "pyqtgraph",
-  "PySide6==6.8.3",
+  "PySide6>=6.8",
   "astropy",
   "imagecodecs",
   "tifffile",

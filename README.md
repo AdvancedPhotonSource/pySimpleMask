@@ -2,25 +2,37 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/pysimplemask.svg)](https://pypi.python.org/pypi/pysimplemask)
 
-**pySimpleMask** is a graphical user interface (GUI) tool designed for creating masks and Q-partition maps for scattering patterns, specifically facilitating SAXS, WAXS, and XPCS data reduction.
+**pySimpleMask** is a tool for creating masks and Q-partition maps for X-ray scattering
+patterns, supporting SAXS, WAXS, and XPCS data reduction. It ships both a desktop GUI
+and a **headless Python API** that can drive the full pipeline from scripts.
 
 ## Features
 
-*   **Versatile Data Support**: Load scattering data from various formats including HDF5, IMM, TIFF, and binary files.
-*   **Interactive Masking**:
-    *   **Drawing Tools**: Create masks using polygons, circles, rectangles, and lines.
-    *   **Thresholding**: Automatically mask pixels based on intensity limits (low/high).
-    *   **Blemish Maps**: Apply pre-existing blemish (bad pixel) files.
-    *   **Outlier Removal**: Automatically detect and mask outliers using SAXS 1D azimuthal average comparisons.
-    *   **Manual Selection**: Click to mask specific pixels or regions.
-*   **Partition Generation**:
-    *   Compute Q-Phi partitions (Dynamic/Static).
-    *   Generate X-Y partitions.
-    *   Support for custom mapping modes.
-*   **Visualization**: Real-time visualization of scattering patterns, masks, and SAXS 1D profiles.
-*   **Output**:
-    *   Save generated masks as TIFF files.
-    *   Save full partition maps and metadata in Nexus-compatible HDF5/XPCS formats.
+- **Versatile data support** — HDF5 (NeXus/XPCS), IMM, Rigaku 500k/3M binary, TIFF.
+  Supported beamlines: APS 8-ID-I (transmission) and APS 9-ID-D (reflection/GISAXS).
+- **Interactive masking**
+  - Drawing tools: polygons, circles, ellipses, rectangles, line-width ROIs.
+  - Binary threshold (low / high intensity limits with dtype presets).
+  - Blemish/bad-pixel maps (TIFF or HDF5).
+  - Additional mask file import (TIFF or HDF5).
+  - Manual pixel selection by click or coordinate list.
+  - **Outlier removal** — two strategies:
+    - *CircularRings*: SAXS 1-D azimuthal average comparison per q-ring.
+    - *AdjacentPixels*: fixed-size spatial boxes, sorted brightest-first.
+    - Both support percentile-clip and MAD metrics.
+  - Parametric masking by q-map range (q, phi, x, y, …).
+  - Undo / redo / reset mask history.
+- **Beam-center finding** — iterative centro-symmetry cross-correlation, converges
+  in 1–2 passes; bounded crop for speed on large detectors.
+- **Partition generation**
+  - Q-Phi (dynamic + static resolution pair).
+  - X-Y spatial partitions.
+  - Ellipse-corrected Q-Phi (eq-ephi).
+  - Custom axis pair from any q-map channel.
+- **Visualization** — real-time display of scattering, mask, preview, and partition
+  maps; adjustable colormap, log scale, beam-center marker.
+- **Output** — TIFF mask, Nexus-compatible HDF5 partition (hash + version stamped),
+  `pysimplemask-combine-qmaps` CLI to merge two partition files.
 
 ## Installation
 
@@ -30,47 +42,88 @@ pip install pysimplemask
 ```
 
 ### From Source
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/AdvancedPhotonSource/pySimpleMask.git
-   cd pysimplemask
-   ```
-2. Install the package:
-   ```bash
-   pip install .
-   ```
+```bash
+git clone https://github.com/AdvancedPhotonSource/pySimpleMask.git
+cd pySimpleMask
+pip install .
+```
 
-## Usage
+## GUI Usage
 
-To launch the GUI, simply run the following command in your terminal:
+Launch the desktop application:
 
 ```bash
 pysimplemask
+pysimplemask --path /path/to/data    # open at a specific directory
 ```
 
-You can also specify a starting path for data loading:
+### Workflow
+
+1. **Load data** — select a raw file and click **Load**. Beam center, energy, detector
+   distance and pixel size are read from the NeXus metadata; defaults are used if metadata
+   is absent.
+2. **Define mask** — use the Mask tabs (Blemish/Files, Draw, Binary, Manual, Outlier,
+   Parametrization). Click **Evaluate** to preview, **Apply** to commit each layer.
+   Undo/Redo/Reset are always available.
+3. **Compute partition** — go to the Partition panel, choose a mode and bin counts,
+   click **Compute Partition**.
+4. **Save** — export as *Mask-Only* (TIFF) or *Nexus-XPCS* (HDF5, includes mask,
+   partition maps, and instrument metadata).
+
+GUI state (splitter positions, beamline selection) is persisted in
+`~/.pysimplemask/config.json`.
+
+## Headless / Scripted Usage
+
+`import pysimplemask` is **Qt-free**. The full masking and partition pipeline is
+available without a display:
+
+```python
+from pysimplemask.core import SimpleMaskModel
+
+m = SimpleMaskModel()
+m.read_data("scan.h5", beamline="APS_8IDI", begin_idx=0, num_frames=-1)
+
+# threshold mask
+m.mask_evaluate("mask_threshold", low=0, high=65535, low_enable=False, high_enable=True)
+m.mask_apply("mask_threshold")
+
+# geometric mask (polygon)
+m.add_polygon([(r0, c0), (r1, c1), (r2, c2)], mode="exclusive")
+m.evaluate_draw()
+m.mask_apply("mask_draw")
+
+# q-phi partition
+m.compute_partition(mode="q-phi", dq_num=10, sq_num=100, dp_num=36, sp_num=360)
+m.save_partition("qmap.hdf")
+m.save_mask("mask.tif")
+```
+
+Geometry helpers available on the model: `add_polygon`, `add_circle`, `add_ellipse`,
+`add_rectangle`, `add_line` (all accept `mode="exclusive"` or `"inclusive"`).
+
+## CLI Tools
 
 ```bash
-pysimplemask --path /path/to/your/data
+pysimplemask-combine-qmaps file1.hdf file2.hdf output.hdf   # merge two qmap files
 ```
 
-## Workflow
+## Development
 
-1.  **Load Data**: Click "Select Raw" or "Load" to open your scattering data file.
-2.  **Define Mask**:
-    *   Use the "Mask" tabs to apply different masking techniques (Draw, Threshold, Blemish, etc.).
-    *   Combine multiple masking methods as needed.
-    *   Use "Evaluate" to preview the mask and "Apply" to finalize it.
-3.  **Compute Partition**:
-    *   Go to the "Partition" tab.
-    *   Select the desired mode (e.g., Q-Phi) and configure parameters (number of bins, symmetry).
-    *   Click "Compute Partition" to generate the maps.
-4.  **Save Results**:
-    *   Click "Save" to export the mask (TIFF) or the full partition data (HDF5).
+```bash
+pip install -e ".[dev]"   # install with ruff, pytest, mypy
+
+make test                 # run tests
+make lint                 # ruff check
+make ui                   # regenerate gui/view/ui_mask.py from gui/view/mask.ui
+# or: python src/pysimplemask/gui/view/compile_ui.py
+```
+
+The project follows an MVC layout: `src/pysimplemask/core/` (Qt-free, scriptable engine)
+and `src/pysimplemask/gui/` (PySide6 + pyqtgraph view/model/control). See `CLAUDE.md`
+for the full architecture reference.
 
 ## Credits
 
-This package was created with [Cookiecutter](https://github.com/audreyr/cookiecutter) and the [audreyr/cookiecutter-pypackage](https://github.com/audreyr/cookiecutter-pypackage) project template.
-
-*   **Author**: Miaoqi Chu (mqichu@anl.gov)
-*   **License**: BSD 3-Clause license
+- **Author**: Miaoqi Chu (mqichu@anl.gov)
+- **License**: BSD 3-Clause
