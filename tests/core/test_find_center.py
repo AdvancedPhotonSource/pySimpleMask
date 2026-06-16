@@ -101,17 +101,21 @@ def test_no_positive_pixels_returns_fallback():
     assert np.allclose(out, [32, 32])  # image center (no guess)
 
 
-def test_out_of_bounds_guess_falls_back():
+def test_out_of_bounds_guess_recovers_via_com():
+    # An out-of-bounds guess is discarded; the center-of-mass fallback still
+    # converges to the true center.
     cy, cx = 30, 30
     out = find_center(_ring_image((64, 64), (cy, cx)), center_guess=(999, 999))
     assert isinstance(out, np.ndarray)
     assert np.allclose(out, [cy, cx], atol=1.5)
 
 
-def test_near_edge_guess_no_crash():
+def test_near_edge_guess_returns_guess_unchanged():
+    # The crop collapses below the minimum, so refinement is skipped and the
+    # guess is returned exactly.
     out = find_center(_ring_image((128, 128), (64, 64)), center_guess=(1, 1))
     assert isinstance(out, np.ndarray)
-    assert np.allclose(out, [1, 1], atol=1.0)  # crop collapses -> guess returned
+    assert np.allclose(out, [1, 1])
 
 
 def test_returns_ndarray():
