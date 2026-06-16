@@ -55,12 +55,6 @@
           <verstretch>1</verstretch>
          </sizepolicy>
         </property>
-        <property name="maximumSize">
-         <size>
-          <width>600</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="title">
          <string>Input</string>
         </property>
@@ -263,12 +257,6 @@
           <horstretch>1</horstretch>
           <verstretch>1</verstretch>
          </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>600</width>
-          <height>16777215</height>
-         </size>
         </property>
         <property name="title">
          <string>Mask</string>
