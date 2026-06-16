@@ -833,6 +833,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 elif isinstance(widget, QTabWidget):
                     config[key] = widget.currentIndex()
 
+            if hasattr(self, "splitter"):
+                config["splitter_state"] = (
+                    self.splitter.saveState().toBase64().data().decode()
+                )
+            if hasattr(self, "splitter_2"):
+                config["splitter_2_state"] = (
+                    self.splitter_2.saveState().toBase64().data().decode()
+                )
+
             with open(CONFIG_FILE, "w") as f:
                 json.dump(config, f, indent=4)
             logger.info(f"Saved configuration to [{CONFIG_FILE}]")
