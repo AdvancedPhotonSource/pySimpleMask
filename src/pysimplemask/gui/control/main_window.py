@@ -411,7 +411,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         if swapxy:
             self.sm.dset.swapxy()
-        if new_center_vh:
+        if new_center_vh is not None:
             self.sm.dset.set_center_vh(new_center_vh)
         self.sm.update_parameters()
         self.display_metadata()
