@@ -71,6 +71,16 @@ def test_good_guess_converges_quickly(monkeypatch):
     assert calls["n"] <= 2
 
 
+def test_max_radius_caps_crop_and_still_recovers():
+    # A bounded crop still recovers the center when the cap (30) is a genuine
+    # reduction from the full half-size (~49) yet comfortably exceeds the
+    # near-center structure (ring at r0=15) -- the realistic perf regime.
+    cy, cx = 50, 50
+    img = _ring_image((100, 100), (cy, cx), r0=15.0, w=4.0)
+    out = find_center(img, center_guess=(cy + 3, cx - 3), max_radius=30)
+    assert np.allclose(out, [cy, cx], atol=0.8)
+
+
 # --- masked / robustness ----------------------------------------------------
 
 

@@ -54,7 +54,9 @@ class SimpleMaskModel(object):
     def is_ready(self):
         return self.dset is not None
 
-    def find_center(self):
+    def find_center(self, max_radius=512):
+        # Cap the symmetric crop near the beam: the centering signal lives there,
+        # and a bounded window keeps the cross-correlation fast on large detectors.
         if self.dset is None:
             return None
         center_guess = self.get_center(mode="vh")
@@ -64,6 +66,7 @@ class SimpleMaskModel(object):
             mask=self.mask,
             center_guess=center_guess,
             scale="log",
+            max_radius=max_radius,
         )
         logger.info("find center finished in %.3f seconds", time.perf_counter() - t0)
         return center
