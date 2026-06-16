@@ -123,6 +123,33 @@ The project follows an MVC layout: `src/pysimplemask/core/` (Qt-free, scriptable
 and `src/pysimplemask/gui/` (PySide6 + pyqtgraph view/model/control). See `CLAUDE.md`
 for the full architecture reference.
 
+## Docker
+
+Build (Docker or Podman):
+```bash
+docker build -t pysimplemask .
+podman build -t pysimplemask .
+```
+
+Run on Linux (requires X11 forwarding for the GUI):
+```bash
+xhost +local:   # allow local X11 connections
+
+# Docker
+docker run -it --rm -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    -v $(pwd):/data pysimplemask
+
+# Podman (SELinux systems)
+podman run -it --rm -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    --security-opt label=type:container_runtime_t \
+    -v $(pwd):/data pysimplemask
+```
+
+A convenience script that auto-detects Docker/Podman, builds if needed, and
+launches with X11 forwarding is provided at `scripts/run_container.sh`.
+
 ## Credits
 
 - **Author**: Miaoqi Chu (mqichu@anl.gov)
