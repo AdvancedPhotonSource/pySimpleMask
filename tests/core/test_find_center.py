@@ -54,6 +54,23 @@ def test_perfect_guess_stays():
     assert np.allclose(out, [cy, cx], atol=0.5)
 
 
+def test_good_guess_converges_quickly(monkeypatch):
+    # A near-perfect guess should early-exit (not run all max_iter passes).
+    import pysimplemask.core.find_center as fc
+
+    calls = {"n": 0}
+    real_refine = fc.estimate_center_cross_correlation
+
+    def counting_refine(*args, **kwargs):
+        calls["n"] += 1
+        return real_refine(*args, **kwargs)
+
+    monkeypatch.setattr(fc, "estimate_center_cross_correlation", counting_refine)
+    cy, cx = 64, 64
+    fc.find_center(_ring_image((128, 128), (cy, cx)), center_guess=(cy, cx), max_iter=10)
+    assert calls["n"] <= 2
+
+
 # --- masked / robustness ----------------------------------------------------
 
 
