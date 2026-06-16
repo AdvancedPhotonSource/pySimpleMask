@@ -229,7 +229,6 @@ def outlier_removal_adjacent_boxes(
     H, W = saxs_lin.shape
     n_row = H // box_size
     n_col = W // box_size
-    n_boxes = n_row * n_col
 
     if n_row == 0 or n_col == 0:
         return np.zeros((5, 0)), np.zeros((2, 0), dtype=int)
