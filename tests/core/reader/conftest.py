@@ -11,7 +11,7 @@ import h5py
 import numpy as np
 import pytest
 
-from pysimplemask.reader.formats.imm import (
+from pysimplemask.core.reader.formats.imm import (
     _IMM_FIELDNAMES,
     _IMM_HEADER_FORMAT,
     _IMM_HEADER_SIZE,
@@ -143,7 +143,7 @@ RAW_9IDD = {
 @pytest.fixture
 def make_nexus_8idi(tmp_path):
     """Write an 8-ID-I NeXus metadata file; return ``(path, raw_values)``."""
-    from pysimplemask.reader.beamlines.aps_8idi import METADATA_KEYMAPS
+    from pysimplemask.core.reader.beamlines.aps_8idi import METADATA_KEYMAPS
 
     def _make(name="meta_8idi_metadata.hdf", **overrides):
         raw = dict(RAW_8IDI)
@@ -160,7 +160,7 @@ def make_nexus_8idi(tmp_path):
 @pytest.fixture
 def make_nexus_9idd(tmp_path):
     """Write a 9-ID-D NeXus metadata file; return ``(path, raw_values)``."""
-    from pysimplemask.reader.beamlines.aps_9idd import METADATA_KEYMAPS
+    from pysimplemask.core.reader.beamlines.aps_9idd import METADATA_KEYMAPS
 
     def _make(name="meta_9idd_metadata.hdf", **overrides):
         raw = dict(RAW_9IDD)

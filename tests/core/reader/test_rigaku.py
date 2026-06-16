@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from pysimplemask.reader.formats.rigaku import (
+from pysimplemask.core.reader.formats.rigaku import (
     Rigaku3MDataset,
     RigakuDataset,
     convert_sparse,

@@ -1,15 +1,15 @@
 """Tests for the HDF5 scattering loader and frame-averaging helper.
 
-Covers :class:`pysimplemask.reader.formats.hdf.HdfDataset` and
-:func:`pysimplemask.reader.io_utils.average_frames_parallel`.
+Covers :class:`pysimplemask.core.reader.formats.hdf.HdfDataset` and
+:func:`pysimplemask.core.reader.io_utils.average_frames_parallel`.
 """
 
 import h5py
 import numpy as np
 import pytest
 
-from pysimplemask.reader.formats.hdf import HdfDataset
-from pysimplemask.reader.io_utils import average_frames_parallel
+from pysimplemask.core.reader.formats.hdf import HdfDataset
+from pysimplemask.core.reader.io_utils import average_frames_parallel
 
 
 # ---------------------------------------------------------------------------

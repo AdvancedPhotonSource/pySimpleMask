@@ -7,11 +7,11 @@ dispatch (``get_reader``), and the error-swallowing handler (``get_handler``).
 import numpy as np
 import pytest
 
-from pysimplemask.file_handler import get_handler
-from pysimplemask.reader import get_reader
-from pysimplemask.reader.beamlines.aps_8idi import APS8IDIReader
-from pysimplemask.reader.beamlines.aps_9idd import APS9IDDReader
-from pysimplemask.reader.formats import (
+from pysimplemask.core.file_handler import get_handler
+from pysimplemask.core.reader import get_reader
+from pysimplemask.core.reader.beamlines.aps_8idi import APS8IDIReader
+from pysimplemask.core.reader.beamlines.aps_9idd import APS9IDDReader
+from pysimplemask.core.reader.formats import (
     HdfDataset,
     ImmDataset,
     Rigaku3MDataset,

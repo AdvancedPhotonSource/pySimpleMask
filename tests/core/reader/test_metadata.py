@@ -1,26 +1,26 @@
 """Tests for the NeXus/HDF5 metadata helpers and beamline metadata readers.
 
-Covers :mod:`pysimplemask.reader.metadata` and the ``get_nexus_metadata`` /
+Covers :mod:`pysimplemask.core.reader.metadata` and the ``get_nexus_metadata`` /
 ``get_metadata`` entry points of the 8-ID-I and 9-ID-D beamline modules.
 """
 
 import pytest
 import numpy as np
 
-from pysimplemask.reader.metadata import (
+from pysimplemask.core.reader.metadata import (
     _normalize,
     has_nexus_fields,
     read_keymap,
     find_metadata_file,
     read_nexus_metadata,
 )
-from pysimplemask.reader.beamlines.aps_8idi import (
+from pysimplemask.core.reader.beamlines.aps_8idi import (
     METADATA_KEYMAPS as KEYMAP_8IDI,
     get_nexus_metadata as nexus_8idi,
     get_metadata as meta_8idi,
     DEFAULT_METADATA as DEFAULT_8IDI,
 )
-from pysimplemask.reader.beamlines.aps_9idd import (
+from pysimplemask.core.reader.beamlines.aps_9idd import (
     get_nexus_metadata as nexus_9idd,
 )
 

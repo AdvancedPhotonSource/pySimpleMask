@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from pysimplemask.reader.formats.imm import ImmDataset
+from pysimplemask.core.reader.formats.imm import ImmDataset
 
 # A small two-frame 2x3 stack used by the basic dense/sparse cases.
 _BASIC_FRAMES = np.array(
