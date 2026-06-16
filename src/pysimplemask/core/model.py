@@ -54,7 +54,7 @@ class SimpleMaskModel(object):
     def is_ready(self):
         return self.dset is not None
 
-    def find_center(self, max_radius=512):
+    def find_center(self, max_radius=384):
         # Cap the symmetric crop near the beam: the centering signal lives there,
         # and a bounded window keeps the cross-correlation fast on large detectors.
         if self.dset is None:
