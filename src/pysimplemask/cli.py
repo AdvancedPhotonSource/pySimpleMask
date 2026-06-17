@@ -276,8 +276,7 @@ def _run_build_qmap(args):
     if report_path:
         from pysimplemask.core.report import generate_report
 
-        generate_report(m, report_path)
-        logging.info("Report saved: %s", report_path)
+        generate_report(m, report_path)  # generate_report logs "Report saved:" itself
 
 
 def build_qmap():
