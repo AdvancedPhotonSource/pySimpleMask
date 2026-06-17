@@ -105,7 +105,23 @@ Geometry helpers available on the model: `add_polygon`, `add_circle`, `add_ellip
 ## CLI Tools
 
 ```bash
-pysimplemask-combine-qmaps file1.hdf file2.hdf output.hdf   # merge two qmap files
+# Build a qmap from a raw scattering file (full headless pipeline)
+pysimplemask-build-qmap scan.hdf --output-qmap qmap.hdf --output-mask mask.tif
+
+# Key options (see --help for all):
+pysimplemask-build-qmap scan.hdf \
+    --beamline APS_8IDI \
+    --num-frames 0 \
+    --blemish blemish.tif \
+    --threshold-high 65535 \
+    --mode q-phi \
+    --dq-num 10 --sq-num 100 \
+    --dp-num 36 --sp-num 360 \
+    --output-qmap qmap.hdf \
+    --output-mask mask.tif
+
+# Merge two existing qmap files
+pysimplemask-combine-qmaps file1.hdf file2.hdf output.hdf
 ```
 
 ## Development

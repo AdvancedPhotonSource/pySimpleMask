@@ -60,7 +60,7 @@ m.save_partition("out.hdf"); m.save_mask("mask.tif")
 **Tests** live in `tests/core/` (synthetic fixtures, no external data): `reader/` (52),
 plus io, rasterize, partition helpers, find-center, outlier removal, and a headless model
 test asserting `import pysimplemask` stays Qt-free. `tests/gui/` has offscreen GUI
-regression tests (find-center button path, update_parameters). 97 tests total.
+regression tests (find-center button path, update_parameters). 103 tests total.
 Verify GUI changes by launching, or with an offscreen construct smoke
 (`QT_QPA_PLATFORM=offscreen`).
 
