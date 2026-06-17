@@ -54,7 +54,7 @@ class SimpleMaskModel(object):
     def is_ready(self):
         return self.dset is not None
 
-    def find_center(self, max_radius=384):
+    def find_center(self, max_radius=384, beamstop_diameter=30):
         # Cap the symmetric crop near the beam: the centering signal lives there,
         # and a bounded window keeps the cross-correlation fast on large detectors.
         if self.dset is None:
@@ -69,6 +69,20 @@ class SimpleMaskModel(object):
             max_radius=max_radius,
         )
         logger.info("find center finished in %.3f seconds", time.perf_counter() - t0)
+
+        if beamstop_diameter > 0:
+            cy, cx = center[0], center[1]
+            yy, xx = np.indices(self.shape)
+            beamstop = np.hypot(yy - cy, xx - cx) < (beamstop_diameter / 2.0)
+            self.mask_evaluate("mask_draw", arr=beamstop)
+            self.mask_apply("mask_draw")
+            n_masked = int(beamstop.sum())
+            logger.info(
+                "beamstop mask applied: diameter=%d px, %d pixels masked",
+                beamstop_diameter,
+                n_masked,
+            )
+
         return center
 
     def mask_evaluate(self, target, **kwargs):

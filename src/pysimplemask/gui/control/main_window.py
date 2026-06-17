@@ -266,7 +266,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.btn_find_center.setText("Finding Center ...")
             self.btn_find_center.setDisabled(True)
             self.centralwidget.repaint()
-            center_vh = self.sm.find_center()
+            center_vh = self.sm.find_center(beamstop_diameter=30)
         except Exception:
             traceback.print_exc()
             self.statusbar.showMessage("Failed to find center. Abort", 2000)

@@ -100,6 +100,13 @@ def _build_qmap_args(argv=None):
         metavar="N",
         help="Crop half-size (px) passed to find_center for speed on large detectors.",
     )
+    grp_cen.add_argument(
+        "--beamstop-diameter",
+        type=int,
+        default=30,
+        metavar="N",
+        help="Diameter (px) of the circular beamstop mask applied after find_center. 0 to disable.",
+    )
 
     # ── mask ────────────────────────────────────────────────────────────────
     grp_mask = parser.add_argument_group("mask")
@@ -196,7 +203,10 @@ def _run_build_qmap(args):
         logging.info(
             "goto_max center: row=%.1f col=%.1f", center_vh[0], center_vh[1]
         )
-        refined_vh = m.find_center(max_radius=args.max_radius)
+        refined_vh = m.find_center(
+            max_radius=args.max_radius,
+            beamstop_diameter=args.beamstop_diameter,
+        )
         logging.info(
             "find_center result: row=%.1f col=%.1f", refined_vh[0], refined_vh[1]
         )

@@ -51,6 +51,7 @@ def test_default_args_parsed(raw_hdf):
     assert args.symmetry_fold == 1
     assert args.style == "linear"
     assert args.max_radius == 384
+    assert args.beamstop_diameter == 30
     assert args.no_find_center is False
     assert args.output_qmap == "qmap.hdf"
     assert args.output_mask == "mask.tif"
