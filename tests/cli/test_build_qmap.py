@@ -55,6 +55,7 @@ def test_default_args_parsed(raw_hdf):
     assert args.no_find_center is False
     assert args.output_qmap == "qmap.hdf"
     assert args.output_mask == "mask.tif"
+    assert args.report is None
     assert args.blemish is None
     assert args.threshold_high is None
 

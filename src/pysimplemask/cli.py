@@ -171,6 +171,16 @@ def _build_qmap_args(argv=None):
         metavar="FILE",
         help="Output mask TIFF path. Pass empty string to skip.",
     )
+    grp_out.add_argument(
+        "--report",
+        default=None,
+        metavar="FILE",
+        help=(
+            "Write a one-page PDF summary report to FILE. "
+            "Pass empty string to skip. "
+            "Default: same stem as --output-qmap with .pdf extension."
+        ),
+    )
 
     # ── logging ─────────────────────────────────────────────────────────────
     parser.add_argument(
@@ -257,6 +267,17 @@ def _run_build_qmap(args):
     if args.output_mask:
         m.save_mask(args.output_mask)
         logging.info("Saved mask: %s", args.output_mask)
+
+    # ── 6. Report ────────────────────────────────────────────────────────────
+    report_path = args.report
+    if report_path is None:
+        # default: same stem as the qmap output, .pdf extension
+        report_path = os.path.splitext(args.output_qmap)[0] + ".pdf"
+    if report_path:
+        from pysimplemask.core.report import generate_report
+
+        generate_report(m, report_path)
+        logging.info("Report saved: %s", report_path)
 
 
 def build_qmap():
