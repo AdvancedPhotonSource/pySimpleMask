@@ -131,13 +131,13 @@ def _build_qmap_args(argv=None):
         choices=["q-phi", "x-y", "eq-ephi"],
         help="Partition axes.",
     )
-    grp_part.add_argument("--dq-num", type=int, default=10, metavar="N",
+    grp_part.add_argument("--dq-num", type=int, default=36, metavar="N",
                           help="Dynamic q bins.")
-    grp_part.add_argument("--sq-num", type=int, default=100, metavar="N",
+    grp_part.add_argument("--sq-num", type=int, default=360, metavar="N",
                           help="Static q bins (must be a multiple of --dq-num).")
-    grp_part.add_argument("--dp-num", type=int, default=36, metavar="N",
+    grp_part.add_argument("--dp-num", type=int, default=1, metavar="N",
                           help="Dynamic phi bins.")
-    grp_part.add_argument("--sp-num", type=int, default=360, metavar="N",
+    grp_part.add_argument("--sp-num", type=int, default=1, metavar="N",
                           help="Static phi bins (must be a multiple of --dp-num).")
     grp_part.add_argument("--phi-offset", type=float, default=0.0, metavar="DEG",
                           help="Phi axis offset in degrees.")

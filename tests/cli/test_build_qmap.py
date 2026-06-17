@@ -43,10 +43,10 @@ def test_default_args_parsed(raw_hdf):
     assert args.begin_idx == 0
     assert args.num_frames == -1
     assert args.mode == "q-phi"
-    assert args.dq_num == 10
-    assert args.sq_num == 100
-    assert args.dp_num == 36
-    assert args.sp_num == 360
+    assert args.dq_num == 36
+    assert args.sq_num == 360
+    assert args.dp_num == 1
+    assert args.sp_num == 1
     assert args.phi_offset == 0.0
     assert args.symmetry_fold == 1
     assert args.style == "linear"
