@@ -22,15 +22,23 @@ def raw_hdf(tmp_path):
 
 # ── argument parsing ──────────────────────────────────────────────────────────
 
-def test_missing_dataset_exits_nonzero():
+def test_no_args_exits_nonzero():
+    """build_qmap with no positional argument exits non-zero (argparse error)."""
     result = subprocess.run(
-        [sys.executable, "-c",
-         "from pysimplemask.cli import build_qmap; build_qmap()"],
-        input="",
+        [sys.executable, "-m", "pysimplemask.cli", "--help"],
         capture_output=True,
         text=True,
     )
-    assert result.returncode != 0
+    # --help always exits 0; verify the entry point itself is importable
+    # and that calling it without a dataset exits with an error code.
+    result2 = subprocess.run(
+        [sys.executable, "-c",
+         "import sys; sys.argv=['prog']; "
+         "from pysimplemask.cli import build_qmap; build_qmap()"],
+        capture_output=True,
+        text=True,
+    )
+    assert result2.returncode != 0
 
 
 def test_default_args_parsed(raw_hdf):
@@ -80,11 +88,14 @@ def test_custom_args_parsed(raw_hdf):
         "--output-mask", "my.tif",
         "--threshold-high", "1000",
     ])
+    assert args.beamline == "APS_8IDI"
     assert args.begin_idx == 2
     assert args.num_frames == 3
     assert args.mode == "x-y"
     assert args.dq_num == 5
     assert args.sq_num == 50
+    assert args.dp_num == 18
+    assert args.sp_num == 180
     assert args.phi_offset == 10.0
     assert args.symmetry_fold == 2
     assert args.style == "logarithmic"
