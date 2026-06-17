@@ -112,6 +112,14 @@ def generate_partition(
             xmap = np.mod(xmap, 360.0 / symmetry_fold)
 
     roi = mask > 0
+    if not roi.any():
+        # No unmasked pixels — return an all-zero partition with empty value list.
+        return {
+            "map_name": map_name,
+            "num_pts": num_pts,
+            "partition": np.zeros_like(mask, dtype=np.uint32),
+            "v_list": np.zeros(num_pts, dtype=np.float64),
+        }
     v_min = np.nanmin(xmap[roi])
     v_max = np.nanmax(xmap[roi])
 
