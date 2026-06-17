@@ -25,20 +25,13 @@ def raw_hdf(tmp_path):
 def test_no_args_exits_nonzero():
     """build_qmap with no positional argument exits non-zero (argparse error)."""
     result = subprocess.run(
-        [sys.executable, "-m", "pysimplemask.cli", "--help"],
-        capture_output=True,
-        text=True,
-    )
-    # --help always exits 0; verify the entry point itself is importable
-    # and that calling it without a dataset exits with an error code.
-    result2 = subprocess.run(
         [sys.executable, "-c",
          "import sys; sys.argv=['prog']; "
          "from pysimplemask.cli import build_qmap; build_qmap()"],
         capture_output=True,
         text=True,
     )
-    assert result2.returncode != 0
+    assert result.returncode != 0
 
 
 def test_default_args_parsed(raw_hdf):
