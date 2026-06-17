@@ -276,7 +276,25 @@ def _run_build_qmap(args):
     if report_path:
         from pysimplemask.core.report import generate_report
 
-        generate_report(m, report_path)  # generate_report logs "Report saved:" itself
+        report_params = {
+            "beamline": args.beamline,
+            "begin_idx": args.begin_idx,
+            "num_frames": args.num_frames,
+            "find_center": not args.no_find_center,
+            "max_radius": args.max_radius,
+            "beamstop_diameter": args.beamstop_diameter,
+            "blemish": args.blemish,
+            "threshold_high": args.threshold_high,
+            "mode": args.mode,
+            "dq_num": args.dq_num,
+            "sq_num": args.sq_num,
+            "dp_num": args.dp_num,
+            "sp_num": args.sp_num,
+            "phi_offset": args.phi_offset,
+            "symmetry_fold": args.symmetry_fold,
+            "style": args.style,
+        }
+        generate_report(m, report_path, params=report_params)  # logs "Report saved:" itself
 
 
 def build_qmap():
