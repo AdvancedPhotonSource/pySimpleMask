@@ -187,8 +187,7 @@ def _run_build_qmap(args):
         num_frames=args.num_frames,
     )
     if not ok:
-        logging.error("Failed to load dataset: %s", args.dataset)
-        sys.exit(1)
+        raise RuntimeError(f"Failed to load dataset: {args.dataset}")
     logging.info("Loaded %s  shape=%s", args.dataset, m.shape)
 
     # ── 2. Beam center ───────────────────────────────────────────────────────
@@ -255,10 +254,14 @@ def build_qmap():
     args = _build_qmap_args()
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(asctime)s [%(levelname)s][%(module)s]: %(message)s",
+        format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%H:%M:%S",
     )
-    _run_build_qmap(args)
+    try:
+        _run_build_qmap(args)
+    except RuntimeError as exc:
+        logging.error("%s", exc)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
