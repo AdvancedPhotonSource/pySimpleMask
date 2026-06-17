@@ -147,6 +147,11 @@ def generate_partition(
     partition[partition > num_pts] = 0
     # Ensure the maximum value (excluding unmasked) is assigned to the last bin
     partition[(xmap == v_max) * mask] = num_pts
+    # Floating-point rounding can leave a small number of valid pixels unassigned
+    # (bin=0) even after the above correction; assign them to the first bin.
+    leftover = roi & (partition == 0)
+    if leftover.any():
+        partition[leftover] = 1
 
     if map_name == "phi" and symmetry_fold > 1:
         # get the average phi value for each partition, at the first fold
@@ -285,12 +290,12 @@ def check_consistency(dqmap: np.ndarray, sqmap: np.ndarray, mask: np.ndarray) ->
     if dqmap.shape != mask.shape:
         raise ValueError("dqmap and mask must have the same shape")
 
-    assert np.all((mask > 0) == (dqmap > 0)), (
-        "mask and dqmap must have the same valid pixels"
-    )
-    assert np.all((mask > 0) == (sqmap > 0)), (
-        "mask and sqmap must have the same valid pixels"
-    )
+    if not np.all((mask > 0) == (dqmap > 0)):
+        logger.warning("dqmap and mask have mismatched valid pixels")
+        return False
+    if not np.all((mask > 0) == (sqmap > 0)):
+        logger.warning("sqmap and mask have mismatched valid pixels")
+        return False
 
     # Flatten arrays for efficient processing
     sq_flat = sqmap.ravel()
