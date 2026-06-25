@@ -129,6 +129,20 @@ def _build_qmap_args(argv=None):
         metavar="VAL",
         help="Mask pixels with intensity >= VAL (raw counts).",
     )
+    grp_mask.add_argument(
+        "--param-constraint",
+        action="append",
+        default=[],
+        metavar="MAPNAME:LOGIC:VBEG:VEND",
+        dest="param_constraints",
+        help=(
+            "Mask pixels by geometry map range. Repeatable. "
+            "Format: MAPNAME:LOGIC:VBEG:VEND, e.g. q:AND:0.01:0.1 or phi:AND:-30:30. "
+            "MAPNAME is any map key (q, phi, x, y, chi, …). "
+            "LOGIC is AND or OR (how this row combines with the previous). "
+            "Unit is inferred: angle maps (phi, chi, alpha) use degrees, others use the map's native unit."
+        ),
+    )
 
     # ── partition ───────────────────────────────────────────────────────────
     grp_part = parser.add_argument_group("partition")
@@ -190,6 +204,41 @@ def _build_qmap_args(argv=None):
     return parser.parse_args(argv)
 
 
+_ANGLE_MAPS = {"phi", "chi", "alpha"}
+
+
+def _parse_param_constraints(raw):
+    """Parse repeated --param-constraint strings into constraint tuples.
+
+    Each string has the form  MAPNAME:LOGIC:VBEG:VEND, e.g. ``q:AND:0.01:0.1``.
+    Returns a list of (xmap_name, logic, unit, vbeg, vend) tuples ready for
+    MaskParameter.evaluate().
+    """
+    constraints = []
+    for token in raw:
+        parts = token.split(":")
+        if len(parts) != 4:
+            raise ValueError(
+                f"Invalid --param-constraint {token!r}. "
+                "Expected MAPNAME:LOGIC:VBEG:VEND (e.g. q:AND:0.01:0.1)"
+            )
+        xmap_name, logic, vbeg_s, vend_s = parts
+        logic = logic.upper()
+        if logic not in ("AND", "OR"):
+            raise ValueError(
+                f"Invalid logic {logic!r} in --param-constraint {token!r}. Use AND or OR."
+            )
+        try:
+            vbeg, vend = float(vbeg_s), float(vend_s)
+        except ValueError:
+            raise ValueError(
+                f"VBEG and VEND must be numbers in --param-constraint {token!r}."
+            )
+        unit = "deg" if xmap_name in _ANGLE_MAPS else xmap_name
+        constraints.append((xmap_name, logic, unit, vbeg, vend))
+    return constraints
+
+
 def _run_build_qmap(args):
     """Execute the qmap-build pipeline. Separated from argument parsing for testability."""
     from pysimplemask.core import SimpleMaskModel
@@ -240,6 +289,12 @@ def _run_build_qmap(args):
         m.mask_apply("mask_threshold")
         logging.info("Applied threshold-high: %s", args.threshold_high)
 
+    if args.param_constraints:
+        constraints = _parse_param_constraints(args.param_constraints)
+        m.mask_evaluate("mask_parameter", constraints=constraints)
+        m.mask_apply("mask_parameter")
+        logging.info("Applied param constraints: %s", args.param_constraints)
+
     bad = int(m.mask.size - m.mask.sum())
     logging.info(
         "Final mask: %d pixels masked (%.2f%%)",
@@ -285,6 +340,7 @@ def _run_build_qmap(args):
             "beamstop_diameter": args.beamstop_diameter,
             "blemish": args.blemish,
             "threshold_high": args.threshold_high,
+            "param_constraints": args.param_constraints or None,
             "mode": args.mode,
             "dq_num": args.dq_num,
             "sq_num": args.sq_num,
