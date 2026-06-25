@@ -10,6 +10,9 @@ and a **headless Python API** that can drive the full pipeline from scripts.
 
 - **Versatile data support** — HDF5 (NeXus/XPCS), IMM, Rigaku 500k/3M binary, TIFF.
   Supported beamlines: APS 8-ID-I (transmission) and APS 9-ID-D (reflection/GISAXS).
+  On free-threaded Python (CPython 3.13+ `--disable-gil`), LZ4-chunked HDF5 files are
+  read with a thread-parallel HDF5-bypass path (no GIL, no HDF5 mutex) for faster
+  frame averaging; standard Python falls back automatically.
 - **Interactive masking**
   - Drawing tools: polygons, circles, ellipses, rectangles, line-width ROIs.
   - Binary threshold (low / high intensity limits with dtype presets).
@@ -32,7 +35,7 @@ and a **headless Python API** that can drive the full pipeline from scripts.
 - **Visualization** — real-time display of scattering, mask, preview, and partition
   maps; adjustable colormap, log scale, beam-center marker.
 - **Output** — TIFF mask, Nexus-compatible HDF5 partition (hash + version stamped),
-  `pysimplemask-combine-qmaps` CLI to merge two partition files.
+  one-page PDF pipeline summary, `pysimplemask-combine-qmaps` CLI to merge two partition files.
 
 ## Installation
 
@@ -105,7 +108,8 @@ Geometry helpers available on the model: `add_polygon`, `add_circle`, `add_ellip
 ## CLI Tools
 
 ```bash
-# Build a qmap from a raw scattering file (full headless pipeline)
+# Build a qmap from a raw scattering file (full headless pipeline).
+# A PDF summary report is written alongside the qmap by default.
 pysimplemask-build-qmap scan.hdf --output-qmap qmap.hdf --output-mask mask.tif
 
 # Key options (see --help for all):
@@ -114,11 +118,14 @@ pysimplemask-build-qmap scan.hdf \
     --num-frames 0 \
     --blemish blemish.tif \
     --threshold-high 65535 \
+    --param-constraint q:AND:0.01:0.15 \   # geometry-based mask: keep q in [0.01, 0.15]
+    --param-constraint phi:AND:-30:30 \     # and phi in [-30°, 30°]
     --mode q-phi \
     --dq-num 10 --sq-num 100 \
     --dp-num 36 --sp-num 360 \
     --output-qmap qmap.hdf \
-    --output-mask mask.tif
+    --output-mask mask.tif \
+    --report summary.pdf              # omit to auto-name, pass "" to skip
 
 # Merge two existing qmap files
 pysimplemask-combine-qmaps file1.hdf file2.hdf output.hdf
