@@ -211,7 +211,305 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.update_partition_mapname
         )
         self.save_load_settings(mode="load")
+        self._setup_tooltips()
         self.show()
+
+    def _setup_tooltips(self):
+        # ── Input file & data loading ─────────────────────────────────────────
+        self.btn_select_raw.setToolTip(
+            "Browse for a scattering data file (.h5, .hdf, .tiff, .imm, .bin)"
+        )
+        self.fname.setToolTip("Path to the scattering data file")
+        self.comboBox_beamline.setToolTip(
+            "Select the beamline configuration that matches your data source"
+        )
+        self.spinBox_3.setToolTip("First frame index to include (0-based)")
+        self.spinBox_4.setToolTip(
+            "Frames to load and average.\n"
+            "  0 = all remaining frames from begin index\n"
+            " >0 = exactly that many frames (clamped to file end)\n"
+            " <0 = representative subset: max(1000, total ÷ 5)"
+        )
+        self.btn_load.setToolTip(
+            "Load and average the selected frame range from the data file"
+        )
+
+        # ── Metadata & parameters ─────────────────────────────────────────────
+        self.metadata_tree.setToolTip(
+            "Edit detector geometry (distance, pixel size, energy, beam center).\n"
+            "Changes take effect after clicking Update Parameters."
+        )
+        self.btn_update_parameters.setToolTip(
+            "Recompute the q/φ geometry from the current metadata values"
+        )
+
+        # ── Beam center ───────────────────────────────────────────────────────
+        self.btn_find_center.setToolTip(
+            "Auto-detect beam center using centro-symmetry cross-correlation"
+        )
+        self.pushButton_goto_max.setToolTip(
+            "Jump to the frame with the highest total intensity"
+        )
+        self.btn_swapxy.setToolTip("Swap the X and Y coordinates of the beam center")
+
+        # ── Mask history ──────────────────────────────────────────────────────
+        self.btn_mask_undo.setToolTip("Undo the last mask apply operation")
+        self.btn_mask_redo.setToolTip("Redo the last undone mask operation")
+        self.btn_mask_reset.setToolTip(
+            "Reset the mask to its initial state (blemish map only)"
+        )
+
+        # ── Blemish tab ───────────────────────────────────────────────────────
+        self.btn_select_blemish.setToolTip(
+            "Browse for a blemish / dead-pixel map file (HDF5 or TIFF)"
+        )
+        self.blemish_fname.setToolTip("Path to the blemish file")
+        self.blemish_path.setToolTip(
+            "HDF5 dataset path inside the blemish file (e.g. /qmap/mask)"
+        )
+        self.btn_apply_blemish.setToolTip(
+            "Preview the blemish mask on the image without committing"
+        )
+        self.btn_mask_blemish_apply.setToolTip(
+            "AND the blemish mask into the current working mask"
+        )
+
+        # ── Mask file tab ─────────────────────────────────────────────────────
+        self.btn_select_maskfile.setToolTip(
+            "Browse for an external mask file (HDF5 or TIFF)"
+        )
+        self.maskfile_fname.setToolTip("Path to the external mask file")
+        self.maskfile_path.setToolTip(
+            "HDF5 dataset path inside the mask file (e.g. /xpcs/mask)"
+        )
+        self.btn_apply_maskfile.setToolTip(
+            "Preview the imported mask on the image without committing"
+        )
+        self.btn_mask_file_apply.setToolTip(
+            "AND the imported mask into the current working mask"
+        )
+
+        # ── Draw tab ──────────────────────────────────────────────────────────
+        self.cb_selector_type.setToolTip(
+            "Shape to draw: Circle, Polygon, Ellipse, or Rectangle"
+        )
+        self.cb_selector_mode.setToolTip(
+            "Exclusive: mask pixels inside the shape\n"
+            "Inclusive: unmask pixels inside the shape"
+        )
+        self.cb_selector_color.setToolTip("Overlay color for the drawn ROI shape")
+        self.plot_width.setToolTip("Line width (px) of the drawn shape outline")
+        self.spinBox_num_edges.setToolTip("Number of vertices for polygon shapes")
+        self.btn_mask_draw_add.setToolTip(
+            "Add a new draggable ROI shape to the image"
+        )
+        self.btn_mask_draw_evaluate.setToolTip(
+            "Preview the mask produced by all drawn shapes"
+        )
+        self.btn_mask_draw_apply.setToolTip(
+            "Apply drawn shapes into the working mask"
+        )
+
+        # ── Threshold tab ─────────────────────────────────────────────────────
+        self.checkBox_threshold_low_enable.setToolTip(
+            "Enable lower threshold — pixels below the value will be masked"
+        )
+        self.binary_threshold_low.setToolTip(
+            "Lower intensity threshold; pixels below this value are masked"
+        )
+        self.checkBox_threshold_high_enable.setToolTip(
+            "Enable upper threshold — pixels above the value will be masked"
+        )
+        self.binary_threshold_high.setToolTip(
+            "Upper intensity threshold; pixels above this value are masked"
+        )
+        self.checkBox_threshold_low_preset.setToolTip(
+            "Quick-set the lower threshold to a preset value"
+        )
+        self.checkBox_threshold_high_preset.setToolTip(
+            "Quick-set the upper threshold to a preset value"
+        )
+        self.pushButton_5.setToolTip(
+            "Erode: shrink masked regions by one pixel layer"
+        )
+        self.pushButton_9.setToolTip(
+            "Dilate: expand masked regions by one pixel layer"
+        )
+        self.pushButton_16.setToolTip(
+            "Morphological open: erode then dilate — removes small masked islands"
+        )
+        self.pushButton_15.setToolTip(
+            "Morphological close: dilate then erode — fills small masked holes"
+        )
+        self.btn_mask_threshold_evaluate.setToolTip(
+            "Preview threshold + morphology result"
+        )
+        self.btn_mask_threshold_apply.setToolTip(
+            "Apply threshold and morphology into the working mask"
+        )
+
+        # ── Manual list tab ───────────────────────────────────────────────────
+        self.mask_list_1based.setToolTip(
+            "Treat coordinates as 1-indexed (MATLAB/SPEC convention) instead of 0-indexed"
+        )
+        self.mask_list_rowcol.setToolTip(
+            "Treat coordinates as (row, col) instead of (x, y)"
+        )
+        self.btn_mask_list_load.setToolTip(
+            "Load pixel coordinates from a CSV, JSON, or text file"
+        )
+        self.mask_list_input.setToolTip(
+            "Type pixel coordinates manually, e.g.  (x1,y1),(x2,y2)"
+        )
+        self.btn_mask_list_add.setToolTip(
+            "Add the typed coordinates to the pixel list"
+        )
+        self.mask_list_include.setToolTip(
+            "When double-clicking the image, also select neighboring pixels\n"
+            "with similar intensity (within Radius and Variation limits)"
+        )
+        self.mask_list_radius.setToolTip(
+            "Search radius (px) around a double-clicked pixel for intensity matching"
+        )
+        self.mask_list_variation.setToolTip(
+            "Maximum intensity difference (%) to include a neighboring pixel"
+        )
+        self.mask_list_xylist.setToolTip(
+            "Pixel coordinates queued to be masked — double-click the image to add points"
+        )
+        self.btn_mask_list_evaluate.setToolTip("Preview the pixel-list mask")
+        self.btn_mask_list_clear.setToolTip("Remove all entries from the pixel list")
+        self.btn_mask_list_apply.setToolTip(
+            "Apply the pixel list into the working mask"
+        )
+
+        # ── Outlier tab ───────────────────────────────────────────────────────
+        self.comboBox_outlier_target.setToolTip(
+            "CircularRings: detect outliers within q-annuli\n"
+            "AdjacentPixels: detect outliers within fixed spatial tiles"
+        )
+        self.outlier_num_roi.setToolTip(
+            "Number of q-rings (CircularRings) or tile size in pixels (AdjacentPixels)"
+        )
+        self.comboBox_outlier_method.setToolTip(
+            "Detection statistic:\n"
+            "  median_absolute_deviation — robust to non-Gaussian tails\n"
+            "  percentile — simpler rank-based cutoff"
+        )
+        self.outlier_cutoff.setToolTip(
+            "Threshold in σ (MAD mode) or percentile above which pixels are flagged"
+        )
+        self.btn_mask_outlier_evaluate.setToolTip("Preview detected outliers")
+        self.btn_mask_outlier_apply.setToolTip(
+            "Apply outlier mask into the working mask"
+        )
+
+        # ── Parametrization tab ───────────────────────────────────────────────
+        self.comboBox_param_xmap_name.setToolTip(
+            "Select a geometry map (q, phi, x, y, chi…) to constrain"
+        )
+        self.doubleSpinBox_param_vbeg.setToolTip(
+            "Minimum value of the selected map to keep unmasked"
+        )
+        self.doubleSpinBox_param_vend.setToolTip(
+            "Maximum value of the selected map to keep unmasked"
+        )
+        self.comboBox_param_logic.setToolTip(
+            "Logical operator combining multiple constraint rows: AND / OR / NOT"
+        )
+        self.btn_mask_param_add.setToolTip("Add a new constraint row to the table")
+        self.btn_mask_param_delete.setToolTip("Remove the selected constraint row")
+        self.btn_mask_param_evaluate.setToolTip(
+            "Preview the mask produced by the constraint table"
+        )
+        self.btn_mask_param_apply.setToolTip(
+            "Apply the parameter constraints into the working mask"
+        )
+        self.tableView.setToolTip(
+            "Geometry constraints — rows are combined with the selected logic operator"
+        )
+
+        # ── Display controls ──────────────────────────────────────────────────
+        self.plot_index.setToolTip(
+            "What to display: scattering image, mask, dynamic/static partition, or preview"
+        )
+        self.plot_center.setToolTip("Show or hide the beam center crosshair")
+        self.plot_log.setToolTip("Use logarithmic color scale")
+        self.plot_cmap.setToolTip("Colormap for intensity display")
+        self.btn_plot.setToolTip("Refresh the image display")
+        self.infobar.setToolTip("Pixel coordinates and intensity value under the cursor")
+
+        # ── Q-phi partition ───────────────────────────────────────────────────
+        self.sb_sqnum.setToolTip("Number of q-rings in the static (fine) partition")
+        self.sb_dqnum.setToolTip("Number of q-rings in the dynamic (coarse) partition")
+        self.sb_spnum.setToolTip("Number of φ sectors in the static partition")
+        self.sb_dpnum.setToolTip("Number of φ sectors in the dynamic partition")
+        self.doubleSpinBox_phi_offset.setToolTip(
+            "Rotate the φ=0 reference direction by this angle (degrees).\n"
+            "Useful to avoid pixels along horizontal or vertical lines\n"
+            "being split across two different azimuthal sectors."
+        )
+        self.partition_style.setToolTip(
+            "Radial bin spacing: Linear (uniform Δq) or Logarithmic (uniform Δq/q)"
+        )
+        self.spinBox_symmetry_fold.setToolTip(
+            "Assume N-fold symmetry around the beam center (1 = none).\n"
+            "At N > 1, azimuthal sectors separated by 360°/N are treated as equivalent."
+        )
+        self.btn_compute_qpartition.setToolTip(
+            "Compute the q-φ partition map with the current settings"
+        )
+
+        # ── X-Y mesh partition ────────────────────────────────────────────────
+        self.sb_sxnum.setToolTip("Number of x bins in the static partition")
+        self.sb_dxnum.setToolTip("Number of x bins in the dynamic partition")
+        self.sb_synum.setToolTip("Number of y bins in the static partition")
+        self.sb_dynum.setToolTip("Number of y bins in the dynamic partition")
+        self.btn_compute_qpartition2.setToolTip("Compute the x-y mesh partition")
+
+        # ── Ellipse (eq-ephi) partition ───────────────────────────────────────
+        self.sb_sxnum_2.setToolTip(
+            "Static equivalent-q rings (ellipse-corrected radial bins)"
+        )
+        self.sb_dxnum_2.setToolTip("Dynamic equivalent-q rings")
+        self.sb_synum_2.setToolTip(
+            "Static equivalent-φ sectors (ellipse-corrected azimuthal bins)"
+        )
+        self.sb_dynum_2.setToolTip("Dynamic equivalent-φ sectors")
+        self.btn_compute_qpartition4.setToolTip(
+            "Compute the ellipse-corrected eq-ephi partition"
+        )
+
+        # ── General two-axis partition ────────────────────────────────────────
+        self.comboBox_partition_mapname0.setToolTip(
+            "Primary map axis for the custom partition (q, phi, x, y…)"
+        )
+        self.comboBox_partition_mapname1.setToolTip(
+            "Secondary map axis for the custom partition"
+        )
+        self.sb_partition_sn0.setToolTip("Static bins for the primary axis")
+        self.sb_partition_dn0.setToolTip("Dynamic bins for the primary axis")
+        self.sb_partition_sn1.setToolTip("Static bins for the secondary axis")
+        self.sb_partition_dn1.setToolTip("Dynamic bins for the secondary axis")
+        self.comboBox_partition_style0.setToolTip(
+            "Bin spacing for the primary axis: Linear or Logarithmic"
+        )
+        self.comboBox_partition_style1.setToolTip(
+            "Bin spacing for the secondary axis: Linear or Logarithmic"
+        )
+        self.btn_compute_qpartition3.setToolTip(
+            "Compute the custom two-axis partition"
+        )
+
+        # ── Output ────────────────────────────────────────────────────────────
+        self.comboBox_output_type.setToolTip(
+            "Export format:\n"
+            "  Nexus-XPCS — HDF5 with mask and partition maps\n"
+            "  Mask-Only  — TIFF mask file only"
+        )
+        self.pushButton.setToolTip(
+            "Save the current mask and partition to disk"
+        )
 
     def goto_max(self):
         self.sm.goto_max()
