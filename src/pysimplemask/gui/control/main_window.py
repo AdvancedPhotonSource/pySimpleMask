@@ -173,6 +173,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self._update_outlier_info
         )
         self._on_outlier_target_changed()  # sync label/default for the initial selection
+        self.comboBox_outlier_target.currentIndexChanged.connect(
+            self._update_outlier_info
+        )
         self.mp1.scene.sigMouseClicked.connect(self.mouse_clicked)
 
         # xmap constraint
@@ -564,7 +567,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.btn_find_center.setText("Finding Center ...")
             self.btn_find_center.setDisabled(True)
             self.centralwidget.repaint()
-            center_vh = self.sm.find_center(beamstop_diameter=30)
+            center_vh = self.sm.find_center(beamstop_diameter=0)
         except Exception:
             traceback.print_exc()
             self.statusbar.showMessage("Failed to find center. Abort", 2000)
@@ -608,7 +611,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         elif target == "AdjacentPixels":
             self.label_outlier_target_info.setText("adjacent box size (pixel):")
             self.outlier_num_roi.setValue(32)
-        self._update_outlier_info()
 
     def _update_outlier_info(self):
         target = self.comboBox_outlier_target.currentText()
