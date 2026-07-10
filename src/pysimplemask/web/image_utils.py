@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
@@ -17,7 +19,7 @@ def make_figure(
 
     Args:
         arr: 2-D array of shape (H, W).
-        colormap: Plotly color scale name (e.g. ``"jet"``, ``"viridis"``).
+        colormap: Matplotlib-compatible colormap name (e.g. ``"jet"``, ``"viridis"``).
         log_scale: Apply ``log10`` before rendering.  Zeros are replaced by
             the minimum positive value in the array before taking the log.
         center_vh: Beam center as ``(row, col)``.  Draws a white crosshair
@@ -32,8 +34,7 @@ def make_figure(
         floor = float(positive.min()) if positive.size else 1.0
         display = np.log10(np.maximum(display, floor))
 
-    # Downsample large arrays: serialising 2k×2k floats as JSON is ~50 MB and
-    # stalls the browser.  Cap each axis at 1024 px for display.
+    # Downsample large arrays: cap each axis at 1024 px for display.
     _MAX_PX = 1024
     h, w = display.shape
     if h > _MAX_PX or w > _MAX_PX:
@@ -42,16 +43,17 @@ def make_figure(
         if center_vh is not None:
             center_vh = (center_vh[0] / step, center_vh[1] / step)
 
-    # binary_string=True encodes the image as a PNG (go.Image trace, ~1.5 MB)
-    # rather than a per-pixel JSON heatmap (go.Heatmap, ~14 MB for 1k×1k arrays).
-    # The colormap is applied server-side; go.Image renders via canvas, not SVG.
-    fig = px.imshow(
-        display,
-        color_continuous_scale=colormap,
-        origin="upper",
-        aspect="equal",
-        binary_string=True,
-    )
+    # Apply colormap via matplotlib → H×W×3 uint8 RGB.
+    # px.imshow with binary_string=True on a 2D array renders grayscale only;
+    # passing a pre-colored RGB array gives correct hues and encodes as a PNG
+    # (~1.5 MB) instead of a per-pixel JSON heatmap (~14 MB for 1k×1k arrays).
+    vmin, vmax = display.min(), display.max()
+    norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+    cmap = plt.get_cmap(colormap)
+    rgba = cmap(norm(display))          # H×W×4, float 0-1
+    rgb = (rgba[:, :, :3] * 255).astype(np.uint8)   # H×W×3 uint8
+
+    fig = px.imshow(rgb, origin="upper", binary_string=True)
     fig.update_layout(
         margin={"l": 0, "r": 0, "t": 0, "b": 0},
         autosize=True,

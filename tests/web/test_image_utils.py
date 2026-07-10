@@ -16,12 +16,12 @@ def test_make_figure_returns_go_figure():
 
 
 def test_make_figure_image_trace_type():
-    # binary_string=True produces a go.Image trace (canvas-based), not go.Heatmap (SVG).
+    # RGB + binary_string produces go.Image (canvas-rendered PNG, not SVG heatmap).
     arr = np.ones((16, 16), dtype=np.float32)
     fig = make_figure(arr, center_vh=None)
     assert len(fig.data) == 1
     assert fig.data[0].type == "image"
-    assert fig.data[0].source is not None  # base64 PNG binary string
+    assert fig.data[0].source is not None  # base64 PNG
 
 
 def test_make_figure_has_two_traces_with_crosshair():
@@ -33,7 +33,6 @@ def test_make_figure_has_two_traces_with_crosshair():
 
 
 def test_make_figure_log_scale_produces_image():
-    # Log scale is applied before PNG encoding; the trace is still go.Image.
     arr = np.array([[1.0, 10.0, 100.0], [0.1, 0.01, 1000.0]], dtype=np.float64)
     fig = make_figure(arr, log_scale=True)
     assert isinstance(fig, go.Figure)
@@ -42,11 +41,18 @@ def test_make_figure_log_scale_produces_image():
 
 
 def test_make_figure_log_scale_handles_zeros():
-    # All-zero or zero-containing arrays must not raise with log_scale=True.
     arr = np.array([[0.0, 5.0], [2.0, 0.0]], dtype=np.float32)
     fig = make_figure(arr, log_scale=True)
     assert isinstance(fig, go.Figure)
     assert fig.data[0].type == "image"
+
+
+def test_make_figure_different_colormaps_differ():
+    # Two different colormaps must produce different PNG bytes.
+    arr = np.linspace(0, 1, 64).reshape(8, 8).astype(np.float32)
+    fig_jet = make_figure(arr, colormap="jet")
+    fig_gray = make_figure(arr, colormap="gray")
+    assert fig_jet.data[0].source != fig_gray.data[0].source
 
 
 def test_make_figure_colormap_accepted():

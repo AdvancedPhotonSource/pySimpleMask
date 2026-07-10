@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dash import Input, Output, callback, ctx, no_update
+from dash import Input, Output, State, callback, ctx, no_update
 
 from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
 from pysimplemask.web.image_utils import make_figure
@@ -80,17 +80,15 @@ def load_file(n_clicks, file_path, beamline, begin_idx, num_frames):
     Output("detector-image", "figure", allow_duplicate=True),
     Output("status-msg", "children", allow_duplicate=True),
     Input("update-params-btn", "n_clicks"),
-    Input("meta-beam_center_x", "value"),
-    Input("meta-beam_center_y", "value"),
-    Input("meta-energy", "value"),
-    Input("meta-detector_distance", "value"),
-    Input("meta-pixel_size", "value"),
+    State("meta-beam_center_x", "value"),
+    State("meta-beam_center_y", "value"),
+    State("meta-energy", "value"),
+    State("meta-detector_distance", "value"),
+    State("meta-pixel_size", "value"),
     prevent_initial_call=True,
 )
 def update_params(n_clicks, bcx, bcy, energy, distance, pixel_size):
     """Recompute qmap from edited metadata fields and refresh the image."""
-    if ctx.triggered_id != "update-params-btn":
-        return no_update, no_update
     if not model.is_ready():
         return no_update, "Load a file first."
     new_meta: dict[str, float] = {}
