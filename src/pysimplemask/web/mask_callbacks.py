@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import base64
+
 import numpy as np
-from dash import Input, Output, Patch, State, callback, ctx, no_update
+from dash import ALL, Input, Output, Patch, State, callback, ctx, html, no_update
 from scipy import ndimage
 
 from pysimplemask.web.image_utils import make_figure
@@ -304,3 +306,258 @@ def draw_apply(n_clicks, colormap, log_scale_list):
         return no_update, no_update, "Load a file first."
     model.mask_apply("mask_draw")
     return _fig(_SCAT_MASK, colormap, log_scale_list), _SCAT_MASK, "Draw mask applied."
+
+
+# ---------------------------------------------------------------------------
+# Manual pixel list
+# ---------------------------------------------------------------------------
+
+
+def _parse_pixel_text(text: str) -> np.ndarray | None:
+    """Parse 'row col\\nrow col\\n...' into shape (2, N) int array or None."""
+    rows, cols = [], []
+    for line in (text or "").strip().splitlines():
+        parts = line.split()
+        if len(parts) >= 2:
+            try:
+                rows.append(int(parts[0]))
+                cols.append(int(parts[1]))
+            except ValueError:
+                pass
+    if not rows:
+        return None
+    return np.array([rows, cols])
+
+
+@callback(
+    Output("manual-pixels", "value"),
+    Input("manual-upload", "contents"),
+    State("manual-upload", "filename"),
+    prevent_initial_call=True,
+)
+def load_manual_file(contents, filename):
+    """Decode uploaded file and put its text into the textarea."""
+    if contents is None:
+        return no_update
+    _, b64 = contents.split(",", 1)
+    decoded = base64.b64decode(b64).decode("utf-8", errors="replace")
+    return decoded
+
+
+@callback(
+    Output("detector-image", "figure", allow_duplicate=True),
+    Output("display-channel", "value", allow_duplicate=True),
+    Output("mask-status", "children", allow_duplicate=True),
+    Input("manual-eval-btn", "n_clicks"),
+    State("manual-pixels", "value"),
+    State("colormap", "value"),
+    State("log-scale", "value"),
+    prevent_initial_call=True,
+)
+def manual_evaluate(n_clicks, pixel_text, colormap, log_scale_list):
+    if not model.is_ready():
+        return no_update, no_update, "Load a file first."
+    zero_loc = _parse_pixel_text(pixel_text)
+    if zero_loc is None:
+        return no_update, no_update, "No valid 'row col' pairs found."
+    msg = model.mask_evaluate("mask_list", zero_loc=zero_loc)
+    return _fig(_PREVIEW, colormap, log_scale_list), _PREVIEW, f"Manual preview: {msg}"
+
+
+@callback(
+    Output("detector-image", "figure", allow_duplicate=True),
+    Output("display-channel", "value", allow_duplicate=True),
+    Output("mask-status", "children", allow_duplicate=True),
+    Input("manual-apply-btn", "n_clicks"),
+    State("colormap", "value"),
+    State("log-scale", "value"),
+    prevent_initial_call=True,
+)
+def manual_apply(n_clicks, colormap, log_scale_list):
+    if not model.is_ready():
+        return no_update, no_update, "Load a file first."
+    model.mask_apply("mask_list")
+    return _fig(_SCAT_MASK, colormap, log_scale_list), _SCAT_MASK, "Manual mask applied."
+
+
+# ---------------------------------------------------------------------------
+# Outlier removal
+# ---------------------------------------------------------------------------
+
+
+@callback(
+    Output("outlier-param-label", "children"),
+    Input("outlier-target", "value"),
+    prevent_initial_call=True,
+)
+def update_outlier_label(target):
+    return "Num rings:" if target == "rings" else "Box size (px):"
+
+
+@callback(
+    Output("detector-image", "figure", allow_duplicate=True),
+    Output("display-channel", "value", allow_duplicate=True),
+    Output("mask-status", "children", allow_duplicate=True),
+    Input("outlier-eval-btn", "n_clicks"),
+    State("outlier-target", "value"),
+    State("outlier-method", "value"),
+    State("outlier-cutoff", "value"),
+    State("outlier-param", "value"),
+    State("colormap", "value"),
+    State("log-scale", "value"),
+    prevent_initial_call=True,
+)
+def outlier_evaluate(n_clicks, target, method, cutoff, param,
+                     colormap, log_scale_list):
+    if not model.is_ready():
+        return no_update, no_update, "Load a file first."
+    cutoff = float(cutoff) if cutoff is not None else 3.0
+    param_int = int(param) if param is not None else 180
+    method = method or "percentile"
+    if target == "rings":
+        _, zero_loc = model.compute_saxs1d(
+            method=method, cutoff=cutoff, num=param_int
+        )
+    else:
+        _, zero_loc = model.compute_adjacent_saxs1d(
+            method=method, cutoff=cutoff, box_size=param_int
+        )
+    msg = model.mask_evaluate("mask_outlier", zero_loc=zero_loc)
+    return _fig(_PREVIEW, colormap, log_scale_list), _PREVIEW, f"Outlier preview: {msg}"
+
+
+@callback(
+    Output("detector-image", "figure", allow_duplicate=True),
+    Output("display-channel", "value", allow_duplicate=True),
+    Output("mask-status", "children", allow_duplicate=True),
+    Input("outlier-apply-btn", "n_clicks"),
+    State("colormap", "value"),
+    State("log-scale", "value"),
+    prevent_initial_call=True,
+)
+def outlier_apply(n_clicks, colormap, log_scale_list):
+    if not model.is_ready():
+        return no_update, no_update, "Load a file first."
+    model.mask_apply("mask_outlier")
+    return _fig(_SCAT_MASK, colormap, log_scale_list), _SCAT_MASK, "Outlier mask applied."
+
+
+# ---------------------------------------------------------------------------
+# Parametrize — constraint store, row renderer, evaluate, apply
+# ---------------------------------------------------------------------------
+
+
+@callback(
+    Output("param-constraints", "data"),
+    Input("param-add-btn", "n_clicks"),
+    Input("param-remove-btn", "n_clicks"),
+    State("param-constraints", "data"),
+    prevent_initial_call=True,
+)
+def update_param_constraints(add, remove, current):
+    constraints = list(current or [])
+    if ctx.triggered_id == "param-add-btn":
+        constraints.append({"xmap": None, "logic": "AND", "vmin": None, "vmax": None})
+    elif ctx.triggered_id == "param-remove-btn" and constraints:
+        constraints.pop()
+    return constraints
+
+
+@callback(
+    Output("param-rows", "children"),
+    Input("param-constraints", "data"),
+    Input("model-loaded", "data"),
+    prevent_initial_call=False,
+)
+def render_param_rows(constraints, _model_loaded):
+    """Re-render constraint rows; xmap options from model.qmap after load."""
+    from dash import dcc as _dcc
+    xmap_options = (
+        [{"label": k, "value": k} for k in model.qmap.keys()]
+        if model.is_ready()
+        else []
+    )
+    rows = []
+    for i, c in enumerate(constraints or []):
+        rows.append(html.Div(
+            style={"display": "flex", "gap": "2px", "marginBottom": "2px"},
+            children=[
+                _dcc.Dropdown(
+                    id={"type": "param-xmap",  "index": i},
+                    options=xmap_options,
+                    value=c.get("xmap"),
+                    clearable=False,
+                    placeholder="map",
+                    style={"flex": "2", "fontSize": "11px"},
+                ),
+                _dcc.Dropdown(
+                    id={"type": "param-logic", "index": i},
+                    options=["AND", "OR", "NOT"],
+                    value=c.get("logic", "AND"),
+                    clearable=False,
+                    style={"flex": "1", "fontSize": "11px"},
+                ),
+                _dcc.Input(
+                    id={"type": "param-vmin",  "index": i},
+                    type="number",
+                    value=c.get("vmin"),
+                    placeholder="min",
+                    style={"flex": "1", "fontSize": "11px"},
+                ),
+                _dcc.Input(
+                    id={"type": "param-vmax",  "index": i},
+                    type="number",
+                    value=c.get("vmax"),
+                    placeholder="max",
+                    style={"flex": "1", "fontSize": "11px"},
+                ),
+            ],
+        ))
+    return rows
+
+
+@callback(
+    Output("detector-image", "figure", allow_duplicate=True),
+    Output("display-channel", "value", allow_duplicate=True),
+    Output("mask-status", "children", allow_duplicate=True),
+    Input("param-eval-btn", "n_clicks"),
+    State({"type": "param-xmap",  "index": ALL}, "value"),
+    State({"type": "param-logic", "index": ALL}, "value"),
+    State({"type": "param-vmin",  "index": ALL}, "value"),
+    State({"type": "param-vmax",  "index": ALL}, "value"),
+    State("colormap", "value"),
+    State("log-scale", "value"),
+    prevent_initial_call=True,
+)
+def param_evaluate(n_clicks, xmaps, logics, vmins, vmaxs, colormap, log_scale_list):
+    if not model.is_ready():
+        return no_update, no_update, "Load a file first."
+    if not xmaps:
+        return no_update, no_update, "Add at least one constraint row."
+    angle_maps = {"phi", "chi", "alpha"}
+    constraints = []
+    for xmap, logic, vmin, vmax in zip(xmaps, logics, vmins, vmaxs):
+        if xmap is None or vmin is None or vmax is None:
+            continue
+        unit = "deg" if xmap in angle_maps else ""
+        constraints.append([xmap, logic or "AND", unit, float(vmin), float(vmax)])
+    if not constraints:
+        return no_update, no_update, "Fill in all constraint fields."
+    msg = model.mask_evaluate("mask_parameter", constraints=constraints)
+    return _fig(_PREVIEW, colormap, log_scale_list), _PREVIEW, f"Param preview: {msg}"
+
+
+@callback(
+    Output("detector-image", "figure", allow_duplicate=True),
+    Output("display-channel", "value", allow_duplicate=True),
+    Output("mask-status", "children", allow_duplicate=True),
+    Input("param-apply-btn", "n_clicks"),
+    State("colormap", "value"),
+    State("log-scale", "value"),
+    prevent_initial_call=True,
+)
+def param_apply(n_clicks, colormap, log_scale_list):
+    if not model.is_ready():
+        return no_update, no_update, "Load a file first."
+    model.mask_apply("mask_parameter")
+    return _fig(_SCAT_MASK, colormap, log_scale_list), _SCAT_MASK, "Param mask applied."
