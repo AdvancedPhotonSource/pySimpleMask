@@ -242,3 +242,70 @@ def make_imm(tmp_path):
         return str(path)
 
     return _make
+
+
+# ---------------------------------------------------------------------------
+# XPCS result files
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def make_xpcs_result(tmp_path):
+    """Write a minimal XPCS result HDF5 file with /xpcs structure.
+
+    Parameters (all keyword-only via _make):
+      with_qmap_scalars  – write beam_center/energy/distance/pixel_size under /xpcs/qmap
+      with_partition     – write roi maps and index arrays under /xpcs/qmap
+      with_entry_inst    – write /entry/instrument fallback metadata
+    """
+    H, W = 16, 16
+
+    def _make(
+        name="result.hdf",
+        with_qmap_scalars=True,
+        with_partition=True,
+        with_entry_inst=True,
+    ):
+        path = tmp_path / name
+        with h5py.File(path, "w") as f:
+            f["/xpcs/temporal_mean/scattering_2d"] = np.ones(
+                (1, H, W), dtype=np.float32
+            ) * 5.0
+
+            if with_qmap_scalars:
+                f["/xpcs/qmap/beam_center_x"] = 100.0
+                f["/xpcs/qmap/beam_center_y"] = 80.0
+                f["/xpcs/qmap/energy"] = 10.0
+                f["/xpcs/qmap/detector_distance"] = 5.0
+                f["/xpcs/qmap/pixel_size"] = 7.5e-5
+
+            if with_partition:
+                dmap = np.zeros((H, W), dtype=np.int32)
+                dmap[4:8, 4:8] = 1
+                smap = np.zeros((H, W), dtype=np.int32)
+                smap[4:8, 4:8] = 1
+                f["/xpcs/qmap/dynamic_roi_map"] = dmap
+                f["/xpcs/qmap/static_roi_map"] = smap
+                f["/xpcs/qmap/dynamic_index_mapping"] = np.array([1], dtype=np.int32)
+                f["/xpcs/qmap/dynamic_num_pts"] = np.array([1, 16], dtype=np.int32)
+                f["/xpcs/qmap/dynamic_v_list_dim0"] = np.array([0.1])
+                f["/xpcs/qmap/dynamic_v_list_dim1"] = np.array([0.0])
+                f["/xpcs/qmap/static_index_mapping"] = np.array([1], dtype=np.int32)
+                f["/xpcs/qmap/static_num_pts"] = np.array([1, 16], dtype=np.int32)
+                f["/xpcs/qmap/static_v_list_dim0"] = np.array([0.1])
+                f["/xpcs/qmap/static_v_list_dim1"] = np.array([0.0])
+                f["/xpcs/qmap/mask"] = np.ones((H, W), dtype=np.uint8)
+                f["/xpcs/qmap/blemish"] = np.ones((H, W), dtype=np.uint8)
+                f["/xpcs/qmap/map_names"] = np.array([b"q", b"phi"])
+                f["/xpcs/qmap/map_units"] = np.array([b"1/A", b"degree"])
+                f["/xpcs/qmap/source_file"] = b"/path/to/raw.h5"
+
+            if with_entry_inst:
+                f["/entry/instrument/detector_1/beam_center_x"] = 100.0
+                f["/entry/instrument/detector_1/beam_center_y"] = 80.0
+                f["/entry/instrument/detector_1/x_pixel_size"] = 7.5e-5
+                f["/entry/instrument/detector_1/distance"] = 5.0
+                f["/entry/instrument/incident_beam/incident_energy"] = 10.0
+
+        return str(path)
+
+    return _make
