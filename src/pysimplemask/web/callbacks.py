@@ -216,7 +216,7 @@ def update_display(channel_idx, colormap, log_scale_list):
     # Colormap-only change: patch the colorscale without re-serialising the array.
     if ctx.triggered_id == "colormap":
         patch = Patch()
-        patch["data"][0]["colorscale"] = colormap
+        patch["layout"]["coloraxis"]["colorscale"] = colormap
         return patch
 
     arr = model.dset.data_display[idx]
