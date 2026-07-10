@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dash import Input, Output, Patch, callback, ctx, no_update
+from dash import Input, Output, callback, ctx, no_update
 
 from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
 from pysimplemask.web.image_utils import make_figure
@@ -213,12 +213,8 @@ def update_display(channel_idx, colormap, log_scale_list):
     log_scale = bool(log_scale_list)
     idx = int(channel_idx) if channel_idx is not None else 0
 
-    # Colormap-only change: patch the colorscale without re-serialising the array.
-    if ctx.triggered_id == "colormap":
-        patch = Patch()
-        patch["layout"]["coloraxis"]["colorscale"] = colormap
-        return patch
-
+    # binary_string=True (go.Image) bakes the colormap into the PNG server-side,
+    # so all display changes — including colormap — require a full figure rebuild.
     arr = model.dset.data_display[idx]
     center_vh = model.get_center("vh")
     return make_figure(arr, colormap=colormap, log_scale=log_scale, center_vh=center_vh)

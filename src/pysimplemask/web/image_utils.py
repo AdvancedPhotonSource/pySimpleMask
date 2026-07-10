@@ -42,15 +42,19 @@ def make_figure(
         if center_vh is not None:
             center_vh = (center_vh[0] / step, center_vh[1] / step)
 
+    # binary_string=True encodes the image as a PNG (go.Image trace, ~1.5 MB)
+    # rather than a per-pixel JSON heatmap (go.Heatmap, ~14 MB for 1k×1k arrays).
+    # The colormap is applied server-side; go.Image renders via canvas, not SVG.
     fig = px.imshow(
         display,
         color_continuous_scale=colormap,
         origin="upper",
         aspect="equal",
+        binary_string=True,
     )
     fig.update_layout(
         margin={"l": 0, "r": 0, "t": 0, "b": 0},
-        coloraxis_colorbar={"thickness": 12, "len": 0.8},
+        autosize=True,
     )
     fig.update_xaxes(showticklabels=False)
     fig.update_yaxes(showticklabels=False)
