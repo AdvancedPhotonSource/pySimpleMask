@@ -107,3 +107,22 @@ def test_get_handler_aps_8idi_returns_reader(make_hdf):
     reader = get_handler("APS_8IDI", path)
     assert reader is not None
     assert isinstance(reader, APS8IDIReader)
+
+
+# ---------------------------------------------------------------------------
+# XPCS result auto-detection
+# ---------------------------------------------------------------------------
+
+
+def test_get_handler_xpcs_result_overrides_beamline(make_xpcs_result):
+    from pysimplemask.core.reader.beamlines.xpcs_result import XPCSResultReader
+
+    path = make_xpcs_result()
+    reader = get_handler("APS_8IDI", path)
+    assert isinstance(reader, XPCSResultReader)
+
+
+def test_get_handler_plain_hdf_not_misdetected_as_xpcs(make_hdf):
+    path = make_hdf(np.zeros((2, 4, 5)))
+    reader = get_handler("APS_8IDI", path)
+    assert isinstance(reader, APS8IDIReader)
