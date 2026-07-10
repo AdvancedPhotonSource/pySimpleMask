@@ -61,3 +61,7 @@ def test_callbacks_module_imports():
     # Importing callbacks registers all @callback decorators as a side effect.
     # This test ensures no NameError or import cycle at import time.
     import pysimplemask.web.callbacks  # noqa: F401
+
+
+def test_mask_callbacks_imports():
+    import pysimplemask.web.mask_callbacks  # noqa: F401
