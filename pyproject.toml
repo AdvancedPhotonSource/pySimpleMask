@@ -42,11 +42,16 @@ dev = [
   "pytest",   # Testing
   "ruff",     # Linting
 ]
+web = [
+  "dash>=2.14",
+  "plotly>=5.18",
+]
 
 [project.scripts]
 pysimplemask = "pysimplemask.cli:main"
 pysimplemask-combine-qmaps = "pysimplemask.cli:combine_qmaps"
 pysimplemask-build-qmap = "pysimplemask.cli:build_qmap"
+pysimplemask-web = "pysimplemask.web.server:main_web"
 
 [project.urls]
 bugs = "https://github.com/AdvancedPhotonSource/pySimpleMask/issues"
