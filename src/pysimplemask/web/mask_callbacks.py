@@ -46,7 +46,7 @@ def mask_reset(n_clicks, colormap, log_scale_list):
     if not model.is_ready():
         return no_update, no_update, "Load a file first."
     model.mask_action("reset")
-    return _fig(_SCATTERING, colormap, log_scale_list), _SCATTERING, "Mask reset."
+    return _fig(_SCAT_MASK, colormap, log_scale_list), _SCAT_MASK, "Mask reset to blemish."
 
 
 # ---------------------------------------------------------------------------
@@ -387,11 +387,14 @@ def manual_apply(n_clicks, colormap, log_scale_list):
 
 @callback(
     Output("outlier-param-label", "children"),
+    Output("outlier-param", "value"),
     Input("outlier-target", "value"),
     prevent_initial_call=True,
 )
 def update_outlier_label(target):
-    return "Num rings:" if target == "rings" else "Box size (px):"
+    if target == "rings":
+        return "Num rings:", 180
+    return "Box size (px):", 32
 
 
 @callback(
