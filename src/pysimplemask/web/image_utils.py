@@ -63,16 +63,23 @@ def make_figure(
 
     if center_vh is not None:
         row, col = center_vh
-        arm = max(arr.shape) * 0.02  # crosshair arm = 2% of image dimension
-        fig.add_trace(
-            go.Scatter(
-                x=[col - arm, col + arm, None, col, col],
-                y=[row, row, None, row - arm, row + arm],
-                mode="lines",
-                line={"color": "white", "width": 1.5},
-                hoverinfo="skip",
-                showlegend=False,
+        h_disp, w_disp = rgb.shape[:2]
+        # compute_display_center applies a swing-angle correction that can push
+        # the beam center far outside the detector area.  If the crosshair is
+        # out of bounds, Plotly expands the axis to include it and the image
+        # shrinks to invisible.  Skip the crosshair when it falls outside the
+        # display canvas.
+        if 0 <= row < h_disp and 0 <= col < w_disp:
+            arm = max(h_disp, w_disp) * 0.02  # 2% of display size
+            fig.add_trace(
+                go.Scatter(
+                    x=[col - arm, col + arm, None, col, col],
+                    y=[row, row, None, row - arm, row + arm],
+                    mode="lines",
+                    line={"color": "white", "width": 1.5},
+                    hoverinfo="skip",
+                    showlegend=False,
+                )
             )
-        )
 
     return fig
