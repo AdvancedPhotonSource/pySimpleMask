@@ -55,3 +55,9 @@ def test_build_layout_file_path_pre_populated():
 
     value = find_value(layout, "file-path")
     assert value == "/data/scan.h5"
+
+
+def test_callbacks_module_imports():
+    # Importing callbacks registers all @callback decorators as a side effect.
+    # This test ensures no NameError or import cycle at import time.
+    import pysimplemask.web.callbacks  # noqa: F401
