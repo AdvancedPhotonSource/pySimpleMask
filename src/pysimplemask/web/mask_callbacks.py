@@ -32,7 +32,7 @@ def _fig(channel_idx: int, colormap: str | None, log_scale_list: list) -> object
 
 @callback(
     Output("detector-image", "figure", allow_duplicate=True),
-    Output("display-channel", "value", allow_duplicate=True),
+    Output("display-channel", "value"),
     Output("mask-status", "children"),
     Input("mask-reset-btn", "n_clicks"),
     State("colormap", "value"),
