@@ -145,7 +145,8 @@ def _main_panel() -> html.Div:
             ),
             dcc.Graph(
                 id="detector-image",
-                style={"flex": "1"},
+                style={"flex": "1", "minHeight": "400px"},
+                responsive=True,
                 config={"scrollZoom": True, "displaylogo": False},
             ),
             html.Div(

@@ -32,6 +32,16 @@ def make_figure(
         floor = float(positive.min()) if positive.size else 1.0
         display = np.log10(np.maximum(display, floor))
 
+    # Downsample large arrays: serialising 2k×2k floats as JSON is ~50 MB and
+    # stalls the browser.  Cap each axis at 1024 px for display.
+    _MAX_PX = 1024
+    h, w = display.shape
+    if h > _MAX_PX or w > _MAX_PX:
+        step = max(h // _MAX_PX, w // _MAX_PX, 1)
+        display = display[::step, ::step]
+        if center_vh is not None:
+            center_vh = (center_vh[0] / step, center_vh[1] / step)
+
     fig = px.imshow(
         display,
         color_continuous_scale=colormap,
