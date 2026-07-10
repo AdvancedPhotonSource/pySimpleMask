@@ -47,6 +47,13 @@ def main_web() -> None:
             "pysimplemask.web.callbacks not found. "
             "Ensure the web package is fully installed."
         ) from exc
+    try:
+        from pysimplemask.web import mask_callbacks as _mask_callbacks  # noqa: F401
+    except ImportError as exc:
+        raise ImportError(
+            "pysimplemask.web.mask_callbacks not found. "
+            "Ensure the web package is fully installed."
+        ) from exc
 
     app.layout = _layout.build_layout(initial_path=args.path or "")
 
