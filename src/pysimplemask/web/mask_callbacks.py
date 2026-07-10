@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dash import Input, Output, State, callback, ctx, no_update
+import numpy as np
+from dash import Input, Output, Patch, State, callback, ctx, no_update
 from scipy import ndimage
 
 from pysimplemask.web.image_utils import make_figure
@@ -211,3 +212,95 @@ def apply_morphology(erode, dilate, open_clicks, close_clicks,
     model.dset.update_mask(model.mask)
     return (_fig(_SCAT_MASK, colormap, log_scale_list), _SCAT_MASK,
             f"Morphology: {action.split('-')[1]} applied.")
+
+
+# ---------------------------------------------------------------------------
+# Draw tab — activate mode, capture shapes, evaluate, apply
+# ---------------------------------------------------------------------------
+
+
+@callback(
+    Output("drawn-shapes", "data"),
+    Input("detector-image", "relayoutData"),
+    State("drawn-shapes", "data"),
+    prevent_initial_call=True,
+)
+def capture_drawn_shapes(relayout_data, current):
+    """Store Plotly's full shapes list whenever shapes change."""
+    if relayout_data is None:
+        return no_update
+    shapes = relayout_data.get("shapes")
+    if shapes is None:
+        return no_update
+    return list(shapes)
+
+
+@callback(
+    Output("detector-image", "figure", allow_duplicate=True),
+    Input("draw-activate-btn", "n_clicks"),
+    State("draw-shape", "value"),
+    prevent_initial_call=True,
+)
+def toggle_draw_mode(n_clicks, shape_type):
+    """Switch dragmode to draw; toggle off on even clicks."""
+    patch = Patch()
+    if n_clicks and n_clicks % 2 == 1:
+        patch["layout"]["dragmode"] = shape_type or "drawrect"
+        patch["layout"]["newshape"] = {"line": {"color": "cyan", "width": 2}}
+    else:
+        patch["layout"]["dragmode"] = "pan"
+    return patch
+
+
+@callback(
+    Output("drawn-shapes", "data", allow_duplicate=True),
+    Output("detector-image", "figure", allow_duplicate=True),
+    Input("draw-clear-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def clear_draw_shapes(n_clicks):
+    """Empty the shapes store and remove shapes from the figure."""
+    patch = Patch()
+    patch["layout"]["shapes"] = []
+    return [], patch
+
+
+@callback(
+    Output("detector-image", "figure", allow_duplicate=True),
+    Output("display-channel", "value", allow_duplicate=True),
+    Output("mask-status", "children", allow_duplicate=True),
+    Input("draw-eval-btn", "n_clicks"),
+    State("drawn-shapes", "data"),
+    State("draw-mode", "value"),
+    State("colormap", "value"),
+    State("log-scale", "value"),
+    prevent_initial_call=True,
+)
+def draw_evaluate(n_clicks, shapes, draw_mode, colormap, log_scale_list):
+    if not model.is_ready():
+        return no_update, no_update, "Load a file first."
+    if not shapes:
+        return no_update, no_update, "Draw shapes on the image first."
+    from pysimplemask.web.shape_utils import plotly_shapes_to_mask
+    keep_mask = plotly_shapes_to_mask(
+        shapes, model.shape, mode=draw_mode or "exclusive"
+    )
+    # MaskArray.evaluate(arr) expects True where pixels should be masked OUT
+    msg = model.mask_evaluate("mask_draw", arr=np.logical_not(keep_mask))
+    return _fig(_PREVIEW, colormap, log_scale_list), _PREVIEW, f"Draw preview: {msg}"
+
+
+@callback(
+    Output("detector-image", "figure", allow_duplicate=True),
+    Output("display-channel", "value", allow_duplicate=True),
+    Output("mask-status", "children", allow_duplicate=True),
+    Input("draw-apply-btn", "n_clicks"),
+    State("colormap", "value"),
+    State("log-scale", "value"),
+    prevent_initial_call=True,
+)
+def draw_apply(n_clicks, colormap, log_scale_list):
+    if not model.is_ready():
+        return no_update, no_update, "Load a file first."
+    model.mask_apply("mask_draw")
+    return _fig(_SCAT_MASK, colormap, log_scale_list), _SCAT_MASK, "Draw mask applied."
