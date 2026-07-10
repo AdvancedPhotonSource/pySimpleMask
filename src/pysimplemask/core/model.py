@@ -202,6 +202,12 @@ class SimpleMaskModel(object):
         self.mask_kernel = MaskAssemble(self.shape, self.dset.scat)
         self.mask_apply(target="default_blemish")
         self.mask_kernel.update_qmap(self.qmap)
+
+        if getattr(self.dset, "saved_partition", None) is not None:
+            p = self.dset.saved_partition
+            self.dset.update_partitions(p["dynamic_roi_map"], p["static_roi_map"])
+            self.new_partition = p
+
         return True
 
     def compute_saxs1d(self, method="percentile", cutoff=3.0, num=180):

@@ -79,15 +79,19 @@ class XPCSResultReader(FileReader):
 
         Tries ``/xpcs/qmap`` scalars first; falls back to
         ``/entry/instrument`` paths when any required key is absent.
+        Swing angles default to 0.0 — XPCS result files do not store them.
         """
         try:
-            return read_keymap(self.fname, _XPCS_QMAP_KEYMAP)
+            meta = read_keymap(self.fname, _XPCS_QMAP_KEYMAP)
         except (KeyError, OSError):
             logger.info(
                 "xpcs/qmap scalars incomplete in %s; falling back to /entry/instrument",
                 self.fname,
             )
-        return read_keymap(self.fname, _FALLBACK_KEYMAP)
+            meta = read_keymap(self.fname, _FALLBACK_KEYMAP)
+        meta.setdefault("swing_angle_horizontal", 0.0)
+        meta.setdefault("swing_angle_vertical", 0.0)
+        return meta
 
     def _load_partition(self):
         """Load partition arrays from ``/xpcs/qmap``.

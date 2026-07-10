@@ -69,3 +69,22 @@ def test_saved_partition_is_none_when_arrays_absent(make_xpcs_result):
     path = make_xpcs_result(with_partition=False)
     reader = XPCSResultReader(path)
     assert reader.saved_partition is None
+
+
+def test_model_read_data_restores_partition(make_xpcs_result):
+    from pysimplemask.core.model import SimpleMaskModel
+
+    path = make_xpcs_result()
+    model = SimpleMaskModel()
+    assert model.read_data(path, beamline="APS_8IDI") is True
+
+    # Partition dict is set on the model.
+    assert model.new_partition is not None
+    assert "dynamic_roi_map" in model.new_partition
+    assert "static_roi_map" in model.new_partition
+
+    # Display channel 3 (dqmap_partition) is non-zero where fixture dmap==1.
+    # DISPLAY_FIELD = ["scattering", "scattering * mask", "mask",
+    #                  "dqmap_partition", "sqmap_partition", "preview"]
+    dqmap_display = model.dset.data_display[3]
+    assert dqmap_display[4:8, 4:8].any(), "dqmap partition not written to display"
