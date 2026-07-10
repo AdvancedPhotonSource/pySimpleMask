@@ -34,15 +34,6 @@ def make_figure(
         floor = float(positive.min()) if positive.size else 1.0
         display = np.log10(np.maximum(display, floor))
 
-    # Downsample large arrays: cap each axis at 1024 px for display.
-    _MAX_PX = 1024
-    h, w = display.shape
-    if h > _MAX_PX or w > _MAX_PX:
-        step = max(h // _MAX_PX, w // _MAX_PX, 1)
-        display = display[::step, ::step]
-        if center_vh is not None:
-            center_vh = (center_vh[0] / step, center_vh[1] / step)
-
     # Apply colormap via matplotlib → H×W×3 uint8 RGB.
     # px.imshow with binary_string=True on a 2D array renders grayscale only;
     # passing a pre-colored RGB array gives correct hues and encodes as a PNG
