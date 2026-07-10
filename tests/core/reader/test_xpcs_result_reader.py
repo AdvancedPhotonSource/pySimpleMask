@@ -88,3 +88,14 @@ def test_model_read_data_restores_partition(make_xpcs_result):
     #                  "dqmap_partition", "sqmap_partition", "preview"]
     dqmap_display = model.dset.data_display[3]
     assert dqmap_display[4:8, 4:8].any(), "dqmap partition not written to display"
+
+
+def test_model_read_data_with_fallback_metadata(make_xpcs_result):
+    from pysimplemask.core.model import SimpleMaskModel
+
+    # with_qmap_scalars=False forces _get_metadata to use /entry/instrument fallback
+    path = make_xpcs_result(with_qmap_scalars=False)
+    model = SimpleMaskModel()
+    assert model.read_data(path, beamline="APS_8IDI") is True
+    assert model.dset.metadata["beam_center_x"] == pytest.approx(100.0)
+    assert model.dset.metadata["energy"] == pytest.approx(10.0)
