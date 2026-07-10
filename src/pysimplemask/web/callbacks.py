@@ -116,28 +116,34 @@ def update_params(n_clicks, bcx, bcy, energy, distance, pixel_size):
 
 
 @callback(
+    Output("detector-image", "figure", allow_duplicate=True),
     Output("meta-beam_center_x", "value", allow_duplicate=True),
     Output("meta-beam_center_y", "value", allow_duplicate=True),
     Output("status-msg", "children", allow_duplicate=True),
     Input("find-center-btn", "n_clicks"),
+    State("display-channel", "value"),
+    State("colormap", "value"),
+    State("log-scale", "value"),
     prevent_initial_call=True,
 )
-def find_center_cb(n_clicks):
-    """Run the cross-correlation beam-center finder and update metadata fields."""
+def find_center_cb(n_clicks, channel_idx, colormap, log_scale_list):
+    """Run the cross-correlation beam-center finder and replot with new crosshair."""
     if not model.is_ready():
-        return no_update, no_update, "Load a file first."
-    # beamstop_diameter=0: skip the beamstop masking side-effect
+        return no_update, no_update, no_update, "Load a file first."
     center_vh = model.find_center(beamstop_diameter=0)
     if center_vh is None:
-        return no_update, no_update, "Find center failed."
+        return no_update, no_update, no_update, "Find center failed."
     model.dset.set_center_vh(center_vh)
     model.update_parameters()
     meta = model.dset.metadata
-    return (
-        round(float(meta["beam_center_x"]), 4),
-        round(float(meta["beam_center_y"]), 4),
-        "Center found — click Update Params to apply.",
+    idx = int(channel_idx) if channel_idx is not None else 0
+    fig = make_figure(
+        model.dset.data_display[idx],
+        colormap=colormap or "jet",
+        log_scale=bool(log_scale_list),
+        center_vh=model.get_center("vh"),
     )
+    return fig, round(float(meta["beam_center_x"]), 4), round(float(meta["beam_center_y"]), 4), "Center found."
 
 
 # ---------------------------------------------------------------------------
@@ -146,24 +152,31 @@ def find_center_cb(n_clicks):
 
 
 @callback(
+    Output("detector-image", "figure", allow_duplicate=True),
     Output("meta-beam_center_x", "value", allow_duplicate=True),
     Output("meta-beam_center_y", "value", allow_duplicate=True),
     Output("status-msg", "children", allow_duplicate=True),
     Input("goto-max-btn", "n_clicks"),
+    State("display-channel", "value"),
+    State("colormap", "value"),
+    State("log-scale", "value"),
     prevent_initial_call=True,
 )
-def goto_max_cb(n_clicks):
-    """Move beam center to the pixel of maximum intensity."""
+def goto_max_cb(n_clicks, channel_idx, colormap, log_scale_list):
+    """Move beam center to max intensity pixel and replot with new crosshair."""
     if not model.is_ready():
-        return no_update, no_update, "Load a file first."
-    model.goto_max()          # sets center_vh in metadata internally
-    model.update_parameters() # recomputes qmap with new center
+        return no_update, no_update, no_update, "Load a file first."
+    model.goto_max()
+    model.update_parameters()
     meta = model.dset.metadata
-    return (
-        round(float(meta["beam_center_x"]), 4),
-        round(float(meta["beam_center_y"]), 4),
-        "Moved to max — click Update Params to apply.",
+    idx = int(channel_idx) if channel_idx is not None else 0
+    fig = make_figure(
+        model.dset.data_display[idx],
+        colormap=colormap or "jet",
+        log_scale=bool(log_scale_list),
+        center_vh=model.get_center("vh"),
     )
+    return fig, round(float(meta["beam_center_x"]), 4), round(float(meta["beam_center_y"]), 4), "Moved to max."
 
 
 # ---------------------------------------------------------------------------
@@ -172,24 +185,31 @@ def goto_max_cb(n_clicks):
 
 
 @callback(
+    Output("detector-image", "figure", allow_duplicate=True),
     Output("meta-beam_center_x", "value", allow_duplicate=True),
     Output("meta-beam_center_y", "value", allow_duplicate=True),
     Output("status-msg", "children", allow_duplicate=True),
     Input("swap-xy-btn", "n_clicks"),
+    State("display-channel", "value"),
+    State("colormap", "value"),
+    State("log-scale", "value"),
     prevent_initial_call=True,
 )
-def swap_xy_cb(n_clicks):
-    """Swap beam_center_x and beam_center_y in the metadata."""
+def swap_xy_cb(n_clicks, channel_idx, colormap, log_scale_list):
+    """Swap beam_center_x/y and replot with updated crosshair."""
     if not model.is_ready():
-        return no_update, no_update, "Load a file first."
+        return no_update, no_update, no_update, "Load a file first."
     model.dset.swapxy()
     model.update_parameters()
     meta = model.dset.metadata
-    return (
-        round(float(meta["beam_center_x"]), 4),
-        round(float(meta["beam_center_y"]), 4),
-        "X/Y swapped — click Update Params to apply.",
+    idx = int(channel_idx) if channel_idx is not None else 0
+    fig = make_figure(
+        model.dset.data_display[idx],
+        colormap=colormap or "jet",
+        log_scale=bool(log_scale_list),
+        center_vh=model.get_center("vh"),
     )
+    return fig, round(float(meta["beam_center_x"]), 4), round(float(meta["beam_center_y"]), 4), "X/Y swapped."
 
 
 # ---------------------------------------------------------------------------
