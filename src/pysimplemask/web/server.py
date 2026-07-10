@@ -39,8 +39,14 @@ def main_web() -> None:
     )
     args = parser.parse_args()
 
-    from pysimplemask.web import layout as _layout  # noqa: F401
-    from pysimplemask.web import callbacks as _callbacks  # noqa: F401
+    from pysimplemask.web import layout as _layout
+    try:
+        from pysimplemask.web import callbacks as _callbacks  # noqa: F401
+    except ImportError as exc:
+        raise ImportError(
+            "pysimplemask.web.callbacks not found. "
+            "Ensure the web package is fully installed."
+        ) from exc
 
     app.layout = _layout.build_layout(initial_path=args.path or "")
 
