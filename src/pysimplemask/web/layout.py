@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import plotly.graph_objects as go
 from dash import dcc, html
 
 from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
@@ -20,6 +21,8 @@ def build_layout(initial_path: str = "") -> html.Div:
             "fontSize": "14px",
         },
         children=[
+            # Incremented by load_file on each successful load; triggers update_display.
+            dcc.Store(id="model-loaded", data=0),
             _sidebar(initial_path),
             _main_panel(),
         ],
@@ -145,7 +148,8 @@ def _main_panel() -> html.Div:
             ),
             dcc.Graph(
                 id="detector-image",
-                style={"flex": "1", "minHeight": "400px"},
+                figure=go.Figure(),
+                style={"flex": "1", "minHeight": "500px"},
                 responsive=True,
                 config={"scrollZoom": True, "displaylogo": False},
             ),

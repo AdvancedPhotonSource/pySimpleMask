@@ -15,7 +15,7 @@ from pysimplemask.web.server import model
 
 
 @callback(
-    Output("detector-image", "figure"),
+    Output("model-loaded", "data"),
     Output("meta-beam_center_x", "value"),
     Output("meta-beam_center_y", "value"),
     Output("meta-energy", "value"),
@@ -31,7 +31,12 @@ from pysimplemask.web.server import model
     prevent_initial_call=True,
 )
 def load_file(n_clicks, file_path, beamline, begin_idx, num_frames):
-    """Load a scattering file and populate the metadata fields."""
+    """Load a scattering file and populate the metadata fields.
+
+    Rather than outputting the figure directly (which Dash 4.x drops when
+    returning many outputs at once), we increment ``model-loaded`` which
+    triggers ``update_display`` to render the image via its own callback.
+    """
     if ctx.triggered_id != "load-btn":
         return (no_update,) * 8
     if not file_path:
@@ -52,15 +57,11 @@ def load_file(n_clicks, file_path, beamline, begin_idx, num_frames):
                "Failed to load file.", no_update
 
     meta = model.dset.metadata
-    arr = model.dset.data_display[0]
-    center_vh = model.get_center("vh")
-    fig = make_figure(arr, log_scale=False, center_vh=center_vh)
-
     all_channel_labels = list(DISPLAY_FIELD) + list(model.qmap.keys())
     options = [{"label": v, "value": i} for i, v in enumerate(all_channel_labels)]
 
     return (
-        fig,
+        n_clicks,  # increments model-loaded → triggers update_display
         round(float(meta["beam_center_x"]), 4),
         round(float(meta["beam_center_y"]), 4),
         round(float(meta["energy"]), 6),
@@ -201,9 +202,10 @@ def swap_xy_cb(n_clicks):
     Input("display-channel", "value"),
     Input("colormap", "value"),
     Input("log-scale", "value"),
+    Input("model-loaded", "data"),
     prevent_initial_call=True,
 )
-def update_display(channel_idx, colormap, log_scale_list):
+def update_display(channel_idx, colormap, log_scale_list, _model_loaded):
     """Re-render the detector image when display controls change."""
     if not model.is_ready():
         return no_update
