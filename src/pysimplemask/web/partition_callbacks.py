@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from dash import Input, Output, State, callback, no_update
 
+from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
 from pysimplemask.web.image_utils import make_figure
 from pysimplemask.web.server import model
 
-# DISPLAY_FIELD index for dqmap_partition
-_DQMAP = 3
+_DQMAP = DISPLAY_FIELD.index("dqmap_partition")
 
 
 def _fig(colormap: str | None, log_scale_list: list) -> object:
@@ -140,6 +140,8 @@ def save_partition_cb(n_clicks, save_path):
         return "Compute a partition first."
     if not save_path:
         return "Enter an output path."
+    if not save_path.endswith((".h5", ".hdf5", ".hdf")):
+        save_path = save_path + ".h5"
     try:
         model.save_partition(save_path)
     except Exception as exc:
