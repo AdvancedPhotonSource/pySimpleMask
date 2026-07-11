@@ -65,3 +65,7 @@ def test_callbacks_module_imports():
 
 def test_mask_callbacks_imports():
     import pysimplemask.web.mask_callbacks  # noqa: F401
+
+
+def test_partition_callbacks_imports():
+    import pysimplemask.web.partition_callbacks  # noqa: F401
