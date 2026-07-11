@@ -7,6 +7,7 @@ from dash import dcc, html
 
 from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
 from pysimplemask.web.mask_layout import build_mask_section
+from pysimplemask.web.partition_layout import build_partition_section
 
 COLORMAPS = ["jet", "viridis", "gray", "hot", "cool", "RdBu_r", "plasma", "magma"]
 BEAMLINES = ["APS_8IDI", "APS_9IDD", "NativeFiles"]
@@ -107,6 +108,7 @@ def _sidebar(initial_path: str) -> html.Div:
                 ],
             ),
             *build_mask_section().children,
+            *build_partition_section().children,
         ],
     )
 

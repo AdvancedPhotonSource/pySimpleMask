@@ -54,6 +54,13 @@ def main_web() -> None:
             "pysimplemask.web.mask_callbacks not found. "
             "Ensure the web package is fully installed."
         ) from exc
+    try:
+        from pysimplemask.web import partition_callbacks as _partition_callbacks  # noqa: F401
+    except ImportError as exc:
+        raise ImportError(
+            "pysimplemask.web.partition_callbacks not found. "
+            "Ensure the web package is fully installed."
+        ) from exc
 
     app.layout = _layout.build_layout(initial_path=args.path or "")
 
