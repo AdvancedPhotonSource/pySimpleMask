@@ -284,9 +284,10 @@ def update_hover(hover_data, channel_idx):
     Input("upload-result-file",  "contents"),
     State("upload-result-file",  "filename"),
     State("model-loaded",        "data"),
+    State("beamline",            "value"),
     prevent_initial_call=True,
 )
-def upload_result_file_cb(contents, filename, current_loaded):
+def upload_result_file_cb(contents, filename, current_loaded, beamline):
     """Decode an uploaded HDF5 file, write to temp, and load into the model."""
     if contents is None:
         return (no_update,) * 9
@@ -302,7 +303,7 @@ def upload_result_file_cb(contents, filename, current_loaded):
     _ERR = (no_update,) * 7  # placeholders for outputs 0–6
 
     try:
-        ok = model.read_data(fname=tmp_path, beamline="APS_8IDI")
+        ok = model.read_data(fname=tmp_path, beamline=beamline or "APS_8IDI")
     except Exception as exc:
         return (*_ERR, f"Upload error: {exc}", no_update)
     if not ok:
