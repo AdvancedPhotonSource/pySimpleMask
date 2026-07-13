@@ -136,3 +136,16 @@ def test_build_qmap_args_still_works_directly():
         args = _build_qmap_args([p])
     assert args.dataset == p
     assert args.mode == "q-phi"
+
+
+def test_main_toplevel_path_launches_gui(monkeypatch, tmp_path):
+    """pysimplemask --path DIR (no subcommand) calls main_gui with DIR."""
+    monkeypatch.setattr(sys, "argv", ["pysimplemask", "--path", str(tmp_path)])
+    mock_gui = MagicMock(return_value=0)
+    with patch("pysimplemask.gui.app.main_gui", mock_gui):
+        from pysimplemask import cli
+        try:
+            cli.main()
+        except SystemExit:
+            pass
+    mock_gui.assert_called_once_with(str(tmp_path))
