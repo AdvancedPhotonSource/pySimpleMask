@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import base64
+import os
+import tempfile
+
 from dash import Input, Output, State, callback, ctx, no_update
 
 from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
@@ -260,3 +264,62 @@ def update_hover(hover_data, channel_idx):
     row = int(pt.get("y", 0))
     idx = int(channel_idx) if channel_idx is not None else 0
     return model.dset.get_coordinates(col, row, idx) or ""
+
+
+# ---------------------------------------------------------------------------
+# Upload Result File — receive HDF5 from browser, write to temp, load
+# ---------------------------------------------------------------------------
+
+
+@callback(
+    Output("model-loaded",           "data",     allow_duplicate=True),
+    Output("file-path",              "value"),
+    Output("meta-beam_center_x",     "value",    allow_duplicate=True),
+    Output("meta-beam_center_y",     "value",    allow_duplicate=True),
+    Output("meta-energy",            "value",    allow_duplicate=True),
+    Output("meta-detector_distance", "value",    allow_duplicate=True),
+    Output("meta-pixel_size",        "value",    allow_duplicate=True),
+    Output("status-msg",             "children", allow_duplicate=True),
+    Output("display-channel",        "options",  allow_duplicate=True),
+    Input("upload-result-file",  "contents"),
+    State("upload-result-file",  "filename"),
+    State("model-loaded",        "data"),
+    prevent_initial_call=True,
+)
+def upload_result_file_cb(contents, filename, current_loaded):
+    """Decode an uploaded HDF5 file, write to temp, and load into the model."""
+    if contents is None:
+        return (no_update,) * 9
+
+    suffix = os.path.splitext(filename or ".hdf")[1] or ".hdf"
+    _, b64 = contents.split(",", 1)
+    file_bytes = base64.b64decode(b64)
+
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as f:
+        f.write(file_bytes)
+        tmp_path = f.name
+
+    _ERR = (no_update,) * 7  # placeholders for outputs 0–6
+
+    try:
+        ok = model.read_data(fname=tmp_path, beamline="APS_8IDI")
+    except Exception as exc:
+        return (*_ERR, f"Upload error: {exc}", no_update)
+    if not ok:
+        return (*_ERR, "Failed to load uploaded file.", no_update)
+
+    meta = model.dset.metadata
+    all_channel_labels = list(DISPLAY_FIELD) + list(model.qmap.keys())
+    options = [{"label": v, "value": i} for i, v in enumerate(all_channel_labels)]
+
+    return (
+        (current_loaded or 0) + 1,           # 0: model-loaded → triggers update_display
+        tmp_path,                              # 1: file-path.value
+        round(float(meta["beam_center_x"]), 4),  # 2
+        round(float(meta["beam_center_y"]), 4),  # 3
+        round(float(meta["energy"]), 6),          # 4
+        round(float(meta["detector_distance"]), 6),  # 5
+        float(meta["pixel_size"]),                # 6
+        f"Uploaded: {filename}",                  # 7: status-msg
+        options,                                   # 8: display-channel.options
+    )

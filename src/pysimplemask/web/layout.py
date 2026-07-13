@@ -82,6 +82,15 @@ def _sidebar(initial_path: str) -> html.Div:
                 id="load-btn",
                 style={"width": "100%", "marginBottom": "8px"},
             ),
+            dcc.Upload(
+                id="upload-result-file",
+                children=html.Button(
+                    "Upload Result File",
+                    style={"width": "100%", "cursor": "pointer"},
+                ),
+                accept=".hdf,.h5,.hdf5",
+                style={"width": "100%", "marginBottom": "8px"},
+            ),
             html.Div(
                 id="status-msg",
                 style={"color": "red", "fontSize": "12px", "marginBottom": "8px"},
