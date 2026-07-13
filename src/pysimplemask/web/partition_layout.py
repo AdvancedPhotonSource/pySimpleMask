@@ -54,12 +54,9 @@ def build_partition_section() -> html.Div:
                             style={**_BTN, "flex": "1"}),
                 html.Button("Save Mask (TIFF)", id="save-mask-btn",
                             style={**_BTN, "flex": "1"}),
+                html.Button("Download Partition (HDF5)", id="download-partition-btn",
+                            style={**_BTN, "flex": "1"}),
             ],
-        ),
-        html.Button(
-            "Download Partition (HDF5)",
-            id="download-partition-btn",
-            style={**_BTN, "width": "100%", "marginBottom": "4px"},
         ),
         html.Div(id="save-status", style={"fontSize": "11px", "color": "#555"}),
     ])
