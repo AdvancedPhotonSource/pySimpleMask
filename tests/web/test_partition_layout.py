@@ -10,6 +10,7 @@ from pysimplemask.web.partition_layout import build_partition_section  # noqa: E
 REQUIRED_IDS = {
     "partition-tabs", "partition-compute-btn", "partition-status",
     "save-path", "save-partition-btn", "save-mask-btn", "save-status",
+    "download-partition-btn", "download-partition-data",
     # q-phi
     "qphi-dq-num", "qphi-dp-num", "qphi-sq-num", "qphi-sp-num",
     "qphi-style", "qphi-phi-offset", "qphi-symmetry-fold",

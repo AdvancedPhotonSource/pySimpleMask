@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from dash import Input, Output, State, callback, no_update
+import os
+import tempfile
+
+from dash import Input, Output, State, callback, dcc, no_update
 
 from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
 from pysimplemask.web.image_utils import make_figure
@@ -193,3 +196,29 @@ def repopulate_gen_axes(_model_loaded):
         return [], []
     opts = [{"label": k, "value": k} for k in model.qmap.keys()]
     return opts, opts
+
+
+# ---------------------------------------------------------------------------
+# Download Partition (HDF5) — sends qmap to the browser
+# ---------------------------------------------------------------------------
+
+
+@callback(
+    Output("download-partition-data", "data"),
+    Input("download-partition-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def download_partition_cb(n_clicks):
+    """Write the partition to a temp file and send it to the browser."""
+    if not model.is_ready() or model.new_partition is None:
+        return no_update
+    with tempfile.NamedTemporaryFile(suffix=".hdf", delete=False) as f:
+        fname = f.name
+    try:
+        model.save_partition(fname)
+        return dcc.send_file(fname, filename="qmap.hdf")
+    finally:
+        try:
+            os.unlink(fname)
+        except OSError:
+            pass

@@ -14,6 +14,7 @@ _STYLES = ["linear", "log"]
 def build_partition_section() -> html.Div:
     """Return the full partition + save section for the sidebar."""
     return html.Div(children=[
+        dcc.Download(id="download-partition-data"),
         html.Hr(),
         html.H4("Partition", style={"marginBottom": "4px"}),
         dcc.Tabs(
@@ -54,6 +55,11 @@ def build_partition_section() -> html.Div:
                 html.Button("Save Mask (TIFF)", id="save-mask-btn",
                             style={**_BTN, "flex": "1"}),
             ],
+        ),
+        html.Button(
+            "Download Partition (HDF5)",
+            id="download-partition-btn",
+            style={**_BTN, "width": "100%", "marginBottom": "4px"},
         ),
         html.Div(id="save-status", style={"fontSize": "11px", "color": "#555"}),
     ])
