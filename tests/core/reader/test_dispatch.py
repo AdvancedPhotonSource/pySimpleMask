@@ -170,6 +170,7 @@ def test_native_files_metadata_is_fake(tmp_path):
     from pysimplemask.core.reader.beamlines.native_files import NativeFilesReader
     reader = NativeFilesReader(str(p))
     meta = reader.get_metadata()
-    assert "beam_center_x" in meta
-    assert "energy" in meta
-    assert "pixel_size" in meta
+    # All fields required by compute_transmission_qmap must be present
+    for key in ("beam_center_x", "beam_center_y", "energy", "pixel_size",
+                "detector_distance", "swing_angle_horizontal", "swing_angle_vertical"):
+        assert key in meta, f"Missing required metadata key: {key}"

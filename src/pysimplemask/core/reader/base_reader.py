@@ -55,13 +55,21 @@ def dict_to_params(name, data_dict, meta_units_formats=None):
 
 
 def get_fake_metadata():
-    """Return placeholder metadata used when real metadata cannot be read."""
+    """Return placeholder metadata used when real metadata cannot be read.
+
+    Includes every field required by ``compute_transmission_qmap`` so that
+    any reader that falls back to this dict can complete qmap computation.
+    ``detector_shape_x/y`` are omitted here because ``prepare_data`` sets
+    them from the actual image shape after ``get_scattering()`` returns.
+    """
     return {
-        "energy": 12.3,  # keV
-        "detector_distance": 12.3456,  # meter
-        "pixel_size": 75e-6,  # meter
-        "beam_center_x": 512.0,
-        "beam_center_y": 256.0,
+        "energy": 12.3,               # keV
+        "detector_distance": 12.3456, # meter
+        "pixel_size": 75e-6,          # meter
+        "beam_center_x": 512.0,       # pixel
+        "beam_center_y": 256.0,       # pixel
+        "swing_angle_horizontal": 0.0,  # degree
+        "swing_angle_vertical": 0.0,    # degree
     }
 
 
