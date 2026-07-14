@@ -201,6 +201,12 @@ class FileReader(object):
             self.metadata.update(new_metadata)
 
     def compute_qmap(self):
+        # Always derive detector shape from the actual scattering image so that
+        # a manually-edited ParameterTree value (detector_shape_x/y) or a
+        # stale metadata entry can never produce a qmap whose shape disagrees
+        # with data_display and causes a broadcast ValueError.
+        self.metadata["detector_shape_x"] = self.shape[1]
+        self.metadata["detector_shape_y"] = self.shape[0]
         self.qmap, self.qmap_unit = compute_qmap(self.stype, self.metadata)
         for index, value in enumerate(self.qmap.values()):
             self.data_display[len(DISPLAY_FIELD) + index] = value
