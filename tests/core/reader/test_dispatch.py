@@ -126,3 +126,50 @@ def test_get_handler_plain_hdf_not_misdetected_as_xpcs(make_hdf):
     path = make_hdf(np.zeros((2, 4, 5)))
     reader = get_handler("APS_8IDI", path)
     assert isinstance(reader, APS8IDIReader)
+
+
+def test_get_reader_native_files(tmp_path):
+    import tifffile, numpy as np
+    p = tmp_path / "img.tif"
+    tifffile.imwrite(str(p), np.ones((8, 8), dtype=np.float32))
+    from pysimplemask.core.reader.beamlines.native_files import NativeFilesReader
+    reader = get_reader("NativeFiles", str(p))
+    assert isinstance(reader, NativeFilesReader)
+    assert reader.stype == "Transmission"
+
+
+def test_native_files_loads_tiff_2d(tmp_path):
+    import tifffile, numpy as np
+    p = tmp_path / "flat.tif"
+    tifffile.imwrite(str(p), np.ones((16, 12), dtype=np.float32) * 7)
+    from pysimplemask.core.reader.beamlines.native_files import NativeFilesReader
+    reader = NativeFilesReader(str(p))
+    scat = reader.get_scattering()
+    assert scat.shape == (16, 12)
+    assert scat.dtype == np.float32
+    assert np.allclose(scat, 7.0)
+
+
+def test_native_files_averages_3d_tiff(tmp_path):
+    import tifffile, numpy as np
+    frames = np.array([[[1, 2], [3, 4]], [[3, 4], [5, 6]]], dtype=np.float32)
+    p = tmp_path / "stack.tif"
+    tifffile.imwrite(str(p), frames)
+    from pysimplemask.core.reader.beamlines.native_files import NativeFilesReader
+    reader = NativeFilesReader(str(p))
+    scat = reader.get_scattering()
+    expected = np.array([[2.0, 3.0], [4.0, 5.0]], dtype=np.float32)
+    assert scat.shape == (2, 2)
+    np.testing.assert_allclose(scat, expected)
+
+
+def test_native_files_metadata_is_fake(tmp_path):
+    import tifffile, numpy as np
+    p = tmp_path / "img.tif"
+    tifffile.imwrite(str(p), np.ones((8, 8), dtype=np.float32))
+    from pysimplemask.core.reader.beamlines.native_files import NativeFilesReader
+    reader = NativeFilesReader(str(p))
+    meta = reader.get_metadata()
+    assert "beam_center_x" in meta
+    assert "energy" in meta
+    assert "pixel_size" in meta

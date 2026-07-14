@@ -27,4 +27,8 @@ def get_reader(beamline, fname, **kwargs):
         from .beamlines.aps_9idd import APS9IDDReader
 
         return APS9IDDReader(fname, **kwargs)
+    if beamline == "NativeFiles":
+        from .beamlines.native_files import NativeFilesReader
+
+        return NativeFilesReader(fname)
     raise ValueError(f"unsupported beamline: {beamline}")
