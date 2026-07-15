@@ -443,7 +443,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
         self.plot_center.setToolTip("Show or hide the beam center crosshair")
         self.checkBox_showxy.setToolTip(
-            "Show (x, y) pixel coordinates next to the cursor while hovering over the image"
+            "Show (x, y) pixel coordinates next to the cursor while hovering over the image.\n"
+            "Shift + double-click on the image to set a new beam center."
         )
         self.plot_log.setToolTip("Use logarithmic color scale")
         self.plot_cmap.setToolTip("Colormap for intensity display")
@@ -940,8 +941,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
             # Offset slightly so the label doesn't sit on top of the cursor pixel
             offset = max(w, h) * 0.01
             self._xy_text_item.setPos(col + offset, row + offset)
+            self.statusbar.showMessage("Shift + double click to set the new beam center")
         else:
             self._remove_xy_label()
+            self.statusbar.clearMessage()
 
     def plot(self, reset_view=False):
         if not self.is_ready():
