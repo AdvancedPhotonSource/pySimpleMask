@@ -872,7 +872,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.plot_index.addItem(key)
 
         self.display_metadata()
-        self.plot()
+        self.plot(reset_view=True)
         self.statusbar.showMessage("data is loaded", 500)
         self.btn_load.setText("load data")
         self.btn_load.repaint()
@@ -930,15 +930,25 @@ class SimpleMaskGUI(QMainWindow, Ui):
         else:
             self._remove_xy_label()
 
-    def plot(self):
+    def plot(self, reset_view=False):
         if not self.is_ready():
             return
         cmap = self.plot_cmap.currentText()
         plot_center = self.plot_center.isChecked()
+
+        # Save view range before clearing so we can restore it when not resetting.
+        vb = self.mp1.getView()
+        saved_range = None if reset_view else (
+            vb.viewRange() if self.mp1.image is not None else None
+        )
+
         self.mp1.clear()
         self.mp1.setImage(self.sm.dset.data_display)
         self.mp1.adjust_viewbox()
         self.mp1.set_colormap(cmap)
+
+        if saved_range is not None:
+            vb.setRange(xRange=saved_range[0], yRange=saved_range[1], padding=0)
         if plot_center:
             center = self.sm.get_center(mode="vh")
             h, w = self.sm.shape
