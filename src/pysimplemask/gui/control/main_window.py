@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.parametertree import Parameter
-from PySide6.QtCore import QByteArray
+from PySide6.QtCore import QByteArray, QTimer  # noqa: F401  (QTimer used by Task 2 frame browser)
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -36,6 +36,8 @@ from pysimplemask.gui.view.ui_mask import Ui_SimpleMask as Ui
 
 HOME_DIR = Path.home()
 CONFIG_FILE = HOME_DIR / ".pysimplemask" / "config.json"
+
+_RAWDATA_IDX = 0   # "rawdata" is always at plot_index position 0
 CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
@@ -122,6 +124,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         self.setupUi(self)
         self.setWindowTitle(f"pySimpleMask {__version__}")
+
+        # Frame controls are hidden until rawdata channel is active
+        self.label_frame.setVisible(False)
+        self.horizontalSlider_frame.setVisible(False)
+        self.spinBox_current_frame.setVisible(False)
+
+        # rawdata item starts disabled (grayed) until a compatible file is loaded
+        self._set_rawdata_enabled(False)
         
         # Set application icon
         try:
@@ -541,7 +551,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
         self.sm.mask_action(action)
         self.plot()
-        self.plot_index.setCurrentIndex(1)
+        self.plot_index.setCurrentIndex(2)
 
     def mask_apply_current_tab(self):
         """Apply the mask(s) for the currently active MaskWidget tab."""
@@ -711,7 +721,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         msg = self.sm.mask_evaluate(target, **kwargs)
         self.statusbar.showMessage(msg, 10000)
-        self.plot_index.setCurrentIndex(5)
+        self.plot_index.setCurrentIndex(6)
         return
 
     def update_threshold_preset(self, target="low"):
@@ -752,18 +762,27 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.model.clear()
 
         self.plot()
-        self.plot_index.setCurrentIndex(1)
+        self.plot_index.setCurrentIndex(2)
 
     def _on_plot_index_changed(self, idx):
         """Update the displayed 2D slice when the channel selector changes."""
+        show_frame_controls = (idx == _RAWDATA_IDX)
+        self.label_frame.setVisible(show_frame_controls)
+        self.horizontalSlider_frame.setVisible(show_frame_controls)
+        self.spinBox_current_frame.setVisible(show_frame_controls)
+
+        if idx == _RAWDATA_IDX:
+            return   # rawdata display handled by frame browser callbacks
+
         if not self.is_ready():
             return
+        channel = idx - 1
         vb = self.mp1.getView()
         saved_range = vb.viewRange() if self.mp1.image is not None else None
-        self.mp1.setImage(self.sm.dset.data_display[idx])
+        self.mp1.setImage(self.sm.dset.data_display[channel])
         if saved_range is not None:
             vb.setRange(xRange=saved_range[0], yRange=saved_range[1], padding=0)
-        if idx in [2, 5]:   # mask and preview: enforce binary 0/1 scale
+        if idx in [3, 6]:   # mask and preview: enforce binary 0/1 scale
             self.mp1.setLevels(0, 1)
 
     def is_ready(self):
@@ -771,6 +790,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.statusbar.showMessage("No scattering image is loaded.", 500)
             return False
         return True
+
+    def _set_rawdata_enabled(self, enabled: bool) -> None:
+        """Enable or gray out the rawdata item in plot_index."""
+        model = self.plot_index.model()
+        item = model.item(_RAWDATA_IDX)
+        if item:
+            item.setEnabled(enabled)
+        if not enabled and self.plot_index.currentIndex() == _RAWDATA_IDX:
+            self.plot_index.setCurrentIndex(_RAWDATA_IDX + 1)
 
     def update_parameters(self, swapxy=False, new_center_vh=None):
         if not self.is_ready():
@@ -890,8 +918,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
         self.update_xmap_limits()
 
-        while self.plot_index.count() > 6:
-            self.plot_index.removeItem(6)
+        while self.plot_index.count() > 7:
+            self.plot_index.removeItem(7)
         for key in self.sm.qmap.keys():
             self.plot_index.addItem(key)
 
@@ -935,7 +963,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         idx = self.plot_index.currentIndex()
         col = int(mouse_point.x())
         row = int(mouse_point.y())
-        msg = self.sm.dset.get_coordinates(col, row, idx)
+        if idx == _RAWDATA_IDX:
+            channel = 0   # use scattering channel for coordinates when rawdata active
+        else:
+            channel = idx - 1
+        msg = self.sm.dset.get_coordinates(col, row, channel)
         if msg:
             self.infobar.clear()
             self.infobar.setText(msg)
@@ -983,8 +1015,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
 
         idx = self.plot_index.currentIndex()
+        if idx == _RAWDATA_IDX:
+            return   # rawdata handled separately; nothing to show until user selects a frame
+        channel = idx - 1   # rawdata occupies slot 0; shift back
         self.mp1.clear()
-        self.mp1.setImage(self.sm.dset.data_display[idx])
+        self.mp1.setImage(self.sm.dset.data_display[channel])
         self.mp1.adjust_viewbox()
         self.mp1.set_colormap(cmap)
 
@@ -999,7 +1034,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 t = pg.ScatterPlotItem()
                 t.addPoints(x=[col], y=[row], symbol="+", size=15)
                 self.mp1.add_item(t, label="center")
-        self.plot_index.setCurrentIndex(1)
 
     def add_drawing(self):
         if not self.is_ready():
@@ -1153,7 +1187,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         try:
             self.sm.compute_partition(**kwargs)
             self.statusbar.showMessage("New partition is generated.", 1000)
-            self.plot_index.setCurrentIndex(3)
+            self.plot_index.setCurrentIndex(4)
         except Exception:
             traceback.print_exc()
         finally:

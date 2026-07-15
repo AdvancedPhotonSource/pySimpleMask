@@ -99,3 +99,32 @@ def test_tab_mask_targets_constant(qapp, tmp_path):
     from pysimplemask.gui.control.main_window import _TAB_MASK_TARGETS
     gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
     assert len(_TAB_MASK_TARGETS) == gui.MaskWidget.count()
+
+
+def test_rawdata_item_disabled_by_default(qapp, tmp_path):
+    """rawdata plot_index item is grayed out before any data is loaded."""
+    gui = SimpleMaskGUI()
+    model = gui.plot_index.model()
+    item = model.item(0)   # index 0 = rawdata
+    assert item is not None
+    assert not item.isEnabled(), "rawdata should be disabled before data load"
+
+
+def test_frame_controls_hidden_by_default(qapp, tmp_path):
+    """Frame controls are invisible on startup."""
+    gui = SimpleMaskGUI()
+    assert not gui.label_frame.isVisible()
+    assert not gui.horizontalSlider_frame.isVisible()
+    assert not gui.spinBox_current_frame.isVisible()
+
+
+def test_non_rawdata_channel_uses_correct_data_display_slice(qapp, tmp_path):
+    """plot_index=1 (scattering) shows data_display[0], not data_display[1]."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16) * 5)
+    # Navigate away then back to 1 to ensure the signal fires (combobox skips no-op setCurrentIndex)
+    gui.plot_index.setCurrentIndex(2)
+    gui.plot_index.setCurrentIndex(1)
+    # mp1.image should be data_display[0] (the scattering channel)
+    assert gui.mp1.image is not None
+    expected = gui.sm.dset.data_display[0]
+    np.testing.assert_array_equal(gui.mp1.image, expected)
