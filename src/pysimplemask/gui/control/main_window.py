@@ -291,7 +291,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             "Browse for an external mask file (HDF5 or TIFF)"
         )
         self.maskfile_fname.setToolTip("Path to the external mask file")
-        self.comboBox_maskfile_path.setToolTip(
+        self.comboBox_hdffile_path.setToolTip(
             "HDF5 dataset path — populated automatically when an HDF file is loaded;\n"
             "only datasets whose shape matches the scattering image are listed"
         )
@@ -637,7 +637,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         elif target == "mask_file":
             kwargs = {
                 "fname": self.maskfile_fname.text(),
-                "key": self.comboBox_maskfile_path.currentText(),
+                "key": self.comboBox_hdffile_path.currentText(),
             }
         elif target == "mask_list":
             num_row = self.mask_list_xylist.count()
@@ -825,9 +825,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not fname:
             return
         self.maskfile_fname.setText(fname)
-        self.comboBox_maskfile_path.clear()
+        self.comboBox_hdffile_path.clear()
         if fname.endswith((".tif", ".tiff")):
-            self.comboBox_maskfile_path.setEnabled(False)
+            self.comboBox_hdffile_path.setEnabled(False)
         else:
             # HDF file: populate comboBox with datasets matching the scattering shape
             try:
@@ -835,8 +835,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
             except Exception as exc:
                 logger.warning("Failed to scan %s: %s", fname, exc)
                 paths = []
-            self.comboBox_maskfile_path.addItems(paths)
-            self.comboBox_maskfile_path.setEnabled(bool(paths))
+            self.comboBox_hdffile_path.addItems(paths)
+            self.comboBox_hdffile_path.setEnabled(bool(paths))
             if not paths:
                 self.statusbar.showMessage(
                     f"No datasets matching shape {self.sm.shape} found in {fname}",

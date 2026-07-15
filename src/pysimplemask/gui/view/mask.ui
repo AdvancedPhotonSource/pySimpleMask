@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1687</width>
-    <height>902</height>
+    <width>1728</width>
+    <height>890</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -29,22 +29,28 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>SimpleMask(beta)</string>
+   <string>SimpleMask</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
+    <property name="leftMargin">
+     <number>1</number>
+    </property>
+    <property name="topMargin">
+     <number>1</number>
+    </property>
+    <property name="rightMargin">
+     <number>1</number>
+    </property>
+    <property name="bottomMargin">
+     <number>1</number>
+    </property>
     <item row="0" column="0">
      <widget class="QSplitter" name="splitter_2">
       <property name="orientation">
        <enum>Qt::Orientation::Horizontal</enum>
       </property>
       <widget class="QSplitter" name="splitter">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-         <horstretch>1</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
        <property name="orientation">
         <enum>Qt::Orientation::Vertical</enum>
        </property>
@@ -52,7 +58,7 @@
         <property name="sizePolicy">
          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
           <horstretch>1</horstretch>
-          <verstretch>1</verstretch>
+          <verstretch>0</verstretch>
          </sizepolicy>
         </property>
         <property name="title">
@@ -71,43 +77,7 @@
          <property name="bottomMargin">
           <number>1</number>
          </property>
-         <item row="2" column="0" colspan="5">
-          <widget class="QGroupBox" name="groupBox_15">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>1</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>250</height>
-            </size>
-           </property>
-           <property name="title">
-            <string>Metadata</string>
-           </property>
-           <layout class="QGridLayout" name="gridLayout_10">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item row="0" column="0">
-             <widget class="ParameterTree" name="metadata_tree" native="true"/>
-            </item>
-           </layout>
-          </widget>
-         </item>
-         <item row="1" column="0" colspan="5">
+         <item row="1" column="0" colspan="2">
           <layout class="QHBoxLayout" name="horizontalLayout">
            <item>
             <widget class="QComboBox" name="comboBox_beamline">
@@ -174,7 +144,138 @@
            </item>
           </layout>
          </item>
-         <item row="0" column="0" colspan="5">
+         <item row="2" column="0" colspan="2">
+          <widget class="QGroupBox" name="groupBox_15">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="title">
+            <string>Metadata</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_10">
+            <property name="leftMargin">
+             <number>1</number>
+            </property>
+            <property name="topMargin">
+             <number>1</number>
+            </property>
+            <property name="rightMargin">
+             <number>1</number>
+            </property>
+            <property name="bottomMargin">
+             <number>1</number>
+            </property>
+            <item row="1" column="0">
+             <layout class="QHBoxLayout" name="horizontalLayout_5">
+              <item>
+               <widget class="QLabel" name="label_3">
+                <property name="text">
+                 <string>BeamCenter:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btn_swapxy">
+                <property name="text">
+                 <string>Swap X-Y</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_goto_max">
+                <property name="text">
+                 <string>Goto Maximal</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btn_find_center">
+                <property name="text">
+                 <string>Refine Center</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btn_update_parameters">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>Update Metadata</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item row="0" column="0">
+             <widget class="QScrollArea" name="scrollArea">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>140</height>
+               </size>
+              </property>
+              <property name="widgetResizable">
+               <bool>true</bool>
+              </property>
+              <widget class="QWidget" name="scrollAreaWidgetContents">
+               <property name="geometry">
+                <rect>
+                 <x>0</x>
+                 <y>0</y>
+                 <width>710</width>
+                 <height>111</height>
+                </rect>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_9">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item row="0" column="0">
+                 <widget class="ParameterTree" name="metadata_tree" native="true">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+                    <horstretch>0</horstretch>
+                    <verstretch>1</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item row="0" column="0" colspan="2">
           <layout class="QHBoxLayout" name="horizontalLayout_2">
            <item>
             <widget class="QLabel" name="label_17">
@@ -208,47 +309,6 @@
            </item>
           </layout>
          </item>
-         <item row="3" column="1">
-          <widget class="QPushButton" name="btn_swapxy">
-           <property name="text">
-            <string>Swap X-Y</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="4">
-          <widget class="QPushButton" name="btn_update_parameters">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="text">
-            <string>Update Metadata</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="3">
-          <widget class="QPushButton" name="btn_find_center">
-           <property name="text">
-            <string>Find Center</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="2">
-          <widget class="QPushButton" name="pushButton_goto_max">
-           <property name="text">
-            <string>Goto Maximal</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="0">
-          <widget class="QLabel" name="label_3">
-           <property name="text">
-            <string>BeamCenter:</string>
-           </property>
-          </widget>
-         </item>
         </layout>
        </widget>
        <widget class="QGroupBox" name="groupBox_2">
@@ -274,28 +334,66 @@
          <property name="bottomMargin">
           <number>1</number>
          </property>
-         <item row="2" column="0">
-          <widget class="QPushButton" name="btn_mask_reset">
+         <item row="1" column="0">
+          <widget class="QPushButton" name="btn_mask_evaluate">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
            <property name="text">
-            <string>Reset</string>
+            <string>Evaluate</string>
            </property>
           </widget>
          </item>
-         <item row="2" column="1">
-          <widget class="QPushButton" name="btn_mask_undo">
-           <property name="text">
-            <string>Undo</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="2">
+         <item row="1" column="3">
           <widget class="QPushButton" name="btn_mask_redo">
            <property name="text">
             <string>Redo</string>
            </property>
           </widget>
          </item>
-         <item row="1" column="0" colspan="3">
+         <item row="1" column="2">
+          <widget class="QPushButton" name="btn_mask_undo">
+           <property name="text">
+            <string>Undo</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QPushButton" name="btn_mask_apply">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>Apply</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="4">
+          <widget class="QPushButton" name="btn_mask_reset">
+           <property name="text">
+            <string>Reset</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="0" colspan="5">
           <widget class="QTabWidget" name="MaskWidget">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
@@ -310,7 +408,7 @@
             </size>
            </property>
            <property name="currentIndex">
-            <number>4</number>
+            <number>0</number>
            </property>
            <widget class="QWidget" name="tab_6">
             <attribute name="title">
@@ -329,10 +427,10 @@
              <property name="bottomMargin">
               <number>1</number>
              </property>
-             <item row="1" column="0">
+             <item row="0" column="0">
               <widget class="QGroupBox" name="groupBox_8">
                <property name="title">
-                <string>Additional File (hdf/tiff/mat):</string>
+                <string>Existing Files (hdf/tiff/mat):</string>
                </property>
                <layout class="QGridLayout" name="gridLayout_17">
                 <property name="leftMargin">
@@ -347,6 +445,19 @@
                 <property name="bottomMargin">
                  <number>2</number>
                 </property>
+                <item row="2" column="0">
+                 <spacer name="verticalSpacer_2">
+                  <property name="orientation">
+                   <enum>Qt::Orientation::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>40</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
                 <item row="1" column="0">
                  <layout class="QGridLayout" name="gridLayout_12">
                   <item row="0" column="0">
@@ -362,11 +473,24 @@
                     </property>
                    </widget>
                   </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="label_32">
+                    <property name="sizePolicy">
+                     <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+                      <horstretch>0</horstretch>
+                      <verstretch>0</verstretch>
+                     </sizepolicy>
+                    </property>
+                    <property name="text">
+                     <string>HDF path:</string>
+                    </property>
+                   </widget>
+                  </item>
                   <item row="0" column="1">
                    <widget class="QLineEdit" name="maskfile_fname">
                     <property name="sizePolicy">
                      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
+                      <horstretch>1</horstretch>
                       <verstretch>0</verstretch>
                      </sizepolicy>
                     </property>
@@ -394,230 +518,13 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="1" column="0">
-                   <widget class="QLabel" name="label_32">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="text">
-                     <string>HDF path:</string>
-                    </property>
-                   </widget>
-                  </item>
                   <item row="1" column="1">
-                   <widget class="QLineEdit" name="maskfile_path">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>300</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>/xpcs/mask</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="2">
-                   <widget class="QPushButton" name="btn_apply_maskfile">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>60</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>Evaluate</string>
-                    </property>
-                   </widget>
+                   <widget class="QComboBox" name="comboBox_hdffile_path"/>
                   </item>
                  </layout>
                 </item>
-                <item row="1" column="1">
-                 <widget class="QPushButton" name="btn_mask_file_apply">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>80</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="text">
-                   <string>Apply</string>
-                  </property>
-                 </widget>
-                </item>
                </layout>
               </widget>
-             </item>
-             <item row="0" column="0">
-              <widget class="QGroupBox" name="groupBox_7">
-               <property name="title">
-                <string>Blemish File:</string>
-               </property>
-               <layout class="QGridLayout" name="gridLayout_24">
-                <property name="leftMargin">
-                 <number>2</number>
-                </property>
-                <property name="topMargin">
-                 <number>2</number>
-                </property>
-                <property name="rightMargin">
-                 <number>2</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>2</number>
-                </property>
-                <item row="0" column="0">
-                 <layout class="QGridLayout" name="gridLayout_9">
-                  <item row="0" column="0">
-                   <widget class="QLabel" name="label_30">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="text">
-                     <string>Blemish file:</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="1">
-                   <widget class="QLineEdit" name="blemish_fname">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>300</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="0" column="2">
-                   <widget class="QPushButton" name="btn_select_blemish">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="text">
-                     <string>Select</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="0">
-                   <widget class="QLabel" name="label_31">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="text">
-                     <string>HDF path:</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="1">
-                   <widget class="QLineEdit" name="blemish_path">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>300</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>/qmap/mask</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item row="1" column="2">
-                   <widget class="QPushButton" name="btn_apply_blemish">
-                    <property name="sizePolicy">
-                     <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                      <horstretch>0</horstretch>
-                      <verstretch>0</verstretch>
-                     </sizepolicy>
-                    </property>
-                    <property name="minimumSize">
-                     <size>
-                      <width>60</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>Evaluate</string>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </item>
-                <item row="0" column="1">
-                 <widget class="QPushButton" name="btn_mask_blemish_apply">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>80</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="text">
-                   <string>Apply</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-             <item row="2" column="0">
-              <spacer name="verticalSpacer_2">
-               <property name="orientation">
-                <enum>Qt::Orientation::Vertical</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>40</height>
-                </size>
-               </property>
-              </spacer>
              </item>
             </layout>
            </widget>
@@ -679,13 +586,6 @@
                  </property>
                 </widget>
                </item>
-               <item row="3" column="2">
-                <widget class="QPushButton" name="btn_mask_draw_evaluate">
-                 <property name="text">
-                  <string>Evaluate</string>
-                 </property>
-                </widget>
-               </item>
                <item row="1" column="3">
                 <widget class="QSpinBox" name="plot_width">
                  <property name="specialValueText">
@@ -742,13 +642,6 @@
                    <string>inclusive</string>
                   </property>
                  </item>
-                </widget>
-               </item>
-               <item row="3" column="3">
-                <widget class="QPushButton" name="btn_mask_draw_apply">
-                 <property name="text">
-                  <string>Apply</string>
-                 </property>
                 </widget>
                </item>
                <item row="0" column="0">
@@ -822,10 +715,10 @@
                  </property>
                 </widget>
                </item>
-               <item row="3" column="0" colspan="2">
+               <item row="3" column="0" colspan="4">
                 <widget class="QPushButton" name="btn_mask_draw_add">
                  <property name="text">
-                  <string>Add</string>
+                  <string>Draw</string>
                  </property>
                 </widget>
                </item>
@@ -850,98 +743,6 @@
              <property name="bottomMargin">
               <number>1</number>
              </property>
-             <item row="4" column="1">
-              <widget class="QPushButton" name="btn_mask_threshold_apply">
-               <property name="text">
-                <string>Apply</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="0" colspan="2">
-              <widget class="QGroupBox" name="groupBox_10">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="title">
-                <string>Binary operation: (acts on the mask)</string>
-               </property>
-               <layout class="QGridLayout" name="gridLayout_20">
-                <property name="leftMargin">
-                 <number>2</number>
-                </property>
-                <property name="topMargin">
-                 <number>2</number>
-                </property>
-                <property name="rightMargin">
-                 <number>2</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>2</number>
-                </property>
-                <item row="0" column="1">
-                 <widget class="QPushButton" name="pushButton_9">
-                  <property name="text">
-                   <string>dilate</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="0">
-                 <widget class="QPushButton" name="pushButton_5">
-                  <property name="text">
-                   <string>erode</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="3">
-                 <widget class="QPushButton" name="pushButton_15">
-                  <property name="text">
-                   <string>close</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="2">
-                 <widget class="QPushButton" name="pushButton_16">
-                  <property name="text">
-                   <string>open</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-             <item row="4" column="0">
-              <widget class="QPushButton" name="btn_mask_threshold_evaluate">
-               <property name="text">
-                <string>Evaluate</string>
-               </property>
-              </widget>
-             </item>
-             <item row="5" column="1">
-              <spacer name="verticalSpacer_3">
-               <property name="orientation">
-                <enum>Qt::Orientation::Vertical</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>40</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
-             <item row="5" column="0">
-              <spacer name="verticalSpacer_4">
-               <property name="orientation">
-                <enum>Qt::Orientation::Vertical</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>40</height>
-                </size>
-               </property>
-              </spacer>
-             </item>
              <item row="0" column="0" colspan="2">
               <widget class="QGroupBox" name="groupBox_9">
                <property name="title">
@@ -1124,6 +925,84 @@
                 </item>
                </layout>
               </widget>
+             </item>
+             <item row="3" column="0" colspan="2">
+              <widget class="QGroupBox" name="groupBox_10">
+               <property name="enabled">
+                <bool>false</bool>
+               </property>
+               <property name="title">
+                <string>Binary operation: (acts on the mask)</string>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_20">
+                <property name="leftMargin">
+                 <number>2</number>
+                </property>
+                <property name="topMargin">
+                 <number>2</number>
+                </property>
+                <property name="rightMargin">
+                 <number>2</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>2</number>
+                </property>
+                <item row="0" column="1">
+                 <widget class="QPushButton" name="pushButton_9">
+                  <property name="text">
+                   <string>dilate</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="0">
+                 <widget class="QPushButton" name="pushButton_5">
+                  <property name="text">
+                   <string>erode</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="3">
+                 <widget class="QPushButton" name="pushButton_15">
+                  <property name="text">
+                   <string>close</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="2">
+                 <widget class="QPushButton" name="pushButton_16">
+                  <property name="text">
+                   <string>open</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item row="4" column="1">
+              <spacer name="verticalSpacer_3">
+               <property name="orientation">
+                <enum>Qt::Orientation::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
+             </item>
+             <item row="4" column="0">
+              <spacer name="verticalSpacer_4">
+               <property name="orientation">
+                <enum>Qt::Orientation::Vertical</enum>
+               </property>
+               <property name="sizeHint" stdset="0">
+                <size>
+                 <width>20</width>
+                 <height>40</height>
+                </size>
+               </property>
+              </spacer>
              </item>
             </layout>
            </widget>
@@ -1356,33 +1235,7 @@
                   </property>
                  </widget>
                 </item>
-                <item row="3" column="5">
-                 <widget class="QPushButton" name="btn_mask_list_apply">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="text">
-                   <string>Apply</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="3" column="0">
-                 <widget class="QPushButton" name="btn_mask_list_evaluate">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
-                  <property name="text">
-                   <string>Evaluate</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="3" column="1">
+                <item row="3" column="0" colspan="6">
                  <widget class="QPushButton" name="btn_mask_list_clear">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
@@ -1426,6 +1279,46 @@
                  </property>
                 </widget>
                </item>
+               <item row="1" column="3" rowspan="2">
+                <widget class="QLabel" name="label_15">
+                 <property name="text">
+                  <string>cutoff (±std):</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="4" rowspan="2">
+                <widget class="QDoubleSpinBox" name="outlier_cutoff">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximum">
+                  <double>999.000000000000000</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.100000000000000</double>
+                 </property>
+                 <property name="value">
+                  <double>10.000000000000000</double>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0" rowspan="2">
+                <widget class="QLabel" name="label_44">
+                 <property name="text">
+                  <string>Method</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_4">
+                 <property name="text">
+                  <string>Target</string>
+                 </property>
+                </widget>
+               </item>
                <item row="0" column="4">
                 <widget class="QSpinBox" name="outlier_num_roi">
                  <property name="maximum">
@@ -1462,53 +1355,6 @@
                  </item>
                 </widget>
                </item>
-               <item row="0" column="0">
-                <widget class="QLabel" name="label_4">
-                 <property name="text">
-                  <string>Target</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="5" rowspan="2">
-                <widget class="QPushButton" name="btn_mask_outlier_evaluate">
-                 <property name="text">
-                  <string>Evaluate</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="6" rowspan="2">
-                <widget class="QPushButton" name="btn_mask_outlier_apply">
-                 <property name="text">
-                  <string>Apply</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="4" rowspan="2">
-                <widget class="QDoubleSpinBox" name="outlier_cutoff">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="maximum">
-                  <double>999.000000000000000</double>
-                 </property>
-                 <property name="singleStep">
-                  <double>0.100000000000000</double>
-                 </property>
-                 <property name="value">
-                  <double>10.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="3" rowspan="2">
-                <widget class="QLabel" name="label_15">
-                 <property name="text">
-                  <string>cutoff (±std):</string>
-                 </property>
-                </widget>
-               </item>
                <item row="1" column="1" rowspan="2" colspan="2">
                 <widget class="QComboBox" name="comboBox_outlier_method">
                  <item>
@@ -1521,13 +1367,6 @@
                    <string>percentile</string>
                   </property>
                  </item>
-                </widget>
-               </item>
-               <item row="1" column="0" rowspan="2">
-                <widget class="QLabel" name="label_44">
-                 <property name="text">
-                  <string>Method</string>
-                 </property>
                 </widget>
                </item>
               </layout>
@@ -1567,45 +1406,6 @@
              <property name="bottomMargin">
               <number>1</number>
              </property>
-             <item row="3" column="3">
-              <widget class="QPushButton" name="btn_mask_param_delete">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="text">
-                <string>Delete</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="4">
-              <widget class="QPushButton" name="btn_mask_param_evaluate">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="text">
-                <string>Evaluate</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="5">
-              <widget class="QPushButton" name="btn_mask_param_apply">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="text">
-                <string>Apply</string>
-               </property>
-              </widget>
-             </item>
              <item row="3" column="1">
               <widget class="QComboBox" name="comboBox_param_logic">
                <item>
@@ -1623,19 +1423,6 @@
                  <string>NOT</string>
                 </property>
                </item>
-              </widget>
-             </item>
-             <item row="3" column="2">
-              <widget class="QPushButton" name="btn_mask_param_add">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="text">
-                <string>Add</string>
-               </property>
               </widget>
              </item>
              <item row="3" column="0">
@@ -1663,8 +1450,14 @@
              </item>
              <item row="1" column="0" colspan="6">
               <widget class="QLabel" name="label_42">
+               <property name="font">
+                <font>
+                 <family>Consolas</family>
+                 <bold>true</bold>
+                </font>
+               </property>
                <property name="text">
-                <string>Mask_parametrization = True [logic_1] mask_1 ... [logic_n]mask_n</string>
+                <string>Mask = True [logic_1] mask_1 [logic_2] mask_2 ... [logic_n]mask_n</string>
                </property>
               </widget>
              </item>
@@ -1746,52 +1539,787 @@
                </item>
               </layout>
              </item>
+             <item row="3" column="5">
+              <widget class="QPushButton" name="btn_mask_param_delete">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Delete</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="4">
+              <widget class="QPushButton" name="btn_mask_param_add">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Add</string>
+               </property>
+              </widget>
+             </item>
             </layout>
            </widget>
           </widget>
          </item>
         </layout>
        </widget>
+       <widget class="QWidget" name="">
+        <layout class="QVBoxLayout" name="verticalLayout">
+         <item>
+          <widget class="QGroupBox" name="groupBox_3">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+             <horstretch>2</horstretch>
+             <verstretch>1</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>160</height>
+            </size>
+           </property>
+           <property name="title">
+            <string>Partition</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_11">
+            <property name="leftMargin">
+             <number>1</number>
+            </property>
+            <property name="topMargin">
+             <number>1</number>
+            </property>
+            <property name="rightMargin">
+             <number>1</number>
+            </property>
+            <property name="bottomMargin">
+             <number>1</number>
+            </property>
+            <item row="1" column="0">
+             <widget class="QTabWidget" name="tabWidget">
+              <property name="currentIndex">
+               <number>0</number>
+              </property>
+              <widget class="QWidget" name="tab_9">
+               <attribute name="title">
+                <string>q-phi</string>
+               </attribute>
+               <layout class="QGridLayout" name="gridLayout_32">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item row="0" column="0">
+                 <layout class="QGridLayout" name="gridLayout_6">
+                  <item row="0" column="4">
+                   <widget class="QSpinBox" name="sb_dqnum">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>999</number>
+                    </property>
+                    <property name="value">
+                     <number>36</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLabel" name="label">
+                    <property name="text">
+                     <string>static q num:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QSpinBox" name="sb_sqnum">
+                    <property name="minimum">
+                     <number>2</number>
+                    </property>
+                    <property name="maximum">
+                     <number>9999</number>
+                    </property>
+                    <property name="value">
+                     <number>360</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="8">
+                   <widget class="QComboBox" name="partition_style">
+                    <item>
+                     <property name="text">
+                      <string>linear</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>logarithmic</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="0" column="3">
+                   <widget class="QLabel" name="label_10">
+                    <property name="text">
+                     <string>dynamic q num:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="7">
+                   <widget class="QLabel" name="label_20">
+                    <property name="text">
+                     <string>q-style:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1" rowspan="3">
+                   <widget class="QLabel" name="label_12">
+                    <property name="text">
+                     <string>static phi num:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="2" rowspan="3">
+                   <widget class="QSpinBox" name="sb_spnum">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>9999</number>
+                    </property>
+                    <property name="value">
+                     <number>1</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="3" rowspan="3">
+                   <widget class="QLabel" name="label_13">
+                    <property name="text">
+                     <string>dynamic phi num:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="4" rowspan="3">
+                   <widget class="QSpinBox" name="sb_dpnum">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>999</number>
+                    </property>
+                    <property name="value">
+                     <number>1</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="5" rowspan="3">
+                   <widget class="QLabel" name="label_43">
+                    <property name="text">
+                     <string>offset (deg):</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="6" rowspan="3">
+                   <widget class="QDoubleSpinBox" name="doubleSpinBox_phi_offset">
+                    <property name="minimum">
+                     <double>-180.000000000000000</double>
+                    </property>
+                    <property name="maximum">
+                     <double>180.000000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="7" rowspan="3">
+                   <widget class="QLabel" name="label_41">
+                    <property name="text">
+                     <string>symmetry</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="8" rowspan="3">
+                   <widget class="QSpinBox" name="spinBox_symmetry_fold">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>12</number>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </widget>
+              <widget class="QWidget" name="tab_10">
+               <attribute name="title">
+                <string>xy-mesh</string>
+               </attribute>
+               <layout class="QGridLayout" name="gridLayout_34">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item row="0" column="0">
+                 <layout class="QGridLayout" name="gridLayout_33">
+                  <item row="0" column="4">
+                   <widget class="QSpinBox" name="sb_dxnum">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>999</number>
+                    </property>
+                    <property name="value">
+                     <number>1</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QLabel" name="label_38">
+                    <property name="text">
+                     <string>static y:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="4">
+                   <widget class="QSpinBox" name="sb_dynum">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>999</number>
+                    </property>
+                    <property name="value">
+                     <number>1</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <widget class="QSpinBox" name="sb_synum">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>9999</number>
+                    </property>
+                    <property name="value">
+                     <number>8</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLabel" name="label_34">
+                    <property name="text">
+                     <string>static x:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="3">
+                   <widget class="QLabel" name="label_37">
+                    <property name="text">
+                     <string>dynamic x:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="3">
+                   <widget class="QLabel" name="label_36">
+                    <property name="text">
+                     <string>dynamic y:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QSpinBox" name="sb_sxnum">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>9999</number>
+                    </property>
+                    <property name="value">
+                     <number>6</number>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </widget>
+              <widget class="QWidget" name="tab">
+               <attribute name="title">
+                <string>ellipse</string>
+               </attribute>
+               <layout class="QGridLayout" name="gridLayout_26">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item row="0" column="0">
+                 <layout class="QGridLayout" name="gridLayout_35">
+                  <item row="1" column="3">
+                   <widget class="QLabel" name="label_51">
+                    <property name="text">
+                     <string>dynamic y:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLabel" name="label_35">
+                    <property name="text">
+                     <string>static x:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QLabel" name="label_40">
+                    <property name="text">
+                     <string>static y:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <widget class="QSpinBox" name="sb_synum_2">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>9999</number>
+                    </property>
+                    <property name="value">
+                     <number>8</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="3">
+                   <widget class="QLabel" name="label_49">
+                    <property name="text">
+                     <string>dynamic x:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QSpinBox" name="sb_sxnum_2">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>9999</number>
+                    </property>
+                    <property name="value">
+                     <number>6</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="4">
+                   <widget class="QSpinBox" name="sb_dynum_2">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>999</number>
+                    </property>
+                    <property name="value">
+                     <number>1</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="4">
+                   <widget class="QSpinBox" name="sb_dxnum_2">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>999</number>
+                    </property>
+                    <property name="value">
+                     <number>1</number>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </widget>
+              <widget class="QWidget" name="tab_8">
+               <attribute name="title">
+                <string>general</string>
+               </attribute>
+               <layout class="QGridLayout" name="gridLayout_31">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item row="0" column="0">
+                 <layout class="QGridLayout" name="gridLayout_30">
+                  <item row="0" column="6" colspan="2">
+                   <widget class="QComboBox" name="comboBox_partition_style0">
+                    <item>
+                     <property name="text">
+                      <string>Linear</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>Logarithmic</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="1" column="1" rowspan="2">
+                   <widget class="QComboBox" name="comboBox_partition_mapname1"/>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QLabel" name="label_48">
+                    <property name="text">
+                     <string>Static num</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="label_53">
+                    <property name="text">
+                     <string>map1</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="5" rowspan="2">
+                   <widget class="QSpinBox" name="sb_partition_dn1">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>999</number>
+                    </property>
+                    <property name="value">
+                     <number>1</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="3" rowspan="2">
+                   <widget class="QSpinBox" name="sb_partition_sn1">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>9999</number>
+                    </property>
+                    <property name="value">
+                     <number>1</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="5">
+                   <widget class="QSpinBox" name="sb_partition_dn0">
+                    <property name="minimum">
+                     <number>1</number>
+                    </property>
+                    <property name="maximum">
+                     <number>999</number>
+                    </property>
+                    <property name="value">
+                     <number>36</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="4">
+                   <widget class="QLabel" name="label_50">
+                    <property name="text">
+                     <string>Dynamic num</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QComboBox" name="comboBox_partition_mapname0"/>
+                  </item>
+                  <item row="0" column="3">
+                   <widget class="QSpinBox" name="sb_partition_sn0">
+                    <property name="minimum">
+                     <number>2</number>
+                    </property>
+                    <property name="maximum">
+                     <number>9999</number>
+                    </property>
+                    <property name="value">
+                     <number>360</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="6" rowspan="2" colspan="2">
+                   <widget class="QComboBox" name="comboBox_partition_style1">
+                    <item>
+                     <property name="text">
+                      <string>Linear</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>Logarithmic</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item row="1" column="0" rowspan="2">
+                   <widget class="QLabel" name="label_54">
+                    <property name="text">
+                     <string>map2</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="2" rowspan="2">
+                   <widget class="QLabel" name="label_52">
+                    <property name="text">
+                     <string>Static num</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="4" rowspan="2">
+                   <widget class="QLabel" name="label_5">
+                    <property name="text">
+                     <string>Dynamic num</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </widget>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QPushButton" name="btn_compute_qpartition">
+              <property name="text">
+               <string>Compute Partition</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+         <item>
+          <widget class="QGroupBox" name="groupBox_6">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+             <horstretch>1</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="title">
+            <string>Output</string>
+           </property>
+           <layout class="QGridLayout" name="gridLayout_7">
+            <property name="leftMargin">
+             <number>1</number>
+            </property>
+            <property name="topMargin">
+             <number>1</number>
+            </property>
+            <property name="rightMargin">
+             <number>1</number>
+            </property>
+            <property name="bottomMargin">
+             <number>1</number>
+            </property>
+            <item row="0" column="3">
+             <widget class="QPushButton" name="pushButton">
+              <property name="text">
+               <string>Save</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLabel" name="label_47">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="text">
+               <string>Format</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <widget class="QComboBox" name="comboBox_output_type">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <item>
+               <property name="text">
+                <string>Nexus-XPCS</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Mask-Only</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         </item>
+        </layout>
+       </widget>
       </widget>
-      <widget class="QWidget" name="layoutWidget">
-       <layout class="QVBoxLayout" name="verticalLayout">
-        <item>
-         <widget class="QGroupBox" name="groupBox_5">
+      <widget class="QGroupBox" name="groupBox_5">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+         <horstretch>2</horstretch>
+         <verstretch>1</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>800</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="title">
+        <string>Scattering, Mask and Partitions</string>
+       </property>
+       <layout class="QGridLayout" name="gridLayout_16">
+        <property name="leftMargin">
+         <number>1</number>
+        </property>
+        <property name="topMargin">
+         <number>1</number>
+        </property>
+        <property name="rightMargin">
+         <number>1</number>
+        </property>
+        <property name="bottomMargin">
+         <number>1</number>
+        </property>
+        <item row="1" column="0" colspan="4">
+         <widget class="ImageViewROI" name="mp1" native="true">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
-            <horstretch>2</horstretch>
-            <verstretch>1</verstretch>
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>4</horstretch>
+            <verstretch>0</verstretch>
            </sizepolicy>
           </property>
           <property name="minimumSize">
            <size>
-            <width>800</width>
+            <width>400</width>
             <height>0</height>
            </size>
           </property>
-          <property name="title">
-           <string>Scattering, Mask and Partitions</string>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_11">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
           </property>
-          <layout class="QGridLayout" name="gridLayout_16">
+          <property name="text">
+           <string>coordinates:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1" colspan="3">
+         <widget class="QLineEdit" name="infobar">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <horstretch>1</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0" colspan="4">
+         <widget class="QGroupBox" name="groupBox_4">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="title">
+           <string>Plot Settings</string>
+          </property>
+          <layout class="QGridLayout" name="gridLayout_3">
            <property name="leftMargin">
-            <number>1</number>
+            <number>0</number>
            </property>
            <property name="topMargin">
-            <number>1</number>
+            <number>0</number>
            </property>
            <property name="rightMargin">
-            <number>1</number>
+            <number>0</number>
            </property>
            <property name="bottomMargin">
-            <number>1</number>
+            <number>0</number>
            </property>
+           <item row="0" column="3">
+            <widget class="QCheckBox" name="checkBox_showxy">
+             <property name="text">
+              <string> xy</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
            <item row="0" column="0">
             <widget class="QComboBox" name="plot_index">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-               <horstretch>0</horstretch>
+               <horstretch>1</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>0</height>
+              </size>
              </property>
              <item>
               <property name="text">
@@ -1826,787 +2354,106 @@
             </widget>
            </item>
            <item row="0" column="1">
-            <widget class="QLabel" name="label_11">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
+            <widget class="QCheckBox" name="plot_center">
              <property name="text">
-              <string>coordinates:</string>
+              <string>center</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
-           <item row="0" column="2">
-            <widget class="QLineEdit" name="infobar"/>
-           </item>
-           <item row="1" column="0" colspan="3">
-            <widget class="ImageViewROI" name="mp1" native="true">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>4</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
+           <item row="0" column="4">
+            <widget class="QCheckBox" name="plot_log">
+             <property name="text">
+              <string>log</string>
              </property>
-             <property name="minimumSize">
-              <size>
-               <width>400</width>
-               <height>0</height>
-              </size>
+             <property name="checked">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
-           <item row="2" column="0" colspan="3">
-            <widget class="QGroupBox" name="groupBox_4">
+           <item row="0" column="5">
+            <widget class="QLabel" name="label_45">
+             <property name="text">
+              <string>cmap</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="6">
+            <widget class="QComboBox" name="plot_cmap">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
-             <property name="title">
-              <string>Plot Settings</string>
+             <item>
+              <property name="text">
+               <string>jet</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>cool</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>ocean</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>prism</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>coolwarm</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>seismic</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>gray</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>viridis</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>inferno</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>plasma</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>magma</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="0" column="7">
+            <widget class="QPushButton" name="btn_plot">
+             <property name="text">
+              <string>Plot</string>
              </property>
-             <layout class="QGridLayout" name="gridLayout_3">
-              <property name="leftMargin">
-               <number>1</number>
-              </property>
-              <property name="topMargin">
-               <number>1</number>
-              </property>
-              <property name="rightMargin">
-               <number>1</number>
-              </property>
-              <property name="bottomMargin">
-               <number>1</number>
-              </property>
-              <item row="0" column="0">
-               <widget class="QCheckBox" name="plot_center">
-                <property name="text">
-                 <string>show center</string>
-                </property>
-                <property name="checked">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <widget class="QCheckBox" name="plot_log">
-                <property name="text">
-                 <string>log scale</string>
-                </property>
-                <property name="checked">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="3">
-               <widget class="QComboBox" name="plot_cmap">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <item>
-                 <property name="text">
-                  <string>jet</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>cool</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>ocean</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>prism</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>coolwarm</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>seismic</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>gray</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>viridis</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>inferno</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>plasma</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>magma</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-              <item row="0" column="4">
-               <widget class="QPushButton" name="btn_plot">
-                <property name="text">
-                 <string>Plot</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="2">
-               <widget class="QLabel" name="label_45">
-                <property name="text">
-                 <string>colormap</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
             </widget>
            </item>
           </layout>
          </widget>
-        </item>
-        <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_3">
-          <item>
-           <widget class="QGroupBox" name="groupBox_3">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-              <horstretch>2</horstretch>
-              <verstretch>1</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="title">
-             <string>Partition</string>
-            </property>
-            <layout class="QGridLayout" name="gridLayout_11">
-             <property name="leftMargin">
-              <number>1</number>
-             </property>
-             <property name="topMargin">
-              <number>1</number>
-             </property>
-             <property name="rightMargin">
-              <number>1</number>
-             </property>
-             <property name="bottomMargin">
-              <number>1</number>
-             </property>
-             <item row="1" column="0">
-              <widget class="QTabWidget" name="tabWidget">
-               <property name="currentIndex">
-                <number>3</number>
-               </property>
-               <widget class="QWidget" name="tab_9">
-                <attribute name="title">
-                 <string>q-phi</string>
-                </attribute>
-                <layout class="QGridLayout" name="gridLayout_32">
-                 <property name="leftMargin">
-                  <number>1</number>
-                 </property>
-                 <property name="topMargin">
-                  <number>1</number>
-                 </property>
-                 <property name="rightMargin">
-                  <number>1</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>1</number>
-                 </property>
-                 <item row="0" column="0">
-                  <layout class="QGridLayout" name="gridLayout_6">
-                   <item row="1" column="6" rowspan="2">
-                    <widget class="QDoubleSpinBox" name="doubleSpinBox_phi_offset">
-                     <property name="minimum">
-                      <double>-180.000000000000000</double>
-                     </property>
-                     <property name="maximum">
-                      <double>180.000000000000000</double>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="5" rowspan="2">
-                    <widget class="QLabel" name="label_43">
-                     <property name="text">
-                      <string>offset (deg):</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="3" rowspan="2">
-                    <widget class="QLabel" name="label_13">
-                     <property name="text">
-                      <string>dynamic phi partition:</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="2" rowspan="2">
-                    <widget class="QSpinBox" name="sb_spnum">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>9999</number>
-                     </property>
-                     <property name="value">
-                      <number>1</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="2">
-                    <widget class="QSpinBox" name="sb_sqnum">
-                     <property name="minimum">
-                      <number>2</number>
-                     </property>
-                     <property name="maximum">
-                      <number>9999</number>
-                     </property>
-                     <property name="value">
-                      <number>360</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="1">
-                    <widget class="QLabel" name="label">
-                     <property name="text">
-                      <string>static q partition:</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="6">
-                    <widget class="QComboBox" name="partition_style">
-                     <item>
-                      <property name="text">
-                       <string>linear</string>
-                      </property>
-                     </item>
-                     <item>
-                      <property name="text">
-                       <string>logarithmic</string>
-                      </property>
-                     </item>
-                    </widget>
-                   </item>
-                   <item row="1" column="1" rowspan="2">
-                    <widget class="QLabel" name="label_12">
-                     <property name="text">
-                      <string>static phi partition:</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="4">
-                    <widget class="QSpinBox" name="sb_dqnum">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>999</number>
-                     </property>
-                     <property name="value">
-                      <number>36</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="3">
-                    <widget class="QLabel" name="label_10">
-                     <property name="text">
-                      <string>dynamic q partition:</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="5">
-                    <widget class="QLabel" name="label_20">
-                     <property name="text">
-                      <string>q-style:</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="4" rowspan="2">
-                    <widget class="QSpinBox" name="sb_dpnum">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>999</number>
-                     </property>
-                     <property name="value">
-                      <number>1</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="7" rowspan="2">
-                    <widget class="QLabel" name="label_41">
-                     <property name="text">
-                      <string>symmetry</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="8" rowspan="2">
-                    <widget class="QSpinBox" name="spinBox_symmetry_fold">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>12</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="7" colspan="2">
-                    <widget class="QPushButton" name="btn_compute_qpartition">
-                     <property name="text">
-                      <string>compute</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                </layout>
-               </widget>
-               <widget class="QWidget" name="tab_10">
-                <attribute name="title">
-                 <string>xy-mesh</string>
-                </attribute>
-                <layout class="QGridLayout" name="gridLayout_34">
-                 <property name="leftMargin">
-                  <number>1</number>
-                 </property>
-                 <property name="topMargin">
-                  <number>1</number>
-                 </property>
-                 <property name="rightMargin">
-                  <number>1</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>1</number>
-                 </property>
-                 <item row="0" column="0">
-                  <layout class="QGridLayout" name="gridLayout_33">
-                   <item row="1" column="4">
-                    <widget class="QSpinBox" name="sb_dynum">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>999</number>
-                     </property>
-                     <property name="value">
-                      <number>1</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="2">
-                    <widget class="QSpinBox" name="sb_synum">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>9999</number>
-                     </property>
-                     <property name="value">
-                      <number>8</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="1">
-                    <widget class="QLabel" name="label_34">
-                     <property name="text">
-                      <string>static x:</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="4">
-                    <widget class="QSpinBox" name="sb_dxnum">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>999</number>
-                     </property>
-                     <property name="value">
-                      <number>1</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="2">
-                    <widget class="QSpinBox" name="sb_sxnum">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>9999</number>
-                     </property>
-                     <property name="value">
-                      <number>6</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="1">
-                    <widget class="QLabel" name="label_38">
-                     <property name="text">
-                      <string>static y:</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="3">
-                    <widget class="QLabel" name="label_37">
-                     <property name="text">
-                      <string>dynamic x:</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="3">
-                    <widget class="QLabel" name="label_36">
-                     <property name="text">
-                      <string>dynamic y:</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="5">
-                    <widget class="QPushButton" name="btn_compute_qpartition2">
-                     <property name="text">
-                      <string>compute</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                </layout>
-               </widget>
-               <widget class="QWidget" name="tab_8">
-                <attribute name="title">
-                 <string>General</string>
-                </attribute>
-                <layout class="QGridLayout" name="gridLayout_31">
-                 <property name="leftMargin">
-                  <number>1</number>
-                 </property>
-                 <property name="topMargin">
-                  <number>1</number>
-                 </property>
-                 <property name="rightMargin">
-                  <number>1</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>1</number>
-                 </property>
-                 <item row="0" column="0">
-                  <layout class="QGridLayout" name="gridLayout_30">
-                   <item row="2" column="0" rowspan="2">
-                    <widget class="QComboBox" name="comboBox_partition_mapname1"/>
-                   </item>
-                   <item row="1" column="2">
-                    <widget class="QSpinBox" name="sb_partition_dn0">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>999</number>
-                     </property>
-                     <property name="value">
-                      <number>36</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="1">
-                    <widget class="QLabel" name="label_48">
-                     <property name="text">
-                      <string>Static partition:</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="2">
-                    <widget class="QLabel" name="label_50">
-                     <property name="text">
-                      <string>Dynamic partition</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="1">
-                    <widget class="QSpinBox" name="sb_partition_sn0">
-                     <property name="minimum">
-                      <number>2</number>
-                     </property>
-                     <property name="maximum">
-                      <number>9999</number>
-                     </property>
-                     <property name="value">
-                      <number>360</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="0">
-                    <widget class="QLabel" name="label_53">
-                     <property name="text">
-                      <string>MapName</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="0">
-                    <widget class="QComboBox" name="comboBox_partition_mapname0"/>
-                   </item>
-                   <item row="2" column="2" rowspan="2">
-                    <widget class="QSpinBox" name="sb_partition_dn1">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>999</number>
-                     </property>
-                     <property name="value">
-                      <number>1</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="2" column="1" rowspan="2">
-                    <widget class="QSpinBox" name="sb_partition_sn1">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>9999</number>
-                     </property>
-                     <property name="value">
-                      <number>1</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="6" rowspan="4">
-                    <widget class="QPushButton" name="btn_compute_qpartition3">
-                     <property name="text">
-                      <string>compute</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="2" column="3" rowspan="2" colspan="3">
-                    <widget class="QComboBox" name="comboBox_partition_style1">
-                     <item>
-                      <property name="text">
-                       <string>Linear</string>
-                      </property>
-                     </item>
-                     <item>
-                      <property name="text">
-                       <string>Logarithmic</string>
-                      </property>
-                     </item>
-                    </widget>
-                   </item>
-                   <item row="1" column="3" colspan="3">
-                    <widget class="QComboBox" name="comboBox_partition_style0">
-                     <item>
-                      <property name="text">
-                       <string>Linear</string>
-                      </property>
-                     </item>
-                     <item>
-                      <property name="text">
-                       <string>Logarithmic</string>
-                      </property>
-                     </item>
-                    </widget>
-                   </item>
-                   <item row="0" column="3" colspan="3">
-                    <widget class="QLabel" name="label_46">
-                     <property name="text">
-                      <string>Style</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                </layout>
-               </widget>
-               <widget class="QWidget" name="tab">
-                <attribute name="title">
-                 <string>ellipse</string>
-                </attribute>
-                <layout class="QGridLayout" name="gridLayout_26">
-                 <item row="0" column="0">
-                  <layout class="QGridLayout" name="gridLayout_35">
-                   <item row="1" column="4">
-                    <widget class="QSpinBox" name="sb_dynum_2">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>999</number>
-                     </property>
-                     <property name="value">
-                      <number>1</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="2">
-                    <widget class="QSpinBox" name="sb_synum_2">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>9999</number>
-                     </property>
-                     <property name="value">
-                      <number>8</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="1">
-                    <widget class="QLabel" name="label_35">
-                     <property name="text">
-                      <string>static x:</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="4">
-                    <widget class="QSpinBox" name="sb_dxnum_2">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>999</number>
-                     </property>
-                     <property name="value">
-                      <number>1</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="2">
-                    <widget class="QSpinBox" name="sb_sxnum_2">
-                     <property name="minimum">
-                      <number>1</number>
-                     </property>
-                     <property name="maximum">
-                      <number>9999</number>
-                     </property>
-                     <property name="value">
-                      <number>6</number>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="1">
-                    <widget class="QLabel" name="label_40">
-                     <property name="text">
-                      <string>static y:</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="0" column="3">
-                    <widget class="QLabel" name="label_49">
-                     <property name="text">
-                      <string>dynamic x:</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="3">
-                    <widget class="QLabel" name="label_51">
-                     <property name="text">
-                      <string>dynamic y:</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item row="1" column="5">
-                    <widget class="QPushButton" name="btn_compute_qpartition4">
-                     <property name="text">
-                      <string>compute</string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
-                 </item>
-                </layout>
-               </widget>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-          <item>
-           <widget class="QGroupBox" name="groupBox_6">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-              <horstretch>1</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="title">
-             <string>Output</string>
-            </property>
-            <layout class="QGridLayout" name="gridLayout_7">
-             <property name="leftMargin">
-              <number>1</number>
-             </property>
-             <property name="topMargin">
-              <number>1</number>
-             </property>
-             <property name="rightMargin">
-              <number>1</number>
-             </property>
-             <property name="bottomMargin">
-              <number>1</number>
-             </property>
-             <item row="0" column="0">
-              <widget class="QLabel" name="label_47">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="text">
-                <string>Format</string>
-               </property>
-              </widget>
-             </item>
-             <item row="0" column="1">
-              <widget class="QComboBox" name="comboBox_output_type">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <item>
-                <property name="text">
-                 <string>Nexus-XPCS</string>
-                </property>
-               </item>
-               <item>
-                <property name="text">
-                 <string>Mask-Only</string>
-                </property>
-               </item>
-              </widget>
-             </item>
-             <item row="1" column="0" colspan="2">
-              <widget class="QPushButton" name="pushButton">
-               <property name="text">
-                <string>save</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </widget>
-          </item>
-         </layout>
         </item>
        </layout>
       </widget>
@@ -2637,8 +2484,6 @@
   </customwidget>
  </customwidgets>
  <tabstops>
-  <tabstop>plot_log</tabstop>
-  <tabstop>plot_index</tabstop>
   <tabstop>infobar</tabstop>
  </tabstops>
  <resources/>
