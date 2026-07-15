@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Beam-center finder for centro-symmetric scattering patterns.
 
 A transmission scattering pattern is point-symmetric about the direct-beam

@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Tests for adjacent-box outlier removal."""
 
 import numpy as np

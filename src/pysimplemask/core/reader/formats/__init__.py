@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Scattering-format loaders and extension-based dispatch."""
 
 import logging

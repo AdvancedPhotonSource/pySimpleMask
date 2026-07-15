@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Raw-frame IO helpers shared across format loaders."""
 
 import ctypes

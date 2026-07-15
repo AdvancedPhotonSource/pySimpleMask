@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Tests for XPCSResultReader — scattering, metadata, partition loading."""
 
 import numpy as np

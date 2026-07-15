@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Tests for the IMM (dense and compression-6 sparse) scattering loader."""
 
 import numpy as np

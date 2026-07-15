@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Synthetic-fixture builders for the reader test suite.
 
 All fixtures are factory functions that write small in-memory-sized files into

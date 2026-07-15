@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """GUI controller regression tests (run headless via the offscreen Qt platform)."""
 
 import os

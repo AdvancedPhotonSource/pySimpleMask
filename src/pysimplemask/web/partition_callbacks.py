@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Partition section callbacks for the pySimpleMask web viewer."""
 
 from __future__ import annotations

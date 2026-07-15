@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Unit tests for shape_utils — Plotly shape → numpy mask conversion."""
 
 from pysimplemask.web.shape_utils import plotly_shapes_to_mask

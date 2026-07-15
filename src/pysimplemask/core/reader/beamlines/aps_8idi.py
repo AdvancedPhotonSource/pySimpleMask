@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """APS 8-ID-I reader (transmission SAXS/XPCS)."""
 
 import logging

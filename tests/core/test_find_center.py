@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Tests for the centro-symmetry beam-center finder."""
 
 import numpy as np

@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Convert Plotly relayoutData shapes to a boolean numpy keep-mask."""
 
 from __future__ import annotations

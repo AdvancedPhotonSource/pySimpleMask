@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Shared NeXus/HDF5 metadata helpers used by the beamline readers."""
 
 import glob

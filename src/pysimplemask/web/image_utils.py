@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Array-to-Plotly-figure utilities for the pySimpleMask web viewer."""
 
 from __future__ import annotations

@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """HDF5 scattering loader (APS NeXus-style ``/entry/data/data``)."""
 
 import logging

@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """App-facing reader base class shared by all beamline readers.
 
 ``FileReader`` owns the metadata, q-map, display-channel stack, mask state, and

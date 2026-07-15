@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """APS 9-ID-D reader (reflection / GISAXS-XPCS)."""
 
 import logging

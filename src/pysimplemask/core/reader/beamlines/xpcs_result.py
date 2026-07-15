@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Reader for XPCS result HDF5 files (those containing a /xpcs group)."""
 
 import logging

@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Rigaku 64-bit sparse binary loaders (500k single module and 3M six-module)."""
 
 import logging

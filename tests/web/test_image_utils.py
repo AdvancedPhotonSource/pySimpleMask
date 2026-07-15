@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Unit tests for image_utils.make_figure."""
 
 import numpy as np

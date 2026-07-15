@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Tests for the Rigaku 64-bit sparse binary loaders."""
 
 import numpy as np

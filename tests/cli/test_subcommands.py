@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Tests for pysimplemask subcommand dispatcher."""
 
 import argparse

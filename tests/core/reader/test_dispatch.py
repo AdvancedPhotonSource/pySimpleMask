@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Tests for the reader dispatch layer.
 
 Covers extension-based format dispatch (``get_format_loader``), beamline

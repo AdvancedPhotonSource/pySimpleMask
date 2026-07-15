@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 import pytest
 
 from pysimplemask.core.partition import least_multiple

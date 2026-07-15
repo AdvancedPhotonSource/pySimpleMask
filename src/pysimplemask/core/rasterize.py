@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Rasterize ROI geometry to a boolean keep-mask (Qt-free, skimage-based)."""
 
 from dataclasses import dataclass

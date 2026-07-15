@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 import numpy as np
 
 # unused below: only by the commented-out find_ellipse_parameters_connected / test01

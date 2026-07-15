@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Partition section layout — 4-tab Dash component tree for the sidebar."""
 
 from __future__ import annotations

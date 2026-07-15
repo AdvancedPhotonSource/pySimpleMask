@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Smoke tests for partition_layout — verify component IDs and structure."""
 
 import pytest

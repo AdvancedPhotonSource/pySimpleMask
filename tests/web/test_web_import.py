@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Smoke tests — verify web package imports without error."""
 
 import pytest

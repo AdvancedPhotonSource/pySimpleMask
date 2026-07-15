@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Extract pyqtgraph ROI geometry into Qt-free core polygons."""
 
 import numpy as np

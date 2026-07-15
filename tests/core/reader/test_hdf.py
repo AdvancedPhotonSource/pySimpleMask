@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Tests for the HDF5 scattering loader and frame-averaging helper.
 
 Covers :class:`pysimplemask.core.reader.formats.hdf.HdfDataset` and

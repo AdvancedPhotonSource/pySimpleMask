@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """NativeFiles reader — TIFF/TIFF scattering images with placeholder metadata."""
 
 from __future__ import annotations

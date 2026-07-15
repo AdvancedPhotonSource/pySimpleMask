@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Tests for the NeXus/HDF5 metadata helpers and beamline metadata readers.
 
 Covers :mod:`pysimplemask.core.reader.metadata` and the ``get_nexus_metadata`` /

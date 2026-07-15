@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Console scripts for pysimplemask."""
 
 import argparse

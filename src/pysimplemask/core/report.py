@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """One-page letter-size PDF summary of the hdf→qmap pipeline."""
 
 import logging

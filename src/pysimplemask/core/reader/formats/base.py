@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Abstract base class for low-level scattering-format loaders.
 
 A format loader turns a raw detector file (HDF5, IMM, Rigaku binary, ...) into a

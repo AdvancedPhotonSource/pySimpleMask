@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 from PySide6 import QtCore
 from PySide6.QtCore import QModelIndex, Qt
 

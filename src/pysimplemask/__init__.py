@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Top-level package for pySimpleMask."""
 
 from importlib.metadata import PackageNotFoundError, version

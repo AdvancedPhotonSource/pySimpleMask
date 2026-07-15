@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Flask + Dash application and module-level model singleton."""
 
 from __future__ import annotations

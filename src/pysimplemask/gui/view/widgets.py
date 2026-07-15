@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 import pyqtgraph as pg
 import numpy as np
 

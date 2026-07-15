@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """IMM (legacy APS) scattering loader, supporting dense and sparse frames."""
 
 import logging

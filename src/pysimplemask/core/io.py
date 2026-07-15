@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Parsing helpers for pixel-coordinate input (text and files)."""
 
 import json

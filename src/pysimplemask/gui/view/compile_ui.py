@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 #!/usr/bin/env python3
 """Convert mask.ui to ui_mask.py using pyside6-uic.
 

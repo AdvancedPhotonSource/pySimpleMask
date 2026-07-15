@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 # import matplotlib.pyplot as plt  # unused: only the commented-out show_mask helpers
 import logging
 import os

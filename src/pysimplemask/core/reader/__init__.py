@@ -1,3 +1,5 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 """Reader subsystem: beamline dispatch and the app-facing ``FileReader`` base."""
 
 import logging
