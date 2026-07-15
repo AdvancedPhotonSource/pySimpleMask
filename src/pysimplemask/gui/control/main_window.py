@@ -128,6 +128,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_redo.clicked.connect(lambda: self.mask_action("redo"))
         self.btn_mask_undo.clicked.connect(lambda: self.mask_action("undo"))
         self.btn_mask_apply.clicked.connect(self.mask_apply_current_tab)
+        self.btn_mask_apply.setEnabled(False)  # enabled only after Evaluate
+        self.MaskWidget.currentChanged.connect(
+            lambda _: self.btn_mask_apply.setEnabled(False)
+        )
 
         # headless core model + view-side mouse hover
         self.sm = SimpleMaskModel()
@@ -528,6 +532,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
         for target in _TAB_MASK_TARGETS[idx]:
             self.mask_apply(target)
+        self.btn_mask_apply.setEnabled(False)   # re-disable until next Evaluate
 
     def mask_evaluate_current_tab(self):
         """Evaluate (preview) the mask(s) for the currently active MaskWidget tab."""
@@ -538,6 +543,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
         for target in _TAB_MASK_EVALUATE_TARGETS[idx]:
             self.mask_evaluate(target)
+        self.btn_mask_apply.setEnabled(True)    # unlock Apply after successful Evaluate
 
     def find_center(self):
         if not self.is_ready():
