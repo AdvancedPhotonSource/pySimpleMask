@@ -572,6 +572,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
         self.sm.mask_action(action)
+        self.plot()
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(1)
 
@@ -760,6 +761,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         elif target == "mask_parameter":
             self.model.clear()
 
+        self.plot()
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(1)
 
