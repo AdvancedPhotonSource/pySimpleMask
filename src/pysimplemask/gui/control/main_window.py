@@ -142,6 +142,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.horizontalSlider_frame.setVisible(False)
         self.spinBox_current_frame.setVisible(False)
         self.spinBox_frame_average.setVisible(False)
+        self.label_average.setVisible(False)
 
         # rawdata item starts disabled (grayed) until a compatible file is loaded
         self._set_rawdata_enabled(False)
@@ -794,6 +795,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.horizontalSlider_frame.setVisible(show_frame_controls)
         self.spinBox_current_frame.setVisible(show_frame_controls)
         self.spinBox_frame_average.setVisible(show_frame_controls)
+        self.label_average.setVisible(show_frame_controls)
 
         if idx == _RAWDATA_IDX:
             self._read_and_show_frame()   # show frame 0 immediately
