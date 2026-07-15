@@ -859,7 +859,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             ok = False
             logger.error("Failed to load %s: %s", fname, exc)
         if not ok:
-            self.btn_load.setText("load data")
+            self.btn_load.setText("Load")
             self.statusbar.showMessage(f"Failed to load: {fname}", 8000)
             return
         # else:
@@ -887,7 +887,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.display_metadata()
         self.plot(reset_view=True)
         self.statusbar.showMessage("data is loaded", 500)
-        self.btn_load.setText("load data")
+        self.btn_load.setText("Load")
         self.btn_load.repaint()
 
     def display_metadata(self):
