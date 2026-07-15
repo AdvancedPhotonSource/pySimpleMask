@@ -63,6 +63,18 @@ PVMAP = {
 }
 
 
+# Maps MaskWidget tab index → mask target(s) applied by btn_mask_apply.
+# Tab 0 (Blemish/Files) applies both; an unevaluated worker is a safe no-op.
+_TAB_MASK_TARGETS: list = [
+    ("mask_blemish", "mask_file"),  # 0: Blemish/Files
+    ("mask_draw",),                  # 1: Draw
+    ("mask_threshold",),             # 2: Binary
+    ("mask_list",),                  # 3: Manual
+    ("mask_outlier",),               # 4: Outlier
+    ("mask_parameter",),             # 5: Parametrization
+]
+
+
 class SimpleMaskGUI(QMainWindow, Ui):
     def __init__(self, path=None):
         super(SimpleMaskGUI, self).__init__()
@@ -105,6 +117,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_reset.clicked.connect(lambda: self.mask_action("reset"))
         self.btn_mask_redo.clicked.connect(lambda: self.mask_action("redo"))
         self.btn_mask_undo.clicked.connect(lambda: self.mask_action("undo"))
+        self.btn_mask_apply.clicked.connect(self.mask_apply_current_tab)
 
         # headless core model + view-side mouse hover
         self.sm = SimpleMaskModel()
@@ -125,35 +138,26 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_list_evaluate.clicked.connect(
             lambda: self.mask_evaluate("mask_list")
         )
-        self.btn_mask_list_apply.clicked.connect(lambda: self.mask_apply("mask_list"))
 
         # blemish
         self.btn_select_blemish.clicked.connect(self.select_blemish)
         self.btn_apply_blemish.clicked.connect(
             lambda: self.mask_evaluate("mask_blemish")
         )
-        self.btn_mask_blemish_apply.clicked.connect(
-            lambda: self.mask_apply("mask_blemish")
-        )
 
         # mask_file
         self.btn_select_maskfile.clicked.connect(self.select_maskfile)
         self.btn_apply_maskfile.clicked.connect(lambda: self.mask_evaluate("mask_file"))
-        self.btn_mask_file_apply.clicked.connect(lambda: self.mask_apply("mask_file"))
 
         # draw method / array
         self.btn_mask_draw_add.clicked.connect(self.add_drawing)
         self.btn_mask_draw_evaluate.clicked.connect(
             lambda: self.mask_evaluate("mask_draw")
         )
-        self.btn_mask_draw_apply.clicked.connect(lambda: self.mask_apply("mask_draw"))
 
         # binary threshold
         self.btn_mask_threshold_evaluate.clicked.connect(
             lambda: self.mask_evaluate("mask_threshold")
-        )
-        self.btn_mask_threshold_apply.clicked.connect(
-            lambda: self.mask_apply("mask_threshold")
         )
         self.checkBox_threshold_low_preset.currentIndexChanged.connect(
             lambda: self.update_threshold_preset("low")
@@ -165,9 +169,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # btn_mask_outlier_evaluate
         self.btn_mask_outlier_evaluate.clicked.connect(
             lambda: self.mask_evaluate("mask_outlier")
-        )
-        self.btn_mask_outlier_apply.clicked.connect(
-            lambda: self.mask_apply("mask_outlier")
         )
 
         self.mask_outlier_hdl.setBackground((255, 255, 255))
@@ -191,9 +192,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         self.btn_mask_param_evaluate.clicked.connect(
             lambda: self.mask_evaluate("mask_parameter")
-        )
-        self.btn_mask_param_apply.clicked.connect(
-            lambda: self.mask_apply("mask_parameter")
         )
 
         self.work_dir = None
@@ -266,6 +264,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_reset.setToolTip(
             "Reset the mask to its initial state (blemish map only)"
         )
+        self.btn_mask_apply.setToolTip(
+            "Apply the evaluated mask for the currently active tab into the working mask"
+        )
 
         # ── Blemish tab ───────────────────────────────────────────────────────
         self.btn_select_blemish.setToolTip(
@@ -278,9 +279,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_apply_blemish.setToolTip(
             "Preview the blemish mask on the image without committing"
         )
-        self.btn_mask_blemish_apply.setToolTip(
-            "AND the blemish mask into the current working mask"
-        )
 
         # ── Mask file tab ─────────────────────────────────────────────────────
         self.btn_select_maskfile.setToolTip(
@@ -292,9 +290,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
         self.btn_apply_maskfile.setToolTip(
             "Preview the imported mask on the image without committing"
-        )
-        self.btn_mask_file_apply.setToolTip(
-            "AND the imported mask into the current working mask"
         )
 
         # ── Draw tab ──────────────────────────────────────────────────────────
@@ -313,9 +308,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
         self.btn_mask_draw_evaluate.setToolTip(
             "Preview the mask produced by all drawn shapes"
-        )
-        self.btn_mask_draw_apply.setToolTip(
-            "Apply drawn shapes into the working mask"
         )
 
         # ── Threshold tab ─────────────────────────────────────────────────────
@@ -352,9 +344,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_threshold_evaluate.setToolTip(
             "Preview threshold + morphology result"
         )
-        self.btn_mask_threshold_apply.setToolTip(
-            "Apply threshold and morphology into the working mask"
-        )
 
         # ── Manual list tab ───────────────────────────────────────────────────
         self.mask_list_1based.setToolTip(
@@ -387,9 +376,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
         self.btn_mask_list_evaluate.setToolTip("Preview the pixel-list mask")
         self.btn_mask_list_clear.setToolTip("Remove all entries from the pixel list")
-        self.btn_mask_list_apply.setToolTip(
-            "Apply the pixel list into the working mask"
-        )
 
         # ── Outlier tab ───────────────────────────────────────────────────────
         self.comboBox_outlier_target.setToolTip(
@@ -408,9 +394,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
             "Threshold in σ (MAD mode) or percentile above which pixels are flagged"
         )
         self.btn_mask_outlier_evaluate.setToolTip("Preview detected outliers")
-        self.btn_mask_outlier_apply.setToolTip(
-            "Apply outlier mask into the working mask"
-        )
 
         # ── Parametrization tab ───────────────────────────────────────────────
         self.comboBox_param_xmap_name.setToolTip(
@@ -429,9 +412,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_param_delete.setToolTip("Remove the selected constraint row")
         self.btn_mask_param_evaluate.setToolTip(
             "Preview the mask produced by the constraint table"
-        )
-        self.btn_mask_param_apply.setToolTip(
-            "Apply the parameter constraints into the working mask"
         )
         self.tableView.setToolTip(
             "Geometry constraints — rows are combined with the selected logic operator"
@@ -576,6 +556,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.plot()
         self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(1)
+
+    def mask_apply_current_tab(self):
+        """Apply the mask(s) for the currently active MaskWidget tab."""
+        if not self.is_ready():
+            return
+        idx = self.MaskWidget.currentIndex()
+        if idx < 0 or idx >= len(_TAB_MASK_TARGETS):
+            return
+        for target in _TAB_MASK_TARGETS[idx]:
+            self.mask_apply(target)
 
     def find_center(self):
         if not self.is_ready():

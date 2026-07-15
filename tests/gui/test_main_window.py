@@ -66,3 +66,36 @@ def test_log_scale_checkbox_switches_display_mode(qapp, tmp_path):
     assert ch0_log.max() < ch0_lin.max(), "log-scaled max should be less than linear max"
     # Channel 0 under log should equal log10 of channel 0 under linear (approximately)
     np.testing.assert_allclose(ch0_log, np.log10(ch0_lin), rtol=1e-5)
+
+
+def test_mask_apply_current_tab_dispatches_correctly(qapp, tmp_path):
+    """mask_apply_current_tab calls mask_apply with the target for the active tab."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    calls = []
+
+    with patch.object(gui, "mask_apply", side_effect=lambda t: calls.append(t)):
+        # Tab 0: Blemish/Files → both mask_blemish and mask_file
+        gui.MaskWidget.setCurrentIndex(0)
+        gui.mask_apply_current_tab()
+        assert calls == ["mask_blemish", "mask_file"], f"Tab 0: got {calls}"
+        calls.clear()
+
+        # Tab 2: Binary → mask_threshold
+        gui.MaskWidget.setCurrentIndex(2)
+        gui.mask_apply_current_tab()
+        assert calls == ["mask_threshold"], f"Tab 2: got {calls}"
+        calls.clear()
+
+        # Tab 5: Parametrization → mask_parameter
+        gui.MaskWidget.setCurrentIndex(5)
+        gui.mask_apply_current_tab()
+        assert calls == ["mask_parameter"], f"Tab 5: got {calls}"
+
+
+def test_tab_mask_targets_constant(qapp, tmp_path):
+    """_TAB_MASK_TARGETS has one entry per MaskWidget tab (6 total)."""
+    from pysimplemask.gui.control.main_window import _TAB_MASK_TARGETS
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    assert len(_TAB_MASK_TARGETS) == gui.MaskWidget.count()
