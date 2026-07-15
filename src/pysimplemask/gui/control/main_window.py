@@ -112,6 +112,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.mp1.sigTimeChanged.connect(self.update_index)
         self.state = "lock"
         self._xy_text_item = None   # pg.TextItem shown next to cursor when checkBox_showxy is on
+        self.checkBox_showxy.setChecked(True)
 
         # mask_list
         self.btn_mask_list_load.clicked.connect(self.mask_list_load)
