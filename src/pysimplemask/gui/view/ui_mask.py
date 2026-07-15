@@ -290,7 +290,6 @@ class Ui_SimpleMask(object):
         sizePolicy8.setVerticalStretch(0)
         sizePolicy8.setHeightForWidth(self.maskfile_fname.sizePolicy().hasHeightForWidth())
         self.maskfile_fname.setSizePolicy(sizePolicy8)
-        self.maskfile_fname.setMinimumSize(QSize(300, 0))
 
         self.gridLayout_12.addWidget(self.maskfile_fname, 0, 1, 1, 1)
 
