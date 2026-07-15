@@ -901,10 +901,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.mp1.adjust_viewbox()
         self.mp1.set_colormap(cmap)
         if plot_center:
-            t = pg.ScatterPlotItem()
             center = self.sm.get_center(mode="vh")
-            t.addPoints(x=[center[1]], y=[center[0]], symbol="+", size=15)
-            self.mp1.add_item(t, label="center")
+            h, w = self.sm.shape
+            row, col = center[0], center[1]
+            # Only draw if the center is within ±1 image dimension of the canvas.
+            if -w < col < 2 * w and -h < row < 2 * h:
+                t = pg.ScatterPlotItem()
+                t.addPoints(x=[col], y=[row], symbol="+", size=15)
+                self.mp1.add_item(t, label="center")
         self.mp1.setCurrentIndex(1)
         self.plot_index.setCurrentIndex(1)
 
