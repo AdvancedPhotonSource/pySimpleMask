@@ -1245,7 +1245,7 @@ class Ui_SimpleMask(object):
         sizePolicy18.setVerticalStretch(1)
         sizePolicy18.setHeightForWidth(self.groupBox_5.sizePolicy().hasHeightForWidth())
         self.groupBox_5.setSizePolicy(sizePolicy18)
-        self.groupBox_5.setMinimumSize(QSize(800, 0))
+        self.groupBox_5.setMinimumSize(QSize(300, 0))
         self.gridLayout_16 = QGridLayout(self.groupBox_5)
         self.gridLayout_16.setObjectName(u"gridLayout_16")
         self.gridLayout_16.setContentsMargins(1, 1, 1, 1)
@@ -1256,7 +1256,7 @@ class Ui_SimpleMask(object):
         sizePolicy19.setVerticalStretch(0)
         sizePolicy19.setHeightForWidth(self.mp1.sizePolicy().hasHeightForWidth())
         self.mp1.setSizePolicy(sizePolicy19)
-        self.mp1.setMinimumSize(QSize(400, 0))
+        self.mp1.setMinimumSize(QSize(200, 0))
 
         self.gridLayout_16.addWidget(self.mp1, 1, 0, 1, 4)
 
