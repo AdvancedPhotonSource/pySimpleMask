@@ -91,6 +91,11 @@ def _coerce_float(value):
     return value
 
 
+# Keys that are derived from the image shape and must not appear in the
+# GUI's metadata editor.  They remain in self.metadata for qmap computation.
+_HIDDEN_METADATA_KEYS: frozenset = frozenset({"detector_shape_x", "detector_shape_y"})
+
+
 class FileReader(object):
     def __init__(self, fname) -> None:
         self.fname = fname
@@ -190,7 +195,11 @@ class FileReader(object):
         raise NotImplementedError
 
     def get_parametertree_structure(self):
-        return dict_to_params("metadata", self.metadata, self.meta_units_fmts)
+        visible = {
+            k: v for k, v in self.metadata.items()
+            if k not in _HIDDEN_METADATA_KEYS
+        }
+        return dict_to_params("metadata", visible, self.meta_units_fmts)
 
     def update_metadata_from_changes(self, changes):
         for changed_param, _change_type, new_value in changes:

@@ -208,3 +208,38 @@ def test_get_metadata_falls_back_to_defaults(tmp_path):
     assert meta["meta_fname"] == "default_metadata"
     assert "energy" in meta
     assert meta["energy"] == DEFAULT_8IDI["energy"]
+
+
+# ---------------------------------------------------------------------------
+# 10. Hidden metadata keys in ParameterTree
+# ---------------------------------------------------------------------------
+
+
+def test_hidden_metadata_keys_constant():
+    """_HIDDEN_METADATA_KEYS must contain exactly the two shape keys."""
+    from pysimplemask.core.reader.base_reader import _HIDDEN_METADATA_KEYS
+
+    assert "detector_shape_x" in _HIDDEN_METADATA_KEYS
+    assert "detector_shape_y" in _HIDDEN_METADATA_KEYS
+
+
+def test_get_parametertree_structure_hides_shape_keys(tmp_path):
+    """detector_shape_x/y must not appear in the ParameterTree structure."""
+    import tifffile
+    from pysimplemask.core.reader.beamlines.native_files import NativeFilesReader
+
+    p = str(tmp_path / "img.tif")
+    tifffile.imwrite(p, np.ones((16, 12), dtype=np.float32))
+
+    reader = NativeFilesReader(p)
+    reader.prepare_data()  # sets detector_shape_x/y in metadata
+
+    # Confirm the keys ARE in the underlying metadata dict
+    assert "detector_shape_x" in reader.metadata
+    assert "detector_shape_y" in reader.metadata
+
+    # Confirm they are NOT in the ParameterTree structure
+    struct = reader.get_parametertree_structure()
+    child_names = {child["name"] for child in struct["children"]}
+    assert "detector_shape_x" not in child_names
+    assert "detector_shape_y" not in child_names
