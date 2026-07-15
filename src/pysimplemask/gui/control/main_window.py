@@ -856,7 +856,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
         fname = self.sm.dset.fname
         try:
             with h5py.File(fname, "r") as f:
-                frame = f["/entry/data/data"][idx].astype(np.float32)
+                raw = f["/entry/data/data"][idx]
+                # Cast unsigned int to signed (uint16→int16, uint32→int32) before
+                # converting to float so that detector values near the type max are
+                # not misinterpreted as huge positive counts.
+                if raw.dtype.kind == "u":
+                    raw = raw.astype(np.dtype(f"int{raw.dtype.itemsize * 8}"))
+                frame = raw.astype(np.float32)
         except Exception as exc:
             logger.error("Failed to read frame %d from %s: %s", idx, fname, exc)
             return
@@ -998,6 +1004,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.spinBox_current_frame.setRange(0, num_frames - 1)
             self.spinBox_current_frame.setValue(0)
             self._pending_frame_idx = 0
+        self.plot_index.setCurrentIndex(2)  # default to "scattering * mask" after load
         self.plot(reset_view=True)
         self.statusbar.showMessage("data is loaded", 500)
         self.btn_load.setText("Load")
