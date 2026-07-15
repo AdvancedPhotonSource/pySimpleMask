@@ -911,7 +911,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if show_xy and 0 <= col < w and 0 <= row < h:
             if self._xy_text_item is None:
                 self._xy_text_item = pg.TextItem(
-                    color=(255, 255, 0), anchor=(0, 0)
+                    color=(255, 255, 255),
+                    anchor=(0, 0),
+                    fill=pg.mkBrush(0, 0, 0, 160),
                 )
                 self.mp1.getView().addItem(self._xy_text_item)
             self._xy_text_item.setText(f"({col}, {row})")
