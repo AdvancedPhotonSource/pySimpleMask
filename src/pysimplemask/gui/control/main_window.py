@@ -149,7 +149,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # need a function for save button -- simple_mask_ui
         self.pushButton.clicked.connect(self.save_mask)
 
-        self.plot_index.currentIndexChanged.connect(self.mp1.setCurrentIndex)
+        self.plot_index.currentIndexChanged.connect(self._on_plot_index_changed)
 
         # reset, redo, undo botton for mask
         self.btn_mask_reset.clicked.connect(lambda: self.mask_action("reset"))
@@ -167,7 +167,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.sm = SimpleMaskModel()
         self.mp1.scene.sigMouseMoved.connect(self.show_location)
         self.metadata_parameter = None
-        self.mp1.sigTimeChanged.connect(self.update_index)
+        # no sigTimeChanged — image view holds a single 2D array now
         self.state = "lock"
         self._xy_text_item = None   # pg.TextItem shown next to cursor when checkBox_showxy is on
         self.checkBox_showxy.setChecked(True)
@@ -541,7 +541,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
         self.sm.mask_action(action)
         self.plot()
-        self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(1)
 
     def mask_apply_current_tab(self):
@@ -712,7 +711,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         msg = self.sm.mask_evaluate(target, **kwargs)
         self.statusbar.showMessage(msg, 10000)
-        self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(5)
         return
 
@@ -754,14 +752,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.model.clear()
 
         self.plot()
-        self.plot_index.setCurrentIndex(0)
         self.plot_index.setCurrentIndex(1)
 
-    def update_index(self):
-        idx = self.mp1.currentIndex
-        self.plot_index.setCurrentIndex(idx)
-        # make the mask and preview binary
-        if idx in [2, 5]:
+    def _on_plot_index_changed(self, idx):
+        """Update the displayed 2D slice when the channel selector changes."""
+        if not self.is_ready():
+            return
+        self.mp1.setImage(self.sm.dset.data_display[idx])
+        if idx in [2, 5]:   # mask and preview: enforce binary 0/1 scale
             self.mp1.setLevels(0, 1)
 
     def is_ready(self):
@@ -930,7 +928,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self._remove_xy_label()
             return
         mouse_point = self.mp1.getView().mapSceneToView(pos)
-        idx = self.mp1.currentIndex
+        idx = self.plot_index.currentIndex()
         col = int(mouse_point.x())
         row = int(mouse_point.y())
         msg = self.sm.dset.get_coordinates(col, row, idx)
@@ -980,8 +978,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
             vb.viewRange() if self.mp1.image is not None else None
         )
 
+        idx = self.plot_index.currentIndex()
         self.mp1.clear()
-        self.mp1.setImage(self.sm.dset.data_display)
+        self.mp1.setImage(self.sm.dset.data_display[idx])
         self.mp1.adjust_viewbox()
         self.mp1.set_colormap(cmap)
 
@@ -996,7 +995,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 t = pg.ScatterPlotItem()
                 t.addPoints(x=[col], y=[row], symbol="+", size=15)
                 self.mp1.add_item(t, label="center")
-        self.mp1.setCurrentIndex(1)
         self.plot_index.setCurrentIndex(1)
 
     def add_drawing(self):
@@ -1151,7 +1149,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         try:
             self.sm.compute_partition(**kwargs)
             self.statusbar.showMessage("New partition is generated.", 1000)
-            self.plot_index.setCurrentIndex(0)
             self.plot_index.setCurrentIndex(3)
         except Exception:
             traceback.print_exc()
