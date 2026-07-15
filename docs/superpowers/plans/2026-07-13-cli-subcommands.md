@@ -1,5 +1,321 @@
-# Copyright © UChicago Argonne LLC
-# See LICENSE file for details
+# CLI Subcommands Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Make `pysimplemask` a unified entry point with four subcommands — `gui` (default), `web`, `build`, `combine` — while preserving all existing `pysimplemask-*` scripts unchanged.
+
+**Architecture:** Two files change. `server.py` gains a `run_web(host, port, path, debug)` helper so `cli.py` can start the web server without duplicating startup logic. `cli.py` adds `_add_build_args(parser)` (shared argument definitions) and a new `main()` dispatcher with argparse subparsers; the old standalone functions (`build_qmap`, `combine_qmaps`) stay untouched for backward compatibility.
+
+**Tech Stack:** Python stdlib `argparse`, existing `pysimplemask.cli`, `pysimplemask.web.server`
+
+## Global Constraints
+
+- Environment: `/local/MQICHU/envs/l2606_simplemask_refact/bin/`
+- All existing `pysimplemask-*` console scripts must keep working unchanged
+- `pysimplemask` with no subcommand must launch the GUI (same as before)
+- `pysimplemask --path /some/dir` (top-level `--path`) must still launch the GUI at that path (backward compat)
+- `_build_qmap_args(argv)` public signature must not change — existing tests call it directly
+- `_run_build_qmap(args)` public signature must not change — existing tests call it directly
+- Ruff must pass clean
+
+---
+
+## File Map
+
+| Status | File | Change |
+|--------|------|--------|
+| Modify | `src/pysimplemask/web/server.py` | Extract `run_web(host, port, path, debug)` from `main_web()` |
+| Modify | `src/pysimplemask/cli.py` | Add `_add_build_args(parser)` + new `main()` dispatcher |
+| Create | `tests/cli/test_subcommands.py` | New tests for subcommand dispatch |
+
+---
+
+## Task 1: Extract `run_web()` from `server.py`
+
+**Files:**
+- Modify: `src/pysimplemask/web/server.py`
+
+**Interfaces:**
+- Produces: `run_web(host: str = "127.0.0.1", port: int = 8050, path: str | None = None, debug: bool = False) -> None`
+  — starts the Dash app; called by both `main_web()` and the `cli.py` web subcommand
+- `main_web()` signature unchanged (still the `pysimplemask-web` entry point)
+
+- [ ] **Step 1: Write the failing test**
+
+Create `tests/cli/test_subcommands.py` (just the import test for now):
+
+```python
+"""Tests for pysimplemask subcommand dispatcher."""
+
+
+def test_run_web_importable():
+    from pysimplemask.web.server import run_web  # noqa: F401
+    assert callable(run_web)
+```
+
+- [ ] **Step 2: Run failing test**
+
+```bash
+/local/MQICHU/envs/l2606_simplemask_refact/bin/pytest tests/cli/test_subcommands.py::test_run_web_importable -v
+```
+
+Expected: FAIL — `ImportError: cannot import name 'run_web'`.
+
+- [ ] **Step 3: Refactor `server.py`**
+
+Replace the existing `main_web()` function with:
+
+```python
+def run_web(
+    host: str = "127.0.0.1",
+    port: int = 8050,
+    path: str | None = None,
+    debug: bool = False,
+) -> None:
+    """Start the Dash web server.
+
+    Called by ``main_web()`` and by the ``pysimplemask web`` subcommand.
+    """
+    from pysimplemask.web import layout as _layout
+
+    try:
+        from pysimplemask.web import callbacks as _callbacks  # noqa: F401
+    except ImportError as exc:
+        raise ImportError(
+            "pysimplemask.web.callbacks not found. "
+            "Ensure the web package is fully installed."
+        ) from exc
+    try:
+        from pysimplemask.web import mask_callbacks as _mask_callbacks  # noqa: F401
+    except ImportError as exc:
+        raise ImportError(
+            "pysimplemask.web.mask_callbacks not found. "
+            "Ensure the web package is fully installed."
+        ) from exc
+    try:
+        from pysimplemask.web import partition_callbacks as _partition_callbacks  # noqa: F401
+    except ImportError as exc:
+        raise ImportError(
+            "pysimplemask.web.partition_callbacks not found. "
+            "Ensure the web package is fully installed."
+        ) from exc
+
+    app.layout = _layout.build_layout(initial_path=path or "")
+    print(f"pySimpleMask web interface running at http://{host}:{port}")
+    app.run(host=host, port=port, debug=debug)
+
+
+def main_web() -> None:
+    """Console-script entry point: ``pysimplemask-web``."""
+    parser = argparse.ArgumentParser(
+        prog="pysimplemask-web",
+        description="Launch the pySimpleMask web interface.",
+    )
+    parser.add_argument(
+        "--host", default="127.0.0.1",
+        help="Bind address (default: 127.0.0.1)",
+    )
+    parser.add_argument(
+        "--port", type=int, default=8050,
+        help="Port number (default: 8050)",
+    )
+    parser.add_argument(
+        "--path", default=None,
+        help="Pre-populate the file-path field with this path",
+    )
+    parser.add_argument(
+        "--debug", action="store_true",
+        help="Enable Dash debug/hot-reload mode",
+    )
+    args = parser.parse_args()
+    run_web(host=args.host, port=args.port, path=args.path, debug=args.debug)
+```
+
+- [ ] **Step 4: Run the test**
+
+```bash
+/local/MQICHU/envs/l2606_simplemask_refact/bin/pytest tests/cli/test_subcommands.py::test_run_web_importable -v
+```
+
+Expected: PASS.
+
+- [ ] **Step 5: Run full suite + ruff**
+
+```bash
+/local/MQICHU/envs/l2606_simplemask_refact/bin/pytest tests/ -q
+/local/MQICHU/envs/l2606_simplemask_refact/bin/ruff check src/pysimplemask/web/server.py
+```
+
+Expected: all tests pass; ruff clean.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add src/pysimplemask/web/server.py tests/cli/test_subcommands.py
+git commit -m "refactor(web): extract run_web() helper from main_web()"
+```
+
+---
+
+## Task 2: Add subcommand dispatcher to `cli.py`
+
+**Files:**
+- Modify: `src/pysimplemask/cli.py`
+- Modify: `tests/cli/test_subcommands.py`
+
+**Interfaces:**
+- Consumes: `run_web(host, port, path, debug)` from Task 1
+- Produces: `_add_build_args(parser) -> None` — adds all build-related arguments to any ArgumentParser
+- `main()` — unified entry point; replaces the current GUI-only `main()`; dispatches on subcommand
+- `_build_qmap_args(argv=None)` — signature unchanged; now calls `_add_build_args()` internally
+
+**Key constraint:** `_build_qmap_args(argv)` and `_run_build_qmap(args)` must keep their current signatures exactly — existing tests depend on them.
+
+- [ ] **Step 1: Write the failing tests**
+
+Append to `tests/cli/test_subcommands.py`:
+
+```python
+import argparse
+import os
+import sys
+from unittest.mock import patch, MagicMock
+
+
+# ---------------------------------------------------------------------------
+# _add_build_args
+# ---------------------------------------------------------------------------
+
+
+def test_add_build_args_produces_same_defaults_as_build_qmap_args():
+    """_add_build_args adds identical arguments to any parser."""
+    from pysimplemask.cli import _add_build_args, _build_qmap_args
+    import h5py, numpy as np, tempfile, pathlib
+
+    # Create a minimal HDF5 so _build_qmap_args doesn't fail on the file check
+    with tempfile.TemporaryDirectory() as d:
+        p = str(pathlib.Path(d) / "scan.h5")
+        with h5py.File(p, "w") as h:
+            h["/entry/data/data"] = np.zeros((2, 4, 4), dtype=np.uint16)
+
+        # Reference: old interface
+        ref = _build_qmap_args([p])
+
+        # New interface: add args to a fresh parser
+        new_parser = argparse.ArgumentParser()
+        _add_build_args(new_parser)
+        new_args = new_parser.parse_args([p])
+
+    assert new_args.beamline == ref.beamline
+    assert new_args.dq_num == ref.dq_num
+    assert new_args.mode == ref.mode
+    assert new_args.output_qmap == ref.output_qmap
+
+
+# ---------------------------------------------------------------------------
+# main() subcommand dispatch
+# ---------------------------------------------------------------------------
+
+
+def test_main_no_subcommand_launches_gui(monkeypatch):
+    """pysimplemask with no subcommand calls main_gui."""
+    monkeypatch.setattr(sys, "argv", ["pysimplemask"])
+    mock_gui = MagicMock(return_value=0)
+    with patch("pysimplemask.gui.app.main_gui", mock_gui):
+        from pysimplemask import cli
+        try:
+            cli.main()
+        except SystemExit:
+            pass
+    mock_gui.assert_called_once()
+
+
+def test_main_gui_subcommand_passes_path(monkeypatch, tmp_path):
+    """pysimplemask gui --path /tmp calls main_gui with that path."""
+    monkeypatch.setattr(sys, "argv", ["pysimplemask", "gui", "--path", str(tmp_path)])
+    mock_gui = MagicMock(return_value=0)
+    with patch("pysimplemask.gui.app.main_gui", mock_gui):
+        from pysimplemask import cli
+        try:
+            cli.main()
+        except SystemExit:
+            pass
+    mock_gui.assert_called_once_with(str(tmp_path))
+
+
+def test_main_web_subcommand_calls_run_web(monkeypatch):
+    """pysimplemask web --host 0.0.0.0 --port 9000 calls run_web with those args."""
+    monkeypatch.setattr(
+        sys, "argv",
+        ["pysimplemask", "web", "--host", "0.0.0.0", "--port", "9000"],
+    )
+    mock_run = MagicMock()
+    with patch("pysimplemask.web.server.run_web", mock_run):
+        from pysimplemask import cli
+        cli.main()
+    mock_run.assert_called_once_with(
+        host="0.0.0.0", port=9000, path=None, debug=False
+    )
+
+
+def test_main_combine_subcommand_calls_combine(monkeypatch, tmp_path):
+    """pysimplemask combine a.h5 b.h5 out.h5 calls combine_qmap_files."""
+    a = str(tmp_path / "a.h5")
+    b = str(tmp_path / "b.h5")
+    o = str(tmp_path / "out.h5")
+    monkeypatch.setattr(sys, "argv", ["pysimplemask", "combine", a, b, o])
+    mock_combine = MagicMock()
+    with patch("pysimplemask.core.partition.combine_qmap_files", mock_combine):
+        from pysimplemask import cli
+        cli.main()
+    mock_combine.assert_called_once_with(a, b, o)
+
+
+def test_main_build_subcommand_calls_run_build(monkeypatch, tmp_path):
+    """pysimplemask build FILE --no-find-center calls _run_build_qmap."""
+    import h5py, numpy as np
+    p = str(tmp_path / "scan.h5")
+    with h5py.File(p, "w") as h:
+        h["/entry/data/data"] = np.zeros((2, 4, 4), dtype=np.uint16)
+    monkeypatch.setattr(
+        sys, "argv", ["pysimplemask", "build", p, "--no-find-center"]
+    )
+    mock_run = MagicMock()
+    with patch("pysimplemask.cli._run_build_qmap", mock_run):
+        from pysimplemask import cli
+        cli.main()
+    mock_run.assert_called_once()
+    call_args = mock_run.call_args[0][0]
+    assert call_args.dataset == p
+    assert call_args.no_find_center is True
+
+
+def test_build_qmap_args_still_works_directly():
+    """_build_qmap_args([...]) still works — no regression on existing interface."""
+    import h5py, numpy as np, tempfile, pathlib
+    with tempfile.TemporaryDirectory() as d:
+        p = str(pathlib.Path(d) / "scan.h5")
+        with h5py.File(p, "w") as h:
+            h["/entry/data/data"] = np.zeros((2, 4, 4), dtype=np.uint16)
+        from pysimplemask.cli import _build_qmap_args
+        args = _build_qmap_args([p])
+    assert args.dataset == p
+    assert args.mode == "q-phi"
+```
+
+- [ ] **Step 2: Run failing tests**
+
+```bash
+/local/MQICHU/envs/l2606_simplemask_refact/bin/pytest tests/cli/test_subcommands.py -v
+```
+
+Expected: `test_run_web_importable` PASS (from Task 1); all new tests FAIL — `_add_build_args` not found, `main()` is still the old GUI launcher.
+
+- [ ] **Step 3: Rewrite `cli.py`**
+
+Replace the contents of `src/pysimplemask/cli.py` with:
+
+```python
 """Console scripts for pysimplemask."""
 
 import argparse
@@ -230,8 +546,7 @@ def main() -> None:
             format="%(asctime)s [%(levelname)s] %(message)s",
             datefmt="%H:%M:%S",
         )
-        from pysimplemask.core.partition import combine_qmap_files as _combine
-        _combine(args.qmap_file1, args.qmap_file2, args.output_file)
+        combine_qmap_files(args.qmap_file1, args.qmap_file2, args.output_file)
 
 
 # ---------------------------------------------------------------------------
@@ -424,3 +739,36 @@ def build_qmap() -> None:
 
 if __name__ == "__main__":
     sys.exit(main())  # pragma: no cover
+```
+
+- [ ] **Step 4: Run the new tests**
+
+```bash
+/local/MQICHU/envs/l2606_simplemask_refact/bin/pytest tests/cli/test_subcommands.py -v
+```
+
+Expected: all 8 tests PASS.
+
+- [ ] **Step 5: Run existing build-qmap tests to confirm no regression**
+
+```bash
+/local/MQICHU/envs/l2606_simplemask_refact/bin/pytest tests/cli/test_build_qmap.py -v
+```
+
+Expected: all pass (they call `_build_qmap_args` and `_run_build_qmap` directly, which are unchanged).
+
+- [ ] **Step 6: Run full suite + ruff**
+
+```bash
+/local/MQICHU/envs/l2606_simplemask_refact/bin/pytest tests/ -q
+/local/MQICHU/envs/l2606_simplemask_refact/bin/ruff check src/pysimplemask/cli.py tests/cli/test_subcommands.py
+```
+
+Expected: all tests pass; ruff clean.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add src/pysimplemask/cli.py tests/cli/test_subcommands.py
+git commit -m "feat(cli): add subcommand dispatcher — gui (default), web, build, combine"
+```
