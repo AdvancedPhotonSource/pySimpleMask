@@ -44,3 +44,25 @@ def test_find_center_button_no_crash(qapp, tmp_path):
     gui.find_center()
     cy, cx = gui.sm.get_center(mode="vh")
     assert np.isfinite(cy) and np.isfinite(cx)
+
+
+def test_log_scale_checkbox_switches_display_mode(qapp, tmp_path):
+    """Toggling plot_log changes data_display channels 0 and 1."""
+    rng = np.random.default_rng(42)
+    frames = rng.integers(1, 200, size=(3, 16, 14)).astype(np.uint16)
+    gui = _load_gui(tmp_path, frames)
+
+    # Default: log checked — channel 0 should be log-scaled (all values finite, no very large raw counts)
+    gui.plot_log.setChecked(True)
+    gui.plot()
+    ch0_log = gui.sm.dset.data_display[0].copy()
+
+    # Uncheck: linear — channel 0 should be raw counts (larger values)
+    gui.plot_log.setChecked(False)
+    gui.plot()
+    ch0_lin = gui.sm.dset.data_display[0].copy()
+
+    # Log values are smaller than linear for data > 1 (log10(x) < x for x > 1)
+    assert ch0_log.max() < ch0_lin.max(), "log-scaled max should be less than linear max"
+    # Channel 0 under log should equal log10 of channel 0 under linear (approximately)
+    np.testing.assert_allclose(ch0_log, np.log10(ch0_lin), rtol=1e-5)

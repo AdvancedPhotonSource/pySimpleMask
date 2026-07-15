@@ -29,6 +29,7 @@ from pysimplemask import __version__
 from pysimplemask.core.io import load_pixel_list, text_to_array
 from pysimplemask.core.model import SimpleMaskModel
 from pysimplemask.core.partition import least_multiple
+from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
 from pysimplemask.gui.model.roi_extract import extract_roi_geometry
 from pysimplemask.gui.model.table_model import XmapConstraintsTableModel
 from pysimplemask.gui.view.ui_mask import Ui_SimpleMask as Ui
@@ -113,6 +114,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.state = "lock"
         self._xy_text_item = None   # pg.TextItem shown next to cursor when checkBox_showxy is on
         self.checkBox_showxy.setChecked(True)
+        self.plot_log.setChecked(True)   # log scale on by default
+        self.plot_log.stateChanged.connect(lambda _: self.plot())
 
         # mask_list
         self.btn_mask_list_load.clicked.connect(self.mask_list_load)
@@ -936,6 +939,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
         cmap = self.plot_cmap.currentText()
         plot_center = self.plot_center.isChecked()
+
+        # Refresh scattering channels to match the current log/linear selection.
+        mode = "log" if self.plot_log.isChecked() else "linear"
+        dset = self.sm.dset
+        dset.data_display[DISPLAY_FIELD.index("scattering")] = (
+            dset.get_scat_with_mask(None, mode=mode)
+        )
+        dset.data_display[DISPLAY_FIELD.index("scattering * mask")] = (
+            dset.get_scat_with_mask(self.sm.mask, mode=mode)
+        )
 
         # Save view range before clearing so we can restore it when not resetting.
         vb = self.mp1.getView()
