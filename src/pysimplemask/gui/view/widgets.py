@@ -22,17 +22,17 @@ class ImageViewROI(pg.ImageView):
 
     def adjust_viewbox(self):
         vb = self.getView()
-        xMin, xMax = vb.viewRange()[0]
-        yMin, yMax = vb.viewRange()[1]
-
-        vb.setLimits(xMin=xMin,
-                     xMax=xMax,
-                     yMin=yMin,
-                     yMax=yMax,
-                     minXRange=(xMax - xMin) / 50,
-                     minYRange=(yMax - yMin) / 50)
         vb.setMouseMode(vb.RectMode)
         vb.setAspectLocked(1.0)
+        # Do NOT set absolute xMin/xMax/yMin/yMax limits: those lock the view
+        # to the range captured at call time and break zoom-out and window
+        # resize (pyqtgraph cannot auto-range past the stale limits).
+        # Only cap zoom-in to 1/50 of the image size, derived from the image
+        # dimensions rather than from the current (possibly zoomed) view range.
+        if self.image is not None:
+            h = self.image.shape[-2]
+            w = self.image.shape[-1]
+            vb.setLimits(minXRange=max(w / 50, 1), minYRange=max(h / 50, 1))
 
     def reset_limits(self):
         """
