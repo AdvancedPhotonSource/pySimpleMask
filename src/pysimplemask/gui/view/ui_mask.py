@@ -19,9 +19,9 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBo
     QGridLayout, QGroupBox, QHBoxLayout, QHeaderView,
     QLabel, QLineEdit, QListWidget, QListWidgetItem,
     QMainWindow, QPushButton, QScrollArea, QSizePolicy,
-    QSpacerItem, QSpinBox, QSplitter, QStatusBar,
-    QTabWidget, QTableView, QToolButton, QVBoxLayout,
-    QWidget)
+    QSlider, QSpacerItem, QSpinBox, QSplitter,
+    QStatusBar, QTabWidget, QTableView, QToolButton,
+    QVBoxLayout, QWidget)
 
 from .widgets import ImageViewROI
 from pyqtgraph import PlotWidget
@@ -151,7 +151,7 @@ class Ui_SimpleMask(object):
 
         self.scrollArea = QScrollArea(self.groupBox_15)
         self.scrollArea.setObjectName(u"scrollArea")
-        self.scrollArea.setMaximumSize(QSize(16777215, 140))
+        self.scrollArea.setMaximumSize(QSize(16777215, 16777215))
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
@@ -714,8 +714,8 @@ class Ui_SimpleMask(object):
         self.comboBox_outlier_target.addItem("")
         self.comboBox_outlier_target.addItem("")
         self.comboBox_outlier_target.setObjectName(u"comboBox_outlier_target")
-        sizePolicy10.setHeightForWidth(self.comboBox_outlier_target.sizePolicy().hasHeightForWidth())
-        self.comboBox_outlier_target.setSizePolicy(sizePolicy10)
+        sizePolicy3.setHeightForWidth(self.comboBox_outlier_target.sizePolicy().hasHeightForWidth())
+        self.comboBox_outlier_target.setSizePolicy(sizePolicy3)
         self.comboBox_outlier_target.setMinimumSize(QSize(120, 0))
 
         self.gridLayout_13.addWidget(self.comboBox_outlier_target, 0, 1, 1, 2)
@@ -1289,9 +1289,10 @@ class Ui_SimpleMask(object):
         self.checkBox_showxy.setObjectName(u"checkBox_showxy")
         self.checkBox_showxy.setChecked(True)
 
-        self.gridLayout_3.addWidget(self.checkBox_showxy, 0, 3, 1, 1)
+        self.gridLayout_3.addWidget(self.checkBox_showxy, 1, 3, 1, 1)
 
         self.plot_index = QComboBox(self.groupBox_4)
+        self.plot_index.addItem("")
         self.plot_index.addItem("")
         self.plot_index.addItem("")
         self.plot_index.addItem("")
@@ -1306,24 +1307,24 @@ class Ui_SimpleMask(object):
         self.plot_index.setSizePolicy(sizePolicy21)
         self.plot_index.setMinimumSize(QSize(0, 0))
 
-        self.gridLayout_3.addWidget(self.plot_index, 0, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.plot_index, 1, 0, 1, 1)
 
         self.plot_center = QCheckBox(self.groupBox_4)
         self.plot_center.setObjectName(u"plot_center")
         self.plot_center.setChecked(True)
 
-        self.gridLayout_3.addWidget(self.plot_center, 0, 1, 1, 1)
+        self.gridLayout_3.addWidget(self.plot_center, 1, 1, 1, 1)
 
         self.plot_log = QCheckBox(self.groupBox_4)
         self.plot_log.setObjectName(u"plot_log")
         self.plot_log.setChecked(True)
 
-        self.gridLayout_3.addWidget(self.plot_log, 0, 4, 1, 1)
+        self.gridLayout_3.addWidget(self.plot_log, 1, 4, 1, 1)
 
         self.label_45 = QLabel(self.groupBox_4)
         self.label_45.setObjectName(u"label_45")
 
-        self.gridLayout_3.addWidget(self.label_45, 0, 5, 1, 1)
+        self.gridLayout_3.addWidget(self.label_45, 1, 5, 1, 1)
 
         self.plot_cmap = QComboBox(self.groupBox_4)
         self.plot_cmap.addItem("")
@@ -1341,12 +1342,28 @@ class Ui_SimpleMask(object):
         sizePolicy3.setHeightForWidth(self.plot_cmap.sizePolicy().hasHeightForWidth())
         self.plot_cmap.setSizePolicy(sizePolicy3)
 
-        self.gridLayout_3.addWidget(self.plot_cmap, 0, 6, 1, 1)
+        self.gridLayout_3.addWidget(self.plot_cmap, 1, 6, 1, 1)
 
         self.btn_plot = QPushButton(self.groupBox_4)
         self.btn_plot.setObjectName(u"btn_plot")
 
-        self.gridLayout_3.addWidget(self.btn_plot, 0, 7, 1, 1)
+        self.gridLayout_3.addWidget(self.btn_plot, 1, 7, 1, 1)
+
+        self.label_frame = QLabel(self.groupBox_4)
+        self.label_frame.setObjectName(u"label_frame")
+
+        self.gridLayout_3.addWidget(self.label_frame, 0, 0, 1, 1)
+
+        self.spinBox_current_frame = QSpinBox(self.groupBox_4)
+        self.spinBox_current_frame.setObjectName(u"spinBox_current_frame")
+
+        self.gridLayout_3.addWidget(self.spinBox_current_frame, 0, 7, 1, 1)
+
+        self.horizontalSlider_frame = QSlider(self.groupBox_4)
+        self.horizontalSlider_frame.setObjectName(u"horizontalSlider_frame")
+        self.horizontalSlider_frame.setOrientation(Qt.Orientation.Horizontal)
+
+        self.gridLayout_3.addWidget(self.horizontalSlider_frame, 0, 1, 1, 6)
 
 
         self.gridLayout_16.addWidget(self.groupBox_4, 2, 0, 1, 4)
@@ -1364,7 +1381,7 @@ class Ui_SimpleMask(object):
         self.mask_list_include.toggled.connect(self.mask_list_radius.setEnabled)
         self.mask_list_include.toggled.connect(self.mask_list_variation.setEnabled)
 
-        self.MaskWidget.setCurrentIndex(0)
+        self.MaskWidget.setCurrentIndex(4)
         self.tabWidget.setCurrentIndex(0)
 
 
@@ -1539,12 +1556,13 @@ class Ui_SimpleMask(object):
         self.label_11.setText(QCoreApplication.translate("SimpleMask", u"coordinates:", None))
         self.groupBox_4.setTitle(QCoreApplication.translate("SimpleMask", u"Plot Settings", None))
         self.checkBox_showxy.setText(QCoreApplication.translate("SimpleMask", u" xy", None))
-        self.plot_index.setItemText(0, QCoreApplication.translate("SimpleMask", u"scattering", None))
-        self.plot_index.setItemText(1, QCoreApplication.translate("SimpleMask", u"scattering * mask", None))
-        self.plot_index.setItemText(2, QCoreApplication.translate("SimpleMask", u"mask", None))
-        self.plot_index.setItemText(3, QCoreApplication.translate("SimpleMask", u"dynamic_q_partition", None))
-        self.plot_index.setItemText(4, QCoreApplication.translate("SimpleMask", u"static_q_partition", None))
-        self.plot_index.setItemText(5, QCoreApplication.translate("SimpleMask", u"preview", None))
+        self.plot_index.setItemText(0, QCoreApplication.translate("SimpleMask", u"rawdata", None))
+        self.plot_index.setItemText(1, QCoreApplication.translate("SimpleMask", u"scattering", None))
+        self.plot_index.setItemText(2, QCoreApplication.translate("SimpleMask", u"scattering * mask", None))
+        self.plot_index.setItemText(3, QCoreApplication.translate("SimpleMask", u"mask", None))
+        self.plot_index.setItemText(4, QCoreApplication.translate("SimpleMask", u"dynamic_q_partition", None))
+        self.plot_index.setItemText(5, QCoreApplication.translate("SimpleMask", u"static_q_partition", None))
+        self.plot_index.setItemText(6, QCoreApplication.translate("SimpleMask", u"preview", None))
 
         self.plot_center.setText(QCoreApplication.translate("SimpleMask", u"center", None))
         self.plot_log.setText(QCoreApplication.translate("SimpleMask", u"log", None))
@@ -1562,5 +1580,6 @@ class Ui_SimpleMask(object):
         self.plot_cmap.setItemText(10, QCoreApplication.translate("SimpleMask", u"magma", None))
 
         self.btn_plot.setText(QCoreApplication.translate("SimpleMask", u"Plot", None))
+        self.label_frame.setText(QCoreApplication.translate("SimpleMask", u"frame index", None))
     # retranslateUi
 
