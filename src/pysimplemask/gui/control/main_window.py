@@ -1039,8 +1039,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
 
-        tab = self.tabWidget.currentIndex()
-        if tab == 0:          # q-phi
+        tab_name = self.tabWidget.tabText(self.tabWidget.currentIndex())
+        if tab_name == "q-phi":
             kwargs = {
                 "mode": "q-phi",
                 "sq_num": self.sb_sqnum.value(),
@@ -1051,7 +1051,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 "style": self.partition_style.currentText(),
                 "symmetry_fold": self.spinBox_symmetry_fold.value(),
             }
-        elif tab == 1:        # xy-mesh
+            sq_spinbox, sp_spinbox = self.sb_sqnum, self.sb_spnum
+        elif tab_name == "xy-mesh":
             kwargs = {
                 "mode": "x-y",
                 "sq_num": self.sb_sxnum.value(),
@@ -1059,7 +1060,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 "dq_num": self.sb_dxnum.value(),
                 "dp_num": self.sb_dynum.value(),
             }
-        elif tab == 2:        # ellipse (eq-ephi)
+            sq_spinbox, sp_spinbox = self.sb_sxnum, self.sb_synum
+        elif tab_name == "ellipse":
             kwargs = {
                 "mode": "eq-ephi",
                 "sq_num": self.sb_sxnum_2.value(),
@@ -1067,7 +1069,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 "dq_num": self.sb_dxnum_2.value(),
                 "dp_num": self.sb_dynum_2.value(),
             }
-        elif tab == 3:        # general two-axis
+            sq_spinbox, sp_spinbox = self.sb_sxnum_2, self.sb_synum_2
+        elif tab_name == "general":
             map0 = self.comboBox_partition_mapname0.currentText()
             map1 = self.comboBox_partition_mapname1.currentText()
             kwargs = {
@@ -1077,16 +1080,17 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 "dq_num": self.sb_partition_dn0.value(),
                 "dp_num": self.sb_partition_dn1.value(),
             }
+            sq_spinbox, sp_spinbox = self.sb_partition_sn0, self.sb_partition_sn1
+        else:
+            return
 
         sq_num = least_multiple(kwargs["dq_num"], kwargs["sq_num"])
         sp_num = least_multiple(kwargs["dp_num"], kwargs["sp_num"])
         if sq_num != kwargs["sq_num"]:
-            {0: self.sb_sqnum, 1: self.sb_sxnum, 2: self.sb_sxnum_2,
-             3: self.sb_partition_sn0}.get(tab, self.sb_sqnum).setValue(sq_num)
+            sq_spinbox.setValue(sq_num)
             kwargs["sq_num"] = sq_num
         if sp_num != kwargs["sp_num"]:
-            {0: self.sb_spnum, 1: self.sb_synum, 2: self.sb_synum_2,
-             3: self.sb_partition_sn1}.get(tab, self.sb_spnum).setValue(sp_num)
+            sp_spinbox.setValue(sp_num)
             kwargs["sp_num"] = sp_num
 
         self.btn_compute_qpartition.setDisabled(True)
