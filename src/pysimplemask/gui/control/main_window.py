@@ -160,6 +160,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.pushButton.clicked.connect(self.save_mask)
 
         self.plot_index.currentIndexChanged.connect(self._on_plot_index_changed)
+        self.horizontalSlider_frame.valueChanged.connect(self._on_frame_changed)
+        self.spinBox_current_frame.valueChanged.connect(self._on_frame_changed)
 
         # reset, redo, undo botton for mask
         self.btn_mask_reset.clicked.connect(lambda: self.mask_action("reset"))
@@ -225,6 +227,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_param_delete.clicked.connect(self.delete_param_constraint)
 
         self.btn_mask_evaluate.clicked.connect(self.mask_evaluate_current_tab)
+
+        # Rawdata frame browser state
+        self._frame_timer = QTimer(self)
+        self._frame_timer.setSingleShot(True)
+        self._frame_timer.setInterval(100)   # 100 ms debounce
+        self._frame_timer.timeout.connect(self._read_and_show_frame)
+        self._pending_frame_idx = 0
 
         self.work_dir = None
         if path is not None:
@@ -800,6 +809,62 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not enabled and self.plot_index.currentIndex() == _RAWDATA_IDX:
             self.plot_index.setCurrentIndex(_RAWDATA_IDX + 1)
 
+    def _detect_rawdata(self) -> tuple:
+        """Return (has_rawdata, num_frames) for the currently loaded file.
+
+        Checks for /entry/data/data with ndim==3 and shape[0] > 1.
+        """
+        import h5py
+        if not self.sm.is_ready():
+            return False, 0
+        fname = self.sm.dset.fname
+        try:
+            if not h5py.is_hdf5(fname):
+                return False, 0
+            with h5py.File(fname, "r") as f:
+                if "/entry/data/data" not in f:
+                    return False, 0
+                s = f["/entry/data/data"].shape
+                if len(s) != 3 or s[0] <= 1:
+                    return False, 0
+                return True, int(s[0])
+        except Exception:
+            return False, 0
+
+    def _on_frame_changed(self, value: int) -> None:
+        """Called by slider or spinbox; syncs the other widget and restarts debounce."""
+        self._pending_frame_idx = value
+        # Sync the other control without triggering a second signal
+        sender = self.sender()
+        if sender is self.horizontalSlider_frame:
+            self.spinBox_current_frame.blockSignals(True)
+            self.spinBox_current_frame.setValue(value)
+            self.spinBox_current_frame.blockSignals(False)
+        else:
+            self.horizontalSlider_frame.blockSignals(True)
+            self.horizontalSlider_frame.setValue(value)
+            self.horizontalSlider_frame.blockSignals(False)
+        self._frame_timer.start()   # restart: cancel pending read, schedule new one
+
+    def _read_and_show_frame(self) -> None:
+        """Timer callback: read one raw frame from HDF5 and display it."""
+        import h5py
+        if not self.sm.is_ready():
+            return
+        idx = self._pending_frame_idx
+        fname = self.sm.dset.fname
+        try:
+            with h5py.File(fname, "r") as f:
+                frame = f["/entry/data/data"][idx].astype(np.float32)
+        except Exception as exc:
+            logger.error("Failed to read frame %d from %s: %s", idx, fname, exc)
+            return
+        vb = self.mp1.getView()
+        saved_range = vb.viewRange() if self.mp1.image is not None else None
+        self.mp1.setImage(frame)
+        if saved_range is not None:
+            vb.setRange(xRange=saved_range[0], yRange=saved_range[1], padding=0)
+
     def update_parameters(self, swapxy=False, new_center_vh=None):
         if not self.is_ready():
             return
@@ -924,6 +989,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.plot_index.addItem(key)
 
         self.display_metadata()
+        has_rawdata, num_frames = self._detect_rawdata()
+        self._set_rawdata_enabled(has_rawdata)
+        if has_rawdata:
+            self.horizontalSlider_frame.setRange(0, num_frames - 1)
+            self.horizontalSlider_frame.setValue(0)
+            self.spinBox_current_frame.setRange(0, num_frames - 1)
+            self.spinBox_current_frame.setValue(0)
+            self._pending_frame_idx = 0
         self.plot(reset_view=True)
         self.statusbar.showMessage("data is loaded", 500)
         self.btn_load.setText("Load")

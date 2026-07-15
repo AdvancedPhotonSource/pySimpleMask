@@ -23,6 +23,15 @@ def _load_gui(tmp_path, frames):
         h["/entry/data/data"] = np.asarray(frames)
     gui = SimpleMaskGUI()
     assert gui.sm.read_data(str(path), beamline="APS_8IDI", num_frames=0)
+    # Mirror what load() does: detect rawdata and configure the frame controls.
+    has_rawdata, num_frames = gui._detect_rawdata()
+    gui._set_rawdata_enabled(has_rawdata)
+    if has_rawdata:
+        gui.horizontalSlider_frame.setRange(0, num_frames - 1)
+        gui.horizontalSlider_frame.setValue(0)
+        gui.spinBox_current_frame.setRange(0, num_frames - 1)
+        gui.spinBox_current_frame.setValue(0)
+        gui._pending_frame_idx = 0
     return gui
 
 
@@ -128,3 +137,42 @@ def test_non_rawdata_channel_uses_correct_data_display_slice(qapp, tmp_path):
     assert gui.mp1.image is not None
     expected = gui.sm.dset.data_display[0]
     np.testing.assert_array_equal(gui.mp1.image, expected)
+
+
+def test_detect_rawdata_returns_false_for_non_hdf(qapp, tmp_path):
+    """_detect_rawdata returns False for non-HDF files."""
+    gui = SimpleMaskGUI()
+    # No data loaded → not ready
+    ok, n = gui._detect_rawdata()
+    assert not ok
+    assert n == 0
+
+
+def test_detect_rawdata_returns_false_for_single_frame_hdf(qapp, tmp_path):
+    """_detect_rawdata returns False when /entry/data/data has only 1 frame."""
+    gui = _load_gui(tmp_path, np.ones((1, 20, 24), dtype=np.uint16))
+    ok, n = gui._detect_rawdata()
+    assert not ok
+    assert n == 0
+
+
+def test_detect_rawdata_returns_true_for_multi_frame_hdf(qapp, tmp_path):
+    """_detect_rawdata returns True when /entry/data/data has > 1 frames."""
+    gui = _load_gui(tmp_path, np.ones((5, 20, 24), dtype=np.uint16))
+    ok, n = gui._detect_rawdata()
+    assert ok
+    assert n == 5
+
+
+def test_rawdata_enabled_after_loading_multi_frame_hdf(qapp, tmp_path):
+    """rawdata combobox item is enabled after loading a multi-frame HDF."""
+    gui = _load_gui(tmp_path, np.ones((5, 20, 24), dtype=np.uint16))
+    model = gui.plot_index.model()
+    assert model.item(0).isEnabled(), "rawdata should be enabled for multi-frame HDF"
+
+
+def test_rawdata_disabled_after_loading_single_frame_hdf(qapp, tmp_path):
+    """rawdata combobox item is disabled after loading a single-frame HDF."""
+    gui = _load_gui(tmp_path, np.ones((1, 20, 24), dtype=np.uint16))
+    model = gui.plot_index.model()
+    assert not model.item(0).isEnabled()
