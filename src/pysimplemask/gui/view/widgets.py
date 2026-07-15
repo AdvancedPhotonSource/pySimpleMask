@@ -32,7 +32,10 @@ class ImageViewROI(pg.ImageView):
         if self.image is not None:
             h = self.image.shape[-2]
             w = self.image.shape[-1]
-            vb.setLimits(minXRange=max(w / 50, 1), minYRange=max(h / 50, 1))
+            vb.setLimits(
+                minXRange=max(w / 50, 1), minYRange=max(h / 50, 1),
+                maxXRange=w * 2,          maxYRange=h * 2,
+            )
 
     def reset_limits(self):
         """
