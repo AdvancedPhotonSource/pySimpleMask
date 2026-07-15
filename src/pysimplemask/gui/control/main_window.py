@@ -65,6 +65,9 @@ PVMAP = {
 
 # Maps MaskWidget tab index → mask target(s) applied by btn_mask_apply.
 # Tab 0 (Blemish/Files) applies both; an unevaluated worker is a safe no-op.
+_APPLY_TIP_READY = "Apply the evaluated mask for the currently active tab into the working mask"
+_APPLY_TIP_DISABLED = "Evaluate a mask first — Apply will become available after Evaluate"
+
 _TAB_MASK_TARGETS: list = [
     ("mask_file",),                  # 0: Files (blemish section removed from UI)
     ("mask_draw",),                  # 1: Draw
@@ -128,10 +131,12 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_redo.clicked.connect(lambda: self.mask_action("redo"))
         self.btn_mask_undo.clicked.connect(lambda: self.mask_action("undo"))
         self.btn_mask_apply.clicked.connect(self.mask_apply_current_tab)
-        self.btn_mask_apply.setEnabled(False)  # enabled only after Evaluate
-        self.MaskWidget.currentChanged.connect(
-            lambda _: self.btn_mask_apply.setEnabled(False)
-        )
+        self.btn_mask_apply.setEnabled(False)
+        self.btn_mask_apply.setToolTip(_APPLY_TIP_DISABLED)
+        self.MaskWidget.currentChanged.connect(lambda _: (
+            self.btn_mask_apply.setEnabled(False),
+            self.btn_mask_apply.setToolTip(_APPLY_TIP_DISABLED),
+        ))
 
         # headless core model + view-side mouse hover
         self.sm = SimpleMaskModel()
@@ -256,10 +261,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_reset.setToolTip(
             "Reset the mask to its initial state (blemish map only)"
         )
-        self.btn_mask_apply.setToolTip(
-            "Apply the evaluated mask for the currently active tab into the working mask"
-        )
-
         # ── Mask file tab ─────────────────────────────────────────────────────
         self.btn_select_maskfile.setToolTip(
             "Browse for an external mask file (HDF5 or TIFF)"
@@ -532,7 +533,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
         for target in _TAB_MASK_TARGETS[idx]:
             self.mask_apply(target)
-        self.btn_mask_apply.setEnabled(False)   # re-disable until next Evaluate
+        self.btn_mask_apply.setEnabled(False)
+        self.btn_mask_apply.setToolTip(_APPLY_TIP_DISABLED)
 
     def mask_evaluate_current_tab(self):
         """Evaluate (preview) the mask(s) for the currently active MaskWidget tab."""
@@ -543,7 +545,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
         for target in _TAB_MASK_EVALUATE_TARGETS[idx]:
             self.mask_evaluate(target)
-        self.btn_mask_apply.setEnabled(True)    # unlock Apply after successful Evaluate
+        self.btn_mask_apply.setEnabled(True)
+        self.btn_mask_apply.setToolTip(_APPLY_TIP_READY)
 
     def find_center(self):
         if not self.is_ready():
