@@ -109,9 +109,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_load.clicked.connect(self.load)
         self.btn_plot.clicked.connect(self.plot)
         self.btn_compute_qpartition.clicked.connect(self.compute_partition)
-        self.btn_compute_qpartition2.clicked.connect(self.compute_partition)
-        self.btn_compute_qpartition3.clicked.connect(self.compute_partition)
-        self.btn_compute_qpartition4.clicked.connect(self.compute_partition)
 
         self.btn_select_raw.clicked.connect(self.select_raw)
         # self.btn_select_txt.clicked.connect(self.select_txt)
@@ -416,7 +413,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             "At N > 1, azimuthal sectors separated by 360°/N are treated as equivalent."
         )
         self.btn_compute_qpartition.setToolTip(
-            "Compute the q-φ partition map with the current settings"
+            "Compute the partition map for the currently active tab"
         )
 
         # ── X-Y mesh partition ────────────────────────────────────────────────
@@ -424,7 +421,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.sb_dxnum.setToolTip("Number of x bins in the dynamic partition")
         self.sb_synum.setToolTip("Number of y bins in the static partition")
         self.sb_dynum.setToolTip("Number of y bins in the dynamic partition")
-        self.btn_compute_qpartition2.setToolTip("Compute the x-y mesh partition")
 
         # ── Ellipse (eq-ephi) partition ───────────────────────────────────────
         self.sb_sxnum_2.setToolTip(
@@ -435,9 +431,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
             "Static equivalent-φ sectors (ellipse-corrected azimuthal bins)"
         )
         self.sb_dynum_2.setToolTip("Dynamic equivalent-φ sectors")
-        self.btn_compute_qpartition4.setToolTip(
-            "Compute the ellipse-corrected eq-ephi partition"
-        )
 
         # ── General two-axis partition ────────────────────────────────────────
         self.comboBox_partition_mapname0.setToolTip(
@@ -455,9 +448,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
         self.comboBox_partition_style1.setToolTip(
             "Bin spacing for the secondary axis: Linear or Logarithmic"
-        )
-        self.btn_compute_qpartition3.setToolTip(
-            "Compute the custom two-axis partition"
         )
 
         # ── Output ────────────────────────────────────────────────────────────
@@ -1049,7 +1039,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
 
-        if self.tabWidget.currentIndex() == 0:
+        tab = self.tabWidget.currentIndex()
+        if tab == 0:          # q-phi
             kwargs = {
                 "mode": "q-phi",
                 "sq_num": self.sb_sqnum.value(),
@@ -1060,7 +1051,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 "style": self.partition_style.currentText(),
                 "symmetry_fold": self.spinBox_symmetry_fold.value(),
             }
-        elif self.tabWidget.currentIndex() == 1:
+        elif tab == 1:        # xy-mesh
             kwargs = {
                 "mode": "x-y",
                 "sq_num": self.sb_sxnum.value(),
@@ -1068,7 +1059,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 "dq_num": self.sb_dxnum.value(),
                 "dp_num": self.sb_dynum.value(),
             }
-        elif self.tabWidget.currentIndex() == 2:
+        elif tab == 2:        # ellipse (eq-ephi)
+            kwargs = {
+                "mode": "eq-ephi",
+                "sq_num": self.sb_sxnum_2.value(),
+                "sp_num": self.sb_synum_2.value(),
+                "dq_num": self.sb_dxnum_2.value(),
+                "dp_num": self.sb_dynum_2.value(),
+            }
+        elif tab == 3:        # general two-axis
             map0 = self.comboBox_partition_mapname0.currentText()
             map1 = self.comboBox_partition_mapname1.currentText()
             kwargs = {
@@ -1078,28 +1077,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 "dq_num": self.sb_partition_dn0.value(),
                 "dp_num": self.sb_partition_dn1.value(),
             }
-        elif self.tabWidget.currentIndex() == 3:
-            kwargs = {
-                "mode": "eq-ephi",
-                "sq_num": self.sb_sxnum_2.value(),
-                "sp_num": self.sb_synum_2.value(),
-                "dq_num": self.sb_dxnum_2.value(),
-                "dp_num": self.sb_dynum_2.value(),
-            }
 
         sq_num = least_multiple(kwargs["dq_num"], kwargs["sq_num"])
         sp_num = least_multiple(kwargs["dp_num"], kwargs["sp_num"])
         if sq_num != kwargs["sq_num"]:
-            if self.tabWidget.currentIndex() == 0:
-                self.sb_sqnum.setValue(sq_num)
-            else:
-                self.sb_sxnum.setValue(sq_num)
+            {0: self.sb_sqnum, 1: self.sb_sxnum, 2: self.sb_sxnum_2,
+             3: self.sb_partition_sn0}.get(tab, self.sb_sqnum).setValue(sq_num)
             kwargs["sq_num"] = sq_num
         if sp_num != kwargs["sp_num"]:
-            if self.tabWidget.currentIndex() == 0:
-                self.sb_spnum.setValue(sp_num)
-            else:
-                self.sb_synum.setValue(sp_num)
+            {0: self.sb_spnum, 1: self.sb_synum, 2: self.sb_synum_2,
+             3: self.sb_partition_sn1}.get(tab, self.sb_spnum).setValue(sp_num)
             kwargs["sp_num"] = sp_num
 
         self.btn_compute_qpartition.setDisabled(True)
