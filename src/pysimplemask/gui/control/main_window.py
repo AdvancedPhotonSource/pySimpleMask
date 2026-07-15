@@ -758,7 +758,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         """Update the displayed 2D slice when the channel selector changes."""
         if not self.is_ready():
             return
+        vb = self.mp1.getView()
+        saved_range = vb.viewRange() if self.mp1.image is not None else None
         self.mp1.setImage(self.sm.dset.data_display[idx])
+        if saved_range is not None:
+            vb.setRange(xRange=saved_range[0], yRange=saved_range[1], padding=0)
         if idx in [2, 5]:   # mask and preview: enforce binary 0/1 scale
             self.mp1.setLevels(0, 1)
 
