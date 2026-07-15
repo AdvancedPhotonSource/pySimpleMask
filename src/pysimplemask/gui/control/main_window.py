@@ -853,7 +853,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
             "num_frames": self.spinBox_4.value(),
             "beamline": self.comboBox_beamline.currentText(),
         }
-        if not self.sm.read_data(fname, **kwargs):
+        try:
+            ok = self.sm.read_data(fname, **kwargs)
+        except Exception as exc:
+            ok = False
+            logger.error("Failed to load %s: %s", fname, exc)
+        if not ok:
+            self.btn_load.setText("load data")
+            self.statusbar.showMessage(f"Failed to load: {fname}", 8000)
             return
         # else:
         #     stype = self.sm.dset.stype
