@@ -47,41 +47,17 @@ class Ui_SimpleMask(object):
         self.splitter_2.setOrientation(Qt.Orientation.Horizontal)
         self.splitter = QSplitter(self.splitter_2)
         self.splitter.setObjectName(u"splitter")
-        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
-        sizePolicy1.setHorizontalStretch(1)
-        sizePolicy1.setVerticalStretch(0)
-        sizePolicy1.setHeightForWidth(self.splitter.sizePolicy().hasHeightForWidth())
-        self.splitter.setSizePolicy(sizePolicy1)
         self.splitter.setOrientation(Qt.Orientation.Vertical)
         self.groupBox = QGroupBox(self.splitter)
         self.groupBox.setObjectName(u"groupBox")
-        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
-        sizePolicy2.setHorizontalStretch(1)
-        sizePolicy2.setVerticalStretch(1)
-        sizePolicy2.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
-        self.groupBox.setSizePolicy(sizePolicy2)
+        sizePolicy1 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
+        sizePolicy1.setHorizontalStretch(1)
+        sizePolicy1.setVerticalStretch(1)
+        sizePolicy1.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
+        self.groupBox.setSizePolicy(sizePolicy1)
         self.gridLayout_2 = QGridLayout(self.groupBox)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.gridLayout_2.setContentsMargins(1, 1, 1, 1)
-        self.groupBox_15 = QGroupBox(self.groupBox)
-        self.groupBox_15.setObjectName(u"groupBox_15")
-        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-        sizePolicy3.setHorizontalStretch(0)
-        sizePolicy3.setVerticalStretch(1)
-        sizePolicy3.setHeightForWidth(self.groupBox_15.sizePolicy().hasHeightForWidth())
-        self.groupBox_15.setSizePolicy(sizePolicy3)
-        self.groupBox_15.setMinimumSize(QSize(0, 250))
-        self.gridLayout_10 = QGridLayout(self.groupBox_15)
-        self.gridLayout_10.setObjectName(u"gridLayout_10")
-        self.gridLayout_10.setContentsMargins(0, 0, 0, 0)
-        self.metadata_tree = ParameterTree(self.groupBox_15)
-        self.metadata_tree.setObjectName(u"metadata_tree")
-
-        self.gridLayout_10.addWidget(self.metadata_tree, 0, 0, 1, 1)
-
-
-        self.gridLayout_2.addWidget(self.groupBox_15, 2, 0, 1, 5)
-
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.comboBox_beamline = QComboBox(self.groupBox)
@@ -123,7 +99,63 @@ class Ui_SimpleMask(object):
         self.horizontalLayout.addWidget(self.btn_load)
 
 
-        self.gridLayout_2.addLayout(self.horizontalLayout, 1, 0, 1, 5)
+        self.gridLayout_2.addLayout(self.horizontalLayout, 1, 0, 1, 2)
+
+        self.groupBox_15 = QGroupBox(self.groupBox)
+        self.groupBox_15.setObjectName(u"groupBox_15")
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(1)
+        sizePolicy2.setHeightForWidth(self.groupBox_15.sizePolicy().hasHeightForWidth())
+        self.groupBox_15.setSizePolicy(sizePolicy2)
+        self.groupBox_15.setMinimumSize(QSize(0, 250))
+        self.gridLayout_10 = QGridLayout(self.groupBox_15)
+        self.gridLayout_10.setObjectName(u"gridLayout_10")
+        self.gridLayout_10.setContentsMargins(1, 1, 1, 1)
+        self.metadata_tree = ParameterTree(self.groupBox_15)
+        self.metadata_tree.setObjectName(u"metadata_tree")
+        sizePolicy2.setHeightForWidth(self.metadata_tree.sizePolicy().hasHeightForWidth())
+        self.metadata_tree.setSizePolicy(sizePolicy2)
+
+        self.gridLayout_10.addWidget(self.metadata_tree, 0, 0, 1, 1)
+
+        self.horizontalLayout_5 = QHBoxLayout()
+        self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
+        self.label_3 = QLabel(self.groupBox_15)
+        self.label_3.setObjectName(u"label_3")
+
+        self.horizontalLayout_5.addWidget(self.label_3)
+
+        self.btn_swapxy = QPushButton(self.groupBox_15)
+        self.btn_swapxy.setObjectName(u"btn_swapxy")
+
+        self.horizontalLayout_5.addWidget(self.btn_swapxy)
+
+        self.pushButton_goto_max = QPushButton(self.groupBox_15)
+        self.pushButton_goto_max.setObjectName(u"pushButton_goto_max")
+
+        self.horizontalLayout_5.addWidget(self.pushButton_goto_max)
+
+        self.btn_find_center = QPushButton(self.groupBox_15)
+        self.btn_find_center.setObjectName(u"btn_find_center")
+
+        self.horizontalLayout_5.addWidget(self.btn_find_center)
+
+        self.btn_update_parameters = QPushButton(self.groupBox_15)
+        self.btn_update_parameters.setObjectName(u"btn_update_parameters")
+        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.btn_update_parameters.sizePolicy().hasHeightForWidth())
+        self.btn_update_parameters.setSizePolicy(sizePolicy3)
+
+        self.horizontalLayout_5.addWidget(self.btn_update_parameters)
+
+
+        self.gridLayout_10.addLayout(self.horizontalLayout_5, 1, 0, 1, 1)
+
+
+        self.gridLayout_2.addWidget(self.groupBox_15, 2, 0, 1, 2)
 
         self.horizontalLayout_2 = QHBoxLayout()
         self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
@@ -149,68 +181,54 @@ class Ui_SimpleMask(object):
         self.horizontalLayout_2.addWidget(self.btn_select_raw)
 
 
-        self.gridLayout_2.addLayout(self.horizontalLayout_2, 0, 0, 1, 5)
-
-        self.btn_swapxy = QPushButton(self.groupBox)
-        self.btn_swapxy.setObjectName(u"btn_swapxy")
-
-        self.gridLayout_2.addWidget(self.btn_swapxy, 3, 1, 1, 1)
-
-        self.btn_update_parameters = QPushButton(self.groupBox)
-        self.btn_update_parameters.setObjectName(u"btn_update_parameters")
-        sizePolicy5 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-        sizePolicy5.setHorizontalStretch(0)
-        sizePolicy5.setVerticalStretch(0)
-        sizePolicy5.setHeightForWidth(self.btn_update_parameters.sizePolicy().hasHeightForWidth())
-        self.btn_update_parameters.setSizePolicy(sizePolicy5)
-
-        self.gridLayout_2.addWidget(self.btn_update_parameters, 3, 4, 1, 1)
-
-        self.btn_find_center = QPushButton(self.groupBox)
-        self.btn_find_center.setObjectName(u"btn_find_center")
-
-        self.gridLayout_2.addWidget(self.btn_find_center, 3, 3, 1, 1)
-
-        self.pushButton_goto_max = QPushButton(self.groupBox)
-        self.pushButton_goto_max.setObjectName(u"pushButton_goto_max")
-
-        self.gridLayout_2.addWidget(self.pushButton_goto_max, 3, 2, 1, 1)
-
-        self.label_3 = QLabel(self.groupBox)
-        self.label_3.setObjectName(u"label_3")
-
-        self.gridLayout_2.addWidget(self.label_3, 3, 0, 1, 1)
+        self.gridLayout_2.addLayout(self.horizontalLayout_2, 0, 0, 1, 2)
 
         self.splitter.addWidget(self.groupBox)
         self.groupBox_2 = QGroupBox(self.splitter)
         self.groupBox_2.setObjectName(u"groupBox_2")
-        sizePolicy2.setHeightForWidth(self.groupBox_2.sizePolicy().hasHeightForWidth())
-        self.groupBox_2.setSizePolicy(sizePolicy2)
+        sizePolicy1.setHeightForWidth(self.groupBox_2.sizePolicy().hasHeightForWidth())
+        self.groupBox_2.setSizePolicy(sizePolicy1)
         self.gridLayout_4 = QGridLayout(self.groupBox_2)
         self.gridLayout_4.setObjectName(u"gridLayout_4")
         self.gridLayout_4.setContentsMargins(1, 1, 1, 1)
         self.btn_mask_reset = QPushButton(self.groupBox_2)
         self.btn_mask_reset.setObjectName(u"btn_mask_reset")
 
-        self.gridLayout_4.addWidget(self.btn_mask_reset, 2, 0, 1, 1)
-
-        self.btn_mask_undo = QPushButton(self.groupBox_2)
-        self.btn_mask_undo.setObjectName(u"btn_mask_undo")
-
-        self.gridLayout_4.addWidget(self.btn_mask_undo, 2, 1, 1, 1)
+        self.gridLayout_4.addWidget(self.btn_mask_reset, 1, 2, 1, 1)
 
         self.btn_mask_redo = QPushButton(self.groupBox_2)
         self.btn_mask_redo.setObjectName(u"btn_mask_redo")
 
-        self.gridLayout_4.addWidget(self.btn_mask_redo, 2, 2, 1, 1)
+        self.gridLayout_4.addWidget(self.btn_mask_redo, 1, 4, 1, 1)
+
+        self.btn_mask_undo = QPushButton(self.groupBox_2)
+        self.btn_mask_undo.setObjectName(u"btn_mask_undo")
+
+        self.gridLayout_4.addWidget(self.btn_mask_undo, 1, 3, 1, 1)
+
+        self.btn_mask_apply = QPushButton(self.groupBox_2)
+        self.btn_mask_apply.setObjectName(u"btn_mask_apply")
+        sizePolicy3.setHeightForWidth(self.btn_mask_apply.sizePolicy().hasHeightForWidth())
+        self.btn_mask_apply.setSizePolicy(sizePolicy3)
+        self.btn_mask_apply.setMaximumSize(QSize(16777215, 16777215))
+
+        self.gridLayout_4.addWidget(self.btn_mask_apply, 1, 1, 1, 1)
+
+        self.btn_mask_evaluate = QPushButton(self.groupBox_2)
+        self.btn_mask_evaluate.setObjectName(u"btn_mask_evaluate")
+        sizePolicy3.setHeightForWidth(self.btn_mask_evaluate.sizePolicy().hasHeightForWidth())
+        self.btn_mask_evaluate.setSizePolicy(sizePolicy3)
+        self.btn_mask_evaluate.setMinimumSize(QSize(0, 0))
+
+        self.gridLayout_4.addWidget(self.btn_mask_evaluate, 1, 0, 1, 1)
 
         self.MaskWidget = QTabWidget(self.groupBox_2)
         self.MaskWidget.setObjectName(u"MaskWidget")
-        sizePolicy6 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
-        sizePolicy6.setHorizontalStretch(0)
-        sizePolicy6.setVerticalStretch(0)
-        sizePolicy6.setHeightForWidth(self.MaskWidget.sizePolicy().hasHeightForWidth())
-        self.MaskWidget.setSizePolicy(sizePolicy6)
+        sizePolicy5 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Preferred)
+        sizePolicy5.setHorizontalStretch(0)
+        sizePolicy5.setVerticalStretch(0)
+        sizePolicy5.setHeightForWidth(self.MaskWidget.sizePolicy().hasHeightForWidth())
+        self.MaskWidget.setSizePolicy(sizePolicy5)
         self.MaskWidget.setMaximumSize(QSize(16777215, 16777215))
         self.tab_6 = QWidget()
         self.tab_6.setObjectName(u"tab_6")
@@ -222,145 +240,63 @@ class Ui_SimpleMask(object):
         self.gridLayout_17 = QGridLayout(self.groupBox_8)
         self.gridLayout_17.setObjectName(u"gridLayout_17")
         self.gridLayout_17.setContentsMargins(2, 2, 2, 2)
+        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.gridLayout_17.addItem(self.verticalSpacer_2, 2, 0, 1, 1)
+
         self.gridLayout_12 = QGridLayout()
         self.gridLayout_12.setObjectName(u"gridLayout_12")
         self.label_18 = QLabel(self.groupBox_8)
         self.label_18.setObjectName(u"label_18")
-        sizePolicy7 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
-        sizePolicy7.setHorizontalStretch(0)
-        sizePolicy7.setVerticalStretch(0)
-        sizePolicy7.setHeightForWidth(self.label_18.sizePolicy().hasHeightForWidth())
-        self.label_18.setSizePolicy(sizePolicy7)
+        sizePolicy6 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
+        sizePolicy6.setHorizontalStretch(0)
+        sizePolicy6.setVerticalStretch(0)
+        sizePolicy6.setHeightForWidth(self.label_18.sizePolicy().hasHeightForWidth())
+        self.label_18.setSizePolicy(sizePolicy6)
 
         self.gridLayout_12.addWidget(self.label_18, 0, 0, 1, 1)
 
         self.maskfile_fname = QLineEdit(self.groupBox_8)
         self.maskfile_fname.setObjectName(u"maskfile_fname")
-        sizePolicy8 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
-        sizePolicy8.setHorizontalStretch(0)
-        sizePolicy8.setVerticalStretch(0)
-        sizePolicy8.setHeightForWidth(self.maskfile_fname.sizePolicy().hasHeightForWidth())
-        self.maskfile_fname.setSizePolicy(sizePolicy8)
+        sizePolicy7 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        sizePolicy7.setHorizontalStretch(1)
+        sizePolicy7.setVerticalStretch(0)
+        sizePolicy7.setHeightForWidth(self.maskfile_fname.sizePolicy().hasHeightForWidth())
+        self.maskfile_fname.setSizePolicy(sizePolicy7)
         self.maskfile_fname.setMinimumSize(QSize(300, 0))
 
         self.gridLayout_12.addWidget(self.maskfile_fname, 0, 1, 1, 1)
 
         self.btn_select_maskfile = QPushButton(self.groupBox_8)
         self.btn_select_maskfile.setObjectName(u"btn_select_maskfile")
-        sizePolicy5.setHeightForWidth(self.btn_select_maskfile.sizePolicy().hasHeightForWidth())
-        self.btn_select_maskfile.setSizePolicy(sizePolicy5)
+        sizePolicy3.setHeightForWidth(self.btn_select_maskfile.sizePolicy().hasHeightForWidth())
+        self.btn_select_maskfile.setSizePolicy(sizePolicy3)
 
         self.gridLayout_12.addWidget(self.btn_select_maskfile, 0, 2, 1, 1)
 
         self.label_32 = QLabel(self.groupBox_8)
         self.label_32.setObjectName(u"label_32")
-        sizePolicy6.setHeightForWidth(self.label_32.sizePolicy().hasHeightForWidth())
-        self.label_32.setSizePolicy(sizePolicy6)
+        sizePolicy5.setHeightForWidth(self.label_32.sizePolicy().hasHeightForWidth())
+        self.label_32.setSizePolicy(sizePolicy5)
 
         self.gridLayout_12.addWidget(self.label_32, 1, 0, 1, 1)
 
         self.maskfile_path = QLineEdit(self.groupBox_8)
         self.maskfile_path.setObjectName(u"maskfile_path")
+        sizePolicy8 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        sizePolicy8.setHorizontalStretch(0)
+        sizePolicy8.setVerticalStretch(0)
         sizePolicy8.setHeightForWidth(self.maskfile_path.sizePolicy().hasHeightForWidth())
         self.maskfile_path.setSizePolicy(sizePolicy8)
         self.maskfile_path.setMinimumSize(QSize(300, 0))
 
-        self.gridLayout_12.addWidget(self.maskfile_path, 1, 1, 1, 1)
-
-        self.btn_apply_maskfile = QPushButton(self.groupBox_8)
-        self.btn_apply_maskfile.setObjectName(u"btn_apply_maskfile")
-        sizePolicy9 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-        sizePolicy9.setHorizontalStretch(0)
-        sizePolicy9.setVerticalStretch(0)
-        sizePolicy9.setHeightForWidth(self.btn_apply_maskfile.sizePolicy().hasHeightForWidth())
-        self.btn_apply_maskfile.setSizePolicy(sizePolicy9)
-        self.btn_apply_maskfile.setMinimumSize(QSize(60, 0))
-
-        self.gridLayout_12.addWidget(self.btn_apply_maskfile, 1, 2, 1, 1)
+        self.gridLayout_12.addWidget(self.maskfile_path, 1, 1, 1, 2)
 
 
         self.gridLayout_17.addLayout(self.gridLayout_12, 1, 0, 1, 1)
 
-        self.btn_mask_file_apply = QPushButton(self.groupBox_8)
-        self.btn_mask_file_apply.setObjectName(u"btn_mask_file_apply")
-        sizePolicy9.setHeightForWidth(self.btn_mask_file_apply.sizePolicy().hasHeightForWidth())
-        self.btn_mask_file_apply.setSizePolicy(sizePolicy9)
-        self.btn_mask_file_apply.setMaximumSize(QSize(80, 16777215))
 
-        self.gridLayout_17.addWidget(self.btn_mask_file_apply, 1, 1, 1, 1)
-
-
-        self.gridLayout_25.addWidget(self.groupBox_8, 1, 0, 1, 1)
-
-        self.groupBox_7 = QGroupBox(self.tab_6)
-        self.groupBox_7.setObjectName(u"groupBox_7")
-        self.gridLayout_24 = QGridLayout(self.groupBox_7)
-        self.gridLayout_24.setObjectName(u"gridLayout_24")
-        self.gridLayout_24.setContentsMargins(2, 2, 2, 2)
-        self.gridLayout_9 = QGridLayout()
-        self.gridLayout_9.setObjectName(u"gridLayout_9")
-        self.label_30 = QLabel(self.groupBox_7)
-        self.label_30.setObjectName(u"label_30")
-        sizePolicy7.setHeightForWidth(self.label_30.sizePolicy().hasHeightForWidth())
-        self.label_30.setSizePolicy(sizePolicy7)
-
-        self.gridLayout_9.addWidget(self.label_30, 0, 0, 1, 1)
-
-        self.blemish_fname = QLineEdit(self.groupBox_7)
-        self.blemish_fname.setObjectName(u"blemish_fname")
-        sizePolicy8.setHeightForWidth(self.blemish_fname.sizePolicy().hasHeightForWidth())
-        self.blemish_fname.setSizePolicy(sizePolicy8)
-        self.blemish_fname.setMinimumSize(QSize(300, 0))
-
-        self.gridLayout_9.addWidget(self.blemish_fname, 0, 1, 1, 1)
-
-        self.btn_select_blemish = QPushButton(self.groupBox_7)
-        self.btn_select_blemish.setObjectName(u"btn_select_blemish")
-        sizePolicy5.setHeightForWidth(self.btn_select_blemish.sizePolicy().hasHeightForWidth())
-        self.btn_select_blemish.setSizePolicy(sizePolicy5)
-
-        self.gridLayout_9.addWidget(self.btn_select_blemish, 0, 2, 1, 1)
-
-        self.label_31 = QLabel(self.groupBox_7)
-        self.label_31.setObjectName(u"label_31")
-        sizePolicy7.setHeightForWidth(self.label_31.sizePolicy().hasHeightForWidth())
-        self.label_31.setSizePolicy(sizePolicy7)
-
-        self.gridLayout_9.addWidget(self.label_31, 1, 0, 1, 1)
-
-        self.blemish_path = QLineEdit(self.groupBox_7)
-        self.blemish_path.setObjectName(u"blemish_path")
-        sizePolicy8.setHeightForWidth(self.blemish_path.sizePolicy().hasHeightForWidth())
-        self.blemish_path.setSizePolicy(sizePolicy8)
-        self.blemish_path.setMinimumSize(QSize(300, 0))
-
-        self.gridLayout_9.addWidget(self.blemish_path, 1, 1, 1, 1)
-
-        self.btn_apply_blemish = QPushButton(self.groupBox_7)
-        self.btn_apply_blemish.setObjectName(u"btn_apply_blemish")
-        sizePolicy9.setHeightForWidth(self.btn_apply_blemish.sizePolicy().hasHeightForWidth())
-        self.btn_apply_blemish.setSizePolicy(sizePolicy9)
-        self.btn_apply_blemish.setMinimumSize(QSize(60, 0))
-
-        self.gridLayout_9.addWidget(self.btn_apply_blemish, 1, 2, 1, 1)
-
-
-        self.gridLayout_24.addLayout(self.gridLayout_9, 0, 0, 1, 1)
-
-        self.btn_mask_blemish_apply = QPushButton(self.groupBox_7)
-        self.btn_mask_blemish_apply.setObjectName(u"btn_mask_blemish_apply")
-        sizePolicy9.setHeightForWidth(self.btn_mask_blemish_apply.sizePolicy().hasHeightForWidth())
-        self.btn_mask_blemish_apply.setSizePolicy(sizePolicy9)
-        self.btn_mask_blemish_apply.setMaximumSize(QSize(80, 16777215))
-
-        self.gridLayout_24.addWidget(self.btn_mask_blemish_apply, 0, 1, 1, 1)
-
-
-        self.gridLayout_25.addWidget(self.groupBox_7, 0, 0, 1, 1)
-
-        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.gridLayout_25.addItem(self.verticalSpacer_2, 2, 0, 1, 1)
+        self.gridLayout_25.addWidget(self.groupBox_8, 0, 0, 1, 1)
 
         self.MaskWidget.addTab(self.tab_6, "")
         self.tab_2 = QWidget()
@@ -376,22 +312,17 @@ class Ui_SimpleMask(object):
         self.gridLayout_8.setObjectName(u"gridLayout_8")
         self.label_14 = QLabel(self.tab_2)
         self.label_14.setObjectName(u"label_14")
-        sizePolicy6.setHeightForWidth(self.label_14.sizePolicy().hasHeightForWidth())
-        self.label_14.setSizePolicy(sizePolicy6)
+        sizePolicy5.setHeightForWidth(self.label_14.sizePolicy().hasHeightForWidth())
+        self.label_14.setSizePolicy(sizePolicy5)
 
         self.gridLayout_8.addWidget(self.label_14, 1, 0, 1, 1)
 
         self.label_8 = QLabel(self.tab_2)
         self.label_8.setObjectName(u"label_8")
-        sizePolicy6.setHeightForWidth(self.label_8.sizePolicy().hasHeightForWidth())
-        self.label_8.setSizePolicy(sizePolicy6)
+        sizePolicy5.setHeightForWidth(self.label_8.sizePolicy().hasHeightForWidth())
+        self.label_8.setSizePolicy(sizePolicy5)
 
         self.gridLayout_8.addWidget(self.label_8, 1, 2, 1, 1)
-
-        self.btn_mask_draw_evaluate = QPushButton(self.tab_2)
-        self.btn_mask_draw_evaluate.setObjectName(u"btn_mask_draw_evaluate")
-
-        self.gridLayout_8.addWidget(self.btn_mask_draw_evaluate, 3, 2, 1, 1)
 
         self.plot_width = QSpinBox(self.tab_2)
         self.plot_width.setObjectName(u"plot_width")
@@ -420,11 +351,6 @@ class Ui_SimpleMask(object):
         self.cb_selector_mode.setObjectName(u"cb_selector_mode")
 
         self.gridLayout_8.addWidget(self.cb_selector_mode, 0, 3, 1, 1)
-
-        self.btn_mask_draw_apply = QPushButton(self.tab_2)
-        self.btn_mask_draw_apply.setObjectName(u"btn_mask_draw_apply")
-
-        self.gridLayout_8.addWidget(self.btn_mask_draw_apply, 3, 3, 1, 1)
 
         self.label_23 = QLabel(self.tab_2)
         self.label_23.setObjectName(u"label_23")
@@ -460,7 +386,7 @@ class Ui_SimpleMask(object):
         self.btn_mask_draw_add = QPushButton(self.tab_2)
         self.btn_mask_draw_add.setObjectName(u"btn_mask_draw_add")
 
-        self.gridLayout_8.addWidget(self.btn_mask_draw_add, 3, 0, 1, 2)
+        self.gridLayout_8.addWidget(self.btn_mask_draw_add, 3, 0, 1, 4)
 
 
         self.gridLayout_23.addLayout(self.gridLayout_8, 0, 0, 1, 1)
@@ -471,53 +397,6 @@ class Ui_SimpleMask(object):
         self.gridLayout_21 = QGridLayout(self.tab_4)
         self.gridLayout_21.setObjectName(u"gridLayout_21")
         self.gridLayout_21.setContentsMargins(1, 1, 1, 1)
-        self.btn_mask_threshold_apply = QPushButton(self.tab_4)
-        self.btn_mask_threshold_apply.setObjectName(u"btn_mask_threshold_apply")
-
-        self.gridLayout_21.addWidget(self.btn_mask_threshold_apply, 4, 1, 1, 1)
-
-        self.groupBox_10 = QGroupBox(self.tab_4)
-        self.groupBox_10.setObjectName(u"groupBox_10")
-        self.groupBox_10.setEnabled(False)
-        self.gridLayout_20 = QGridLayout(self.groupBox_10)
-        self.gridLayout_20.setObjectName(u"gridLayout_20")
-        self.gridLayout_20.setContentsMargins(2, 2, 2, 2)
-        self.pushButton_9 = QPushButton(self.groupBox_10)
-        self.pushButton_9.setObjectName(u"pushButton_9")
-
-        self.gridLayout_20.addWidget(self.pushButton_9, 0, 1, 1, 1)
-
-        self.pushButton_5 = QPushButton(self.groupBox_10)
-        self.pushButton_5.setObjectName(u"pushButton_5")
-
-        self.gridLayout_20.addWidget(self.pushButton_5, 0, 0, 1, 1)
-
-        self.pushButton_15 = QPushButton(self.groupBox_10)
-        self.pushButton_15.setObjectName(u"pushButton_15")
-
-        self.gridLayout_20.addWidget(self.pushButton_15, 0, 3, 1, 1)
-
-        self.pushButton_16 = QPushButton(self.groupBox_10)
-        self.pushButton_16.setObjectName(u"pushButton_16")
-
-        self.gridLayout_20.addWidget(self.pushButton_16, 0, 2, 1, 1)
-
-
-        self.gridLayout_21.addWidget(self.groupBox_10, 3, 0, 1, 2)
-
-        self.btn_mask_threshold_evaluate = QPushButton(self.tab_4)
-        self.btn_mask_threshold_evaluate.setObjectName(u"btn_mask_threshold_evaluate")
-
-        self.gridLayout_21.addWidget(self.btn_mask_threshold_evaluate, 4, 0, 1, 1)
-
-        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.gridLayout_21.addItem(self.verticalSpacer_3, 5, 1, 1, 1)
-
-        self.verticalSpacer_4 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
-
-        self.gridLayout_21.addItem(self.verticalSpacer_4, 5, 0, 1, 1)
-
         self.groupBox_9 = QGroupBox(self.tab_4)
         self.groupBox_9.setObjectName(u"groupBox_9")
         self.gridLayout_15 = QGridLayout(self.groupBox_9)
@@ -565,8 +444,8 @@ class Ui_SimpleMask(object):
 
         self.label_27 = QLabel(self.groupBox_9)
         self.label_27.setObjectName(u"label_27")
-        sizePolicy5.setHeightForWidth(self.label_27.sizePolicy().hasHeightForWidth())
-        self.label_27.setSizePolicy(sizePolicy5)
+        sizePolicy3.setHeightForWidth(self.label_27.sizePolicy().hasHeightForWidth())
+        self.label_27.setSizePolicy(sizePolicy3)
 
         self.gridLayout_15.addWidget(self.label_27, 1, 2, 1, 1)
 
@@ -587,20 +466,57 @@ class Ui_SimpleMask(object):
 
         self.label_25 = QLabel(self.groupBox_9)
         self.label_25.setObjectName(u"label_25")
-        sizePolicy7.setHeightForWidth(self.label_25.sizePolicy().hasHeightForWidth())
-        self.label_25.setSizePolicy(sizePolicy7)
+        sizePolicy6.setHeightForWidth(self.label_25.sizePolicy().hasHeightForWidth())
+        self.label_25.setSizePolicy(sizePolicy6)
 
         self.gridLayout_15.addWidget(self.label_25, 0, 5, 1, 1)
 
         self.label_33 = QLabel(self.groupBox_9)
         self.label_33.setObjectName(u"label_33")
-        sizePolicy7.setHeightForWidth(self.label_33.sizePolicy().hasHeightForWidth())
-        self.label_33.setSizePolicy(sizePolicy7)
+        sizePolicy6.setHeightForWidth(self.label_33.sizePolicy().hasHeightForWidth())
+        self.label_33.setSizePolicy(sizePolicy6)
 
         self.gridLayout_15.addWidget(self.label_33, 1, 5, 1, 1)
 
 
         self.gridLayout_21.addWidget(self.groupBox_9, 0, 0, 1, 2)
+
+        self.groupBox_10 = QGroupBox(self.tab_4)
+        self.groupBox_10.setObjectName(u"groupBox_10")
+        self.groupBox_10.setEnabled(False)
+        self.gridLayout_20 = QGridLayout(self.groupBox_10)
+        self.gridLayout_20.setObjectName(u"gridLayout_20")
+        self.gridLayout_20.setContentsMargins(2, 2, 2, 2)
+        self.pushButton_9 = QPushButton(self.groupBox_10)
+        self.pushButton_9.setObjectName(u"pushButton_9")
+
+        self.gridLayout_20.addWidget(self.pushButton_9, 0, 1, 1, 1)
+
+        self.pushButton_5 = QPushButton(self.groupBox_10)
+        self.pushButton_5.setObjectName(u"pushButton_5")
+
+        self.gridLayout_20.addWidget(self.pushButton_5, 0, 0, 1, 1)
+
+        self.pushButton_15 = QPushButton(self.groupBox_10)
+        self.pushButton_15.setObjectName(u"pushButton_15")
+
+        self.gridLayout_20.addWidget(self.pushButton_15, 0, 3, 1, 1)
+
+        self.pushButton_16 = QPushButton(self.groupBox_10)
+        self.pushButton_16.setObjectName(u"pushButton_16")
+
+        self.gridLayout_20.addWidget(self.pushButton_16, 0, 2, 1, 1)
+
+
+        self.gridLayout_21.addWidget(self.groupBox_10, 3, 0, 1, 2)
+
+        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.gridLayout_21.addItem(self.verticalSpacer_3, 4, 1, 1, 1)
+
+        self.verticalSpacer_4 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.gridLayout_21.addItem(self.verticalSpacer_4, 4, 0, 1, 1)
 
         self.MaskWidget.addTab(self.tab_4, "")
         self.tab_3 = QWidget()
@@ -641,6 +557,9 @@ class Ui_SimpleMask(object):
         self.gridLayout_19.setContentsMargins(2, 2, 2, 2)
         self.btn_mask_list_add = QPushButton(self.groupBox_13)
         self.btn_mask_list_add.setObjectName(u"btn_mask_list_add")
+        sizePolicy9 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        sizePolicy9.setHorizontalStretch(0)
+        sizePolicy9.setVerticalStretch(0)
         sizePolicy9.setHeightForWidth(self.btn_mask_list_add.sizePolicy().hasHeightForWidth())
         self.btn_mask_list_add.setSizePolicy(sizePolicy9)
 
@@ -719,26 +638,12 @@ class Ui_SimpleMask(object):
 
         self.gridLayout_22.addWidget(self.mask_list_xylist, 0, 0, 3, 6)
 
-        self.btn_mask_list_apply = QPushButton(self.groupBox_11)
-        self.btn_mask_list_apply.setObjectName(u"btn_mask_list_apply")
-        sizePolicy9.setHeightForWidth(self.btn_mask_list_apply.sizePolicy().hasHeightForWidth())
-        self.btn_mask_list_apply.setSizePolicy(sizePolicy9)
-
-        self.gridLayout_22.addWidget(self.btn_mask_list_apply, 3, 5, 1, 1)
-
-        self.btn_mask_list_evaluate = QPushButton(self.groupBox_11)
-        self.btn_mask_list_evaluate.setObjectName(u"btn_mask_list_evaluate")
-        sizePolicy5.setHeightForWidth(self.btn_mask_list_evaluate.sizePolicy().hasHeightForWidth())
-        self.btn_mask_list_evaluate.setSizePolicy(sizePolicy5)
-
-        self.gridLayout_22.addWidget(self.btn_mask_list_evaluate, 3, 0, 1, 1)
-
         self.btn_mask_list_clear = QPushButton(self.groupBox_11)
         self.btn_mask_list_clear.setObjectName(u"btn_mask_list_clear")
-        sizePolicy5.setHeightForWidth(self.btn_mask_list_clear.sizePolicy().hasHeightForWidth())
-        self.btn_mask_list_clear.setSizePolicy(sizePolicy5)
+        sizePolicy3.setHeightForWidth(self.btn_mask_list_clear.sizePolicy().hasHeightForWidth())
+        self.btn_mask_list_clear.setSizePolicy(sizePolicy3)
 
-        self.gridLayout_22.addWidget(self.btn_mask_list_clear, 3, 1, 1, 1)
+        self.gridLayout_22.addWidget(self.btn_mask_list_clear, 3, 0, 1, 6)
 
 
         self.gridLayout_5.addWidget(self.groupBox_11, 0, 1, 3, 1)
@@ -755,6 +660,31 @@ class Ui_SimpleMask(object):
         self.label_outlier_target_info.setObjectName(u"label_outlier_target_info")
 
         self.gridLayout_13.addWidget(self.label_outlier_target_info, 0, 3, 1, 1)
+
+        self.label_15 = QLabel(self.tab_5)
+        self.label_15.setObjectName(u"label_15")
+
+        self.gridLayout_13.addWidget(self.label_15, 1, 3, 2, 1)
+
+        self.outlier_cutoff = QDoubleSpinBox(self.tab_5)
+        self.outlier_cutoff.setObjectName(u"outlier_cutoff")
+        sizePolicy9.setHeightForWidth(self.outlier_cutoff.sizePolicy().hasHeightForWidth())
+        self.outlier_cutoff.setSizePolicy(sizePolicy9)
+        self.outlier_cutoff.setMaximum(999.000000000000000)
+        self.outlier_cutoff.setSingleStep(0.100000000000000)
+        self.outlier_cutoff.setValue(10.000000000000000)
+
+        self.gridLayout_13.addWidget(self.outlier_cutoff, 1, 4, 2, 1)
+
+        self.label_44 = QLabel(self.tab_5)
+        self.label_44.setObjectName(u"label_44")
+
+        self.gridLayout_13.addWidget(self.label_44, 1, 0, 2, 1)
+
+        self.label_4 = QLabel(self.tab_5)
+        self.label_4.setObjectName(u"label_4")
+
+        self.gridLayout_13.addWidget(self.label_4, 0, 0, 1, 1)
 
         self.outlier_num_roi = QSpinBox(self.tab_5)
         self.outlier_num_roi.setObjectName(u"outlier_num_roi")
@@ -773,47 +703,12 @@ class Ui_SimpleMask(object):
 
         self.gridLayout_13.addWidget(self.comboBox_outlier_target, 0, 1, 1, 2)
 
-        self.label_4 = QLabel(self.tab_5)
-        self.label_4.setObjectName(u"label_4")
-
-        self.gridLayout_13.addWidget(self.label_4, 0, 0, 1, 1)
-
-        self.btn_mask_outlier_evaluate = QPushButton(self.tab_5)
-        self.btn_mask_outlier_evaluate.setObjectName(u"btn_mask_outlier_evaluate")
-
-        self.gridLayout_13.addWidget(self.btn_mask_outlier_evaluate, 1, 5, 2, 1)
-
-        self.btn_mask_outlier_apply = QPushButton(self.tab_5)
-        self.btn_mask_outlier_apply.setObjectName(u"btn_mask_outlier_apply")
-
-        self.gridLayout_13.addWidget(self.btn_mask_outlier_apply, 1, 6, 2, 1)
-
-        self.outlier_cutoff = QDoubleSpinBox(self.tab_5)
-        self.outlier_cutoff.setObjectName(u"outlier_cutoff")
-        sizePolicy9.setHeightForWidth(self.outlier_cutoff.sizePolicy().hasHeightForWidth())
-        self.outlier_cutoff.setSizePolicy(sizePolicy9)
-        self.outlier_cutoff.setMaximum(999.000000000000000)
-        self.outlier_cutoff.setSingleStep(0.100000000000000)
-        self.outlier_cutoff.setValue(10.000000000000000)
-
-        self.gridLayout_13.addWidget(self.outlier_cutoff, 1, 4, 2, 1)
-
-        self.label_15 = QLabel(self.tab_5)
-        self.label_15.setObjectName(u"label_15")
-
-        self.gridLayout_13.addWidget(self.label_15, 1, 3, 2, 1)
-
         self.comboBox_outlier_method = QComboBox(self.tab_5)
         self.comboBox_outlier_method.addItem("")
         self.comboBox_outlier_method.addItem("")
         self.comboBox_outlier_method.setObjectName(u"comboBox_outlier_method")
 
         self.gridLayout_13.addWidget(self.comboBox_outlier_method, 1, 1, 2, 2)
-
-        self.label_44 = QLabel(self.tab_5)
-        self.label_44.setObjectName(u"label_44")
-
-        self.gridLayout_13.addWidget(self.label_44, 1, 0, 2, 1)
 
 
         self.gridLayout_14.addLayout(self.gridLayout_13, 0, 0, 1, 1)
@@ -835,27 +730,6 @@ class Ui_SimpleMask(object):
         self.gridLayout_28 = QGridLayout(self.tab6)
         self.gridLayout_28.setObjectName(u"gridLayout_28")
         self.gridLayout_28.setContentsMargins(1, 1, 1, 1)
-        self.btn_mask_param_delete = QPushButton(self.tab6)
-        self.btn_mask_param_delete.setObjectName(u"btn_mask_param_delete")
-        sizePolicy8.setHeightForWidth(self.btn_mask_param_delete.sizePolicy().hasHeightForWidth())
-        self.btn_mask_param_delete.setSizePolicy(sizePolicy8)
-
-        self.gridLayout_28.addWidget(self.btn_mask_param_delete, 3, 3, 1, 1)
-
-        self.btn_mask_param_evaluate = QPushButton(self.tab6)
-        self.btn_mask_param_evaluate.setObjectName(u"btn_mask_param_evaluate")
-        sizePolicy8.setHeightForWidth(self.btn_mask_param_evaluate.sizePolicy().hasHeightForWidth())
-        self.btn_mask_param_evaluate.setSizePolicy(sizePolicy8)
-
-        self.gridLayout_28.addWidget(self.btn_mask_param_evaluate, 3, 4, 1, 1)
-
-        self.btn_mask_param_apply = QPushButton(self.tab6)
-        self.btn_mask_param_apply.setObjectName(u"btn_mask_param_apply")
-        sizePolicy8.setHeightForWidth(self.btn_mask_param_apply.sizePolicy().hasHeightForWidth())
-        self.btn_mask_param_apply.setSizePolicy(sizePolicy8)
-
-        self.gridLayout_28.addWidget(self.btn_mask_param_apply, 3, 5, 1, 1)
-
         self.comboBox_param_logic = QComboBox(self.tab6)
         self.comboBox_param_logic.addItem("")
         self.comboBox_param_logic.addItem("")
@@ -864,17 +738,10 @@ class Ui_SimpleMask(object):
 
         self.gridLayout_28.addWidget(self.comboBox_param_logic, 3, 1, 1, 1)
 
-        self.btn_mask_param_add = QPushButton(self.tab6)
-        self.btn_mask_param_add.setObjectName(u"btn_mask_param_add")
-        sizePolicy8.setHeightForWidth(self.btn_mask_param_add.sizePolicy().hasHeightForWidth())
-        self.btn_mask_param_add.setSizePolicy(sizePolicy8)
-
-        self.gridLayout_28.addWidget(self.btn_mask_param_add, 3, 2, 1, 1)
-
         self.label_2 = QLabel(self.tab6)
         self.label_2.setObjectName(u"label_2")
-        sizePolicy7.setHeightForWidth(self.label_2.sizePolicy().hasHeightForWidth())
-        self.label_2.setSizePolicy(sizePolicy7)
+        sizePolicy6.setHeightForWidth(self.label_2.sizePolicy().hasHeightForWidth())
+        self.label_2.setSizePolicy(sizePolicy6)
 
         self.gridLayout_28.addWidget(self.label_2, 3, 0, 1, 1)
 
@@ -945,126 +812,33 @@ class Ui_SimpleMask(object):
 
         self.gridLayout_28.addLayout(self.horizontalLayout_4, 0, 0, 1, 6)
 
+        self.btn_mask_param_delete = QPushButton(self.tab6)
+        self.btn_mask_param_delete.setObjectName(u"btn_mask_param_delete")
+        sizePolicy8.setHeightForWidth(self.btn_mask_param_delete.sizePolicy().hasHeightForWidth())
+        self.btn_mask_param_delete.setSizePolicy(sizePolicy8)
+
+        self.gridLayout_28.addWidget(self.btn_mask_param_delete, 3, 5, 1, 1)
+
+        self.btn_mask_param_add = QPushButton(self.tab6)
+        self.btn_mask_param_add.setObjectName(u"btn_mask_param_add")
+        sizePolicy8.setHeightForWidth(self.btn_mask_param_add.sizePolicy().hasHeightForWidth())
+        self.btn_mask_param_add.setSizePolicy(sizePolicy8)
+
+        self.gridLayout_28.addWidget(self.btn_mask_param_add, 3, 4, 1, 1)
+
         self.MaskWidget.addTab(self.tab6, "")
 
-        self.gridLayout_4.addWidget(self.MaskWidget, 1, 0, 1, 3)
+        self.gridLayout_4.addWidget(self.MaskWidget, 0, 0, 1, 5)
 
         self.splitter.addWidget(self.groupBox_2)
-        self.splitter_2.addWidget(self.splitter)
-        self.layoutWidget = QWidget(self.splitter_2)
-        self.layoutWidget.setObjectName(u"layoutWidget")
-        self.verticalLayout = QVBoxLayout(self.layoutWidget)
-        self.verticalLayout.setObjectName(u"verticalLayout")
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
-        self.groupBox_5 = QGroupBox(self.layoutWidget)
-        self.groupBox_5.setObjectName(u"groupBox_5")
-        sizePolicy15 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.groupBox_3 = QGroupBox(self.splitter)
+        self.groupBox_3.setObjectName(u"groupBox_3")
+        sizePolicy15 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         sizePolicy15.setHorizontalStretch(2)
         sizePolicy15.setVerticalStretch(1)
-        sizePolicy15.setHeightForWidth(self.groupBox_5.sizePolicy().hasHeightForWidth())
-        self.groupBox_5.setSizePolicy(sizePolicy15)
-        self.groupBox_5.setMinimumSize(QSize(800, 0))
-        self.gridLayout_16 = QGridLayout(self.groupBox_5)
-        self.gridLayout_16.setObjectName(u"gridLayout_16")
-        self.gridLayout_16.setContentsMargins(1, 1, 1, 1)
-        self.plot_index = QComboBox(self.groupBox_5)
-        self.plot_index.addItem("")
-        self.plot_index.addItem("")
-        self.plot_index.addItem("")
-        self.plot_index.addItem("")
-        self.plot_index.addItem("")
-        self.plot_index.addItem("")
-        self.plot_index.setObjectName(u"plot_index")
-        sizePolicy9.setHeightForWidth(self.plot_index.sizePolicy().hasHeightForWidth())
-        self.plot_index.setSizePolicy(sizePolicy9)
-
-        self.gridLayout_16.addWidget(self.plot_index, 0, 0, 1, 1)
-
-        self.label_11 = QLabel(self.groupBox_5)
-        self.label_11.setObjectName(u"label_11")
-        sizePolicy7.setHeightForWidth(self.label_11.sizePolicy().hasHeightForWidth())
-        self.label_11.setSizePolicy(sizePolicy7)
-
-        self.gridLayout_16.addWidget(self.label_11, 0, 1, 1, 1)
-
-        self.infobar = QLineEdit(self.groupBox_5)
-        self.infobar.setObjectName(u"infobar")
-
-        self.gridLayout_16.addWidget(self.infobar, 0, 2, 1, 1)
-
-        self.mp1 = ImageViewROI(self.groupBox_5)
-        self.mp1.setObjectName(u"mp1")
-        sizePolicy16 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        sizePolicy16.setHorizontalStretch(4)
-        sizePolicy16.setVerticalStretch(0)
-        sizePolicy16.setHeightForWidth(self.mp1.sizePolicy().hasHeightForWidth())
-        self.mp1.setSizePolicy(sizePolicy16)
-        self.mp1.setMinimumSize(QSize(400, 0))
-
-        self.gridLayout_16.addWidget(self.mp1, 1, 0, 1, 3)
-
-        self.groupBox_4 = QGroupBox(self.groupBox_5)
-        self.groupBox_4.setObjectName(u"groupBox_4")
-        sizePolicy5.setHeightForWidth(self.groupBox_4.sizePolicy().hasHeightForWidth())
-        self.groupBox_4.setSizePolicy(sizePolicy5)
-        self.gridLayout_3 = QGridLayout(self.groupBox_4)
-        self.gridLayout_3.setObjectName(u"gridLayout_3")
-        self.gridLayout_3.setContentsMargins(1, 1, 1, 1)
-        self.plot_center = QCheckBox(self.groupBox_4)
-        self.plot_center.setObjectName(u"plot_center")
-        self.plot_center.setChecked(True)
-
-        self.gridLayout_3.addWidget(self.plot_center, 0, 0, 1, 1)
-
-        self.plot_log = QCheckBox(self.groupBox_4)
-        self.plot_log.setObjectName(u"plot_log")
-        self.plot_log.setChecked(True)
-
-        self.gridLayout_3.addWidget(self.plot_log, 0, 1, 1, 1)
-
-        self.plot_cmap = QComboBox(self.groupBox_4)
-        self.plot_cmap.addItem("")
-        self.plot_cmap.addItem("")
-        self.plot_cmap.addItem("")
-        self.plot_cmap.addItem("")
-        self.plot_cmap.addItem("")
-        self.plot_cmap.addItem("")
-        self.plot_cmap.addItem("")
-        self.plot_cmap.addItem("")
-        self.plot_cmap.addItem("")
-        self.plot_cmap.addItem("")
-        self.plot_cmap.addItem("")
-        self.plot_cmap.setObjectName(u"plot_cmap")
-        sizePolicy5.setHeightForWidth(self.plot_cmap.sizePolicy().hasHeightForWidth())
-        self.plot_cmap.setSizePolicy(sizePolicy5)
-
-        self.gridLayout_3.addWidget(self.plot_cmap, 0, 3, 1, 1)
-
-        self.btn_plot = QPushButton(self.groupBox_4)
-        self.btn_plot.setObjectName(u"btn_plot")
-
-        self.gridLayout_3.addWidget(self.btn_plot, 0, 4, 1, 1)
-
-        self.label_45 = QLabel(self.groupBox_4)
-        self.label_45.setObjectName(u"label_45")
-
-        self.gridLayout_3.addWidget(self.label_45, 0, 2, 1, 1)
-
-
-        self.gridLayout_16.addWidget(self.groupBox_4, 2, 0, 1, 3)
-
-
-        self.verticalLayout.addWidget(self.groupBox_5)
-
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.groupBox_3 = QGroupBox(self.layoutWidget)
-        self.groupBox_3.setObjectName(u"groupBox_3")
-        sizePolicy17 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-        sizePolicy17.setHorizontalStretch(2)
-        sizePolicy17.setVerticalStretch(1)
-        sizePolicy17.setHeightForWidth(self.groupBox_3.sizePolicy().hasHeightForWidth())
-        self.groupBox_3.setSizePolicy(sizePolicy17)
+        sizePolicy15.setHeightForWidth(self.groupBox_3.sizePolicy().hasHeightForWidth())
+        self.groupBox_3.setSizePolicy(sizePolicy15)
+        self.groupBox_3.setMinimumSize(QSize(0, 100))
         self.gridLayout_11 = QGridLayout(self.groupBox_3)
         self.gridLayout_11.setObjectName(u"gridLayout_11")
         self.gridLayout_11.setContentsMargins(1, 1, 1, 1)
@@ -1242,6 +1016,73 @@ class Ui_SimpleMask(object):
         self.gridLayout_34.addLayout(self.gridLayout_33, 0, 0, 1, 1)
 
         self.tabWidget.addTab(self.tab_10, "")
+        self.tab = QWidget()
+        self.tab.setObjectName(u"tab")
+        self.gridLayout_26 = QGridLayout(self.tab)
+        self.gridLayout_26.setObjectName(u"gridLayout_26")
+        self.gridLayout_35 = QGridLayout()
+        self.gridLayout_35.setObjectName(u"gridLayout_35")
+        self.sb_dynum_2 = QSpinBox(self.tab)
+        self.sb_dynum_2.setObjectName(u"sb_dynum_2")
+        self.sb_dynum_2.setMinimum(1)
+        self.sb_dynum_2.setMaximum(999)
+        self.sb_dynum_2.setValue(1)
+
+        self.gridLayout_35.addWidget(self.sb_dynum_2, 1, 4, 1, 1)
+
+        self.sb_synum_2 = QSpinBox(self.tab)
+        self.sb_synum_2.setObjectName(u"sb_synum_2")
+        self.sb_synum_2.setMinimum(1)
+        self.sb_synum_2.setMaximum(9999)
+        self.sb_synum_2.setValue(8)
+
+        self.gridLayout_35.addWidget(self.sb_synum_2, 1, 2, 1, 1)
+
+        self.label_35 = QLabel(self.tab)
+        self.label_35.setObjectName(u"label_35")
+
+        self.gridLayout_35.addWidget(self.label_35, 0, 1, 1, 1)
+
+        self.sb_dxnum_2 = QSpinBox(self.tab)
+        self.sb_dxnum_2.setObjectName(u"sb_dxnum_2")
+        self.sb_dxnum_2.setMinimum(1)
+        self.sb_dxnum_2.setMaximum(999)
+        self.sb_dxnum_2.setValue(1)
+
+        self.gridLayout_35.addWidget(self.sb_dxnum_2, 0, 4, 1, 1)
+
+        self.sb_sxnum_2 = QSpinBox(self.tab)
+        self.sb_sxnum_2.setObjectName(u"sb_sxnum_2")
+        self.sb_sxnum_2.setMinimum(1)
+        self.sb_sxnum_2.setMaximum(9999)
+        self.sb_sxnum_2.setValue(6)
+
+        self.gridLayout_35.addWidget(self.sb_sxnum_2, 0, 2, 1, 1)
+
+        self.label_40 = QLabel(self.tab)
+        self.label_40.setObjectName(u"label_40")
+
+        self.gridLayout_35.addWidget(self.label_40, 1, 1, 1, 1)
+
+        self.label_49 = QLabel(self.tab)
+        self.label_49.setObjectName(u"label_49")
+
+        self.gridLayout_35.addWidget(self.label_49, 0, 3, 1, 1)
+
+        self.label_51 = QLabel(self.tab)
+        self.label_51.setObjectName(u"label_51")
+
+        self.gridLayout_35.addWidget(self.label_51, 1, 3, 1, 1)
+
+        self.btn_compute_qpartition4 = QPushButton(self.tab)
+        self.btn_compute_qpartition4.setObjectName(u"btn_compute_qpartition4")
+
+        self.gridLayout_35.addWidget(self.btn_compute_qpartition4, 1, 5, 1, 1)
+
+
+        self.gridLayout_26.addLayout(self.gridLayout_35, 0, 0, 1, 1)
+
+        self.tabWidget.addTab(self.tab, "")
         self.tab_8 = QWidget()
         self.tab_8.setObjectName(u"tab_8")
         self.gridLayout_31 = QGridLayout(self.tab_8)
@@ -1334,80 +1175,39 @@ class Ui_SimpleMask(object):
         self.gridLayout_31.addLayout(self.gridLayout_30, 0, 0, 1, 1)
 
         self.tabWidget.addTab(self.tab_8, "")
-        self.tab = QWidget()
-        self.tab.setObjectName(u"tab")
-        self.gridLayout_26 = QGridLayout(self.tab)
-        self.gridLayout_26.setObjectName(u"gridLayout_26")
-        self.gridLayout_35 = QGridLayout()
-        self.gridLayout_35.setObjectName(u"gridLayout_35")
-        self.sb_dynum_2 = QSpinBox(self.tab)
-        self.sb_dynum_2.setObjectName(u"sb_dynum_2")
-        self.sb_dynum_2.setMinimum(1)
-        self.sb_dynum_2.setMaximum(999)
-        self.sb_dynum_2.setValue(1)
-
-        self.gridLayout_35.addWidget(self.sb_dynum_2, 1, 4, 1, 1)
-
-        self.sb_synum_2 = QSpinBox(self.tab)
-        self.sb_synum_2.setObjectName(u"sb_synum_2")
-        self.sb_synum_2.setMinimum(1)
-        self.sb_synum_2.setMaximum(9999)
-        self.sb_synum_2.setValue(8)
-
-        self.gridLayout_35.addWidget(self.sb_synum_2, 1, 2, 1, 1)
-
-        self.label_35 = QLabel(self.tab)
-        self.label_35.setObjectName(u"label_35")
-
-        self.gridLayout_35.addWidget(self.label_35, 0, 1, 1, 1)
-
-        self.sb_dxnum_2 = QSpinBox(self.tab)
-        self.sb_dxnum_2.setObjectName(u"sb_dxnum_2")
-        self.sb_dxnum_2.setMinimum(1)
-        self.sb_dxnum_2.setMaximum(999)
-        self.sb_dxnum_2.setValue(1)
-
-        self.gridLayout_35.addWidget(self.sb_dxnum_2, 0, 4, 1, 1)
-
-        self.sb_sxnum_2 = QSpinBox(self.tab)
-        self.sb_sxnum_2.setObjectName(u"sb_sxnum_2")
-        self.sb_sxnum_2.setMinimum(1)
-        self.sb_sxnum_2.setMaximum(9999)
-        self.sb_sxnum_2.setValue(6)
-
-        self.gridLayout_35.addWidget(self.sb_sxnum_2, 0, 2, 1, 1)
-
-        self.label_40 = QLabel(self.tab)
-        self.label_40.setObjectName(u"label_40")
-
-        self.gridLayout_35.addWidget(self.label_40, 1, 1, 1, 1)
-
-        self.label_49 = QLabel(self.tab)
-        self.label_49.setObjectName(u"label_49")
-
-        self.gridLayout_35.addWidget(self.label_49, 0, 3, 1, 1)
-
-        self.label_51 = QLabel(self.tab)
-        self.label_51.setObjectName(u"label_51")
-
-        self.gridLayout_35.addWidget(self.label_51, 1, 3, 1, 1)
-
-        self.btn_compute_qpartition4 = QPushButton(self.tab)
-        self.btn_compute_qpartition4.setObjectName(u"btn_compute_qpartition4")
-
-        self.gridLayout_35.addWidget(self.btn_compute_qpartition4, 1, 5, 1, 1)
-
-
-        self.gridLayout_26.addLayout(self.gridLayout_35, 0, 0, 1, 1)
-
-        self.tabWidget.addTab(self.tab, "")
 
         self.gridLayout_11.addWidget(self.tabWidget, 1, 0, 1, 1)
 
+        self.splitter.addWidget(self.groupBox_3)
+        self.splitter_2.addWidget(self.splitter)
+        self.layoutWidget = QWidget(self.splitter_2)
+        self.layoutWidget.setObjectName(u"layoutWidget")
+        self.verticalLayout = QVBoxLayout(self.layoutWidget)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.groupBox_5 = QGroupBox(self.layoutWidget)
+        self.groupBox_5.setObjectName(u"groupBox_5")
+        sizePolicy16 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        sizePolicy16.setHorizontalStretch(2)
+        sizePolicy16.setVerticalStretch(1)
+        sizePolicy16.setHeightForWidth(self.groupBox_5.sizePolicy().hasHeightForWidth())
+        self.groupBox_5.setSizePolicy(sizePolicy16)
+        self.groupBox_5.setMinimumSize(QSize(800, 0))
+        self.gridLayout_16 = QGridLayout(self.groupBox_5)
+        self.gridLayout_16.setObjectName(u"gridLayout_16")
+        self.gridLayout_16.setContentsMargins(1, 1, 1, 1)
+        self.mp1 = ImageViewROI(self.groupBox_5)
+        self.mp1.setObjectName(u"mp1")
+        sizePolicy17 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        sizePolicy17.setHorizontalStretch(4)
+        sizePolicy17.setVerticalStretch(0)
+        sizePolicy17.setHeightForWidth(self.mp1.sizePolicy().hasHeightForWidth())
+        self.mp1.setSizePolicy(sizePolicy17)
+        self.mp1.setMinimumSize(QSize(400, 0))
 
-        self.horizontalLayout_3.addWidget(self.groupBox_3)
+        self.gridLayout_16.addWidget(self.mp1, 1, 0, 1, 4)
 
-        self.groupBox_6 = QGroupBox(self.layoutWidget)
+        self.groupBox_6 = QGroupBox(self.groupBox_5)
         self.groupBox_6.setObjectName(u"groupBox_6")
         sizePolicy18 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         sizePolicy18.setHorizontalStretch(1)
@@ -1419,8 +1219,8 @@ class Ui_SimpleMask(object):
         self.gridLayout_7.setContentsMargins(1, 1, 1, 1)
         self.label_47 = QLabel(self.groupBox_6)
         self.label_47.setObjectName(u"label_47")
-        sizePolicy7.setHeightForWidth(self.label_47.sizePolicy().hasHeightForWidth())
-        self.label_47.setSizePolicy(sizePolicy7)
+        sizePolicy6.setHeightForWidth(self.label_47.sizePolicy().hasHeightForWidth())
+        self.label_47.setSizePolicy(sizePolicy6)
 
         self.gridLayout_7.addWidget(self.label_47, 0, 0, 1, 1)
 
@@ -1436,13 +1236,103 @@ class Ui_SimpleMask(object):
         self.pushButton = QPushButton(self.groupBox_6)
         self.pushButton.setObjectName(u"pushButton")
 
-        self.gridLayout_7.addWidget(self.pushButton, 1, 0, 1, 2)
+        self.gridLayout_7.addWidget(self.pushButton, 0, 2, 1, 1)
 
 
-        self.horizontalLayout_3.addWidget(self.groupBox_6)
+        self.gridLayout_16.addWidget(self.groupBox_6, 2, 3, 1, 1)
+
+        self.groupBox_4 = QGroupBox(self.groupBox_5)
+        self.groupBox_4.setObjectName(u"groupBox_4")
+        sizePolicy3.setHeightForWidth(self.groupBox_4.sizePolicy().hasHeightForWidth())
+        self.groupBox_4.setSizePolicy(sizePolicy3)
+        self.gridLayout_3 = QGridLayout(self.groupBox_4)
+        self.gridLayout_3.setObjectName(u"gridLayout_3")
+        self.gridLayout_3.setContentsMargins(0, 0, 0, 0)
+        self.checkBox_showxy = QCheckBox(self.groupBox_4)
+        self.checkBox_showxy.setObjectName(u"checkBox_showxy")
+        self.checkBox_showxy.setChecked(True)
+
+        self.gridLayout_3.addWidget(self.checkBox_showxy, 0, 3, 1, 1)
+
+        self.plot_index = QComboBox(self.groupBox_4)
+        self.plot_index.addItem("")
+        self.plot_index.addItem("")
+        self.plot_index.addItem("")
+        self.plot_index.addItem("")
+        self.plot_index.addItem("")
+        self.plot_index.addItem("")
+        self.plot_index.setObjectName(u"plot_index")
+        sizePolicy19 = QSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        sizePolicy19.setHorizontalStretch(1)
+        sizePolicy19.setVerticalStretch(0)
+        sizePolicy19.setHeightForWidth(self.plot_index.sizePolicy().hasHeightForWidth())
+        self.plot_index.setSizePolicy(sizePolicy19)
+        self.plot_index.setMinimumSize(QSize(0, 0))
+
+        self.gridLayout_3.addWidget(self.plot_index, 0, 0, 1, 1)
+
+        self.plot_center = QCheckBox(self.groupBox_4)
+        self.plot_center.setObjectName(u"plot_center")
+        self.plot_center.setChecked(True)
+
+        self.gridLayout_3.addWidget(self.plot_center, 0, 1, 1, 1)
+
+        self.plot_log = QCheckBox(self.groupBox_4)
+        self.plot_log.setObjectName(u"plot_log")
+        self.plot_log.setChecked(True)
+
+        self.gridLayout_3.addWidget(self.plot_log, 0, 4, 1, 1)
+
+        self.label_45 = QLabel(self.groupBox_4)
+        self.label_45.setObjectName(u"label_45")
+
+        self.gridLayout_3.addWidget(self.label_45, 0, 5, 1, 1)
+
+        self.plot_cmap = QComboBox(self.groupBox_4)
+        self.plot_cmap.addItem("")
+        self.plot_cmap.addItem("")
+        self.plot_cmap.addItem("")
+        self.plot_cmap.addItem("")
+        self.plot_cmap.addItem("")
+        self.plot_cmap.addItem("")
+        self.plot_cmap.addItem("")
+        self.plot_cmap.addItem("")
+        self.plot_cmap.addItem("")
+        self.plot_cmap.addItem("")
+        self.plot_cmap.addItem("")
+        self.plot_cmap.setObjectName(u"plot_cmap")
+        sizePolicy3.setHeightForWidth(self.plot_cmap.sizePolicy().hasHeightForWidth())
+        self.plot_cmap.setSizePolicy(sizePolicy3)
+
+        self.gridLayout_3.addWidget(self.plot_cmap, 0, 6, 1, 1)
+
+        self.btn_plot = QPushButton(self.groupBox_4)
+        self.btn_plot.setObjectName(u"btn_plot")
+
+        self.gridLayout_3.addWidget(self.btn_plot, 0, 7, 1, 1)
 
 
-        self.verticalLayout.addLayout(self.horizontalLayout_3)
+        self.gridLayout_16.addWidget(self.groupBox_4, 2, 0, 1, 3)
+
+        self.label_11 = QLabel(self.groupBox_5)
+        self.label_11.setObjectName(u"label_11")
+        sizePolicy6.setHeightForWidth(self.label_11.sizePolicy().hasHeightForWidth())
+        self.label_11.setSizePolicy(sizePolicy6)
+
+        self.gridLayout_16.addWidget(self.label_11, 0, 0, 1, 1)
+
+        self.infobar = QLineEdit(self.groupBox_5)
+        self.infobar.setObjectName(u"infobar")
+        sizePolicy20 = QSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        sizePolicy20.setHorizontalStretch(1)
+        sizePolicy20.setVerticalStretch(0)
+        sizePolicy20.setHeightForWidth(self.infobar.sizePolicy().hasHeightForWidth())
+        self.infobar.setSizePolicy(sizePolicy20)
+
+        self.gridLayout_16.addWidget(self.infobar, 0, 1, 1, 3)
+
+
+        self.verticalLayout.addWidget(self.groupBox_5)
 
         self.splitter_2.addWidget(self.layoutWidget)
 
@@ -1452,24 +1342,21 @@ class Ui_SimpleMask(object):
         self.statusbar = QStatusBar(SimpleMask)
         self.statusbar.setObjectName(u"statusbar")
         SimpleMask.setStatusBar(self.statusbar)
-        QWidget.setTabOrder(self.plot_log, self.plot_index)
-        QWidget.setTabOrder(self.plot_index, self.infobar)
 
         self.retranslateUi(SimpleMask)
         self.mask_list_include.toggled.connect(self.mask_list_radius.setEnabled)
         self.mask_list_include.toggled.connect(self.mask_list_variation.setEnabled)
 
-        self.MaskWidget.setCurrentIndex(4)
-        self.tabWidget.setCurrentIndex(3)
+        self.MaskWidget.setCurrentIndex(5)
+        self.tabWidget.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(SimpleMask)
     # setupUi
 
     def retranslateUi(self, SimpleMask):
-        SimpleMask.setWindowTitle(QCoreApplication.translate("SimpleMask", u"SimpleMask(beta)", None))
+        SimpleMask.setWindowTitle(QCoreApplication.translate("SimpleMask", u"SimpleMask", None))
         self.groupBox.setTitle(QCoreApplication.translate("SimpleMask", u"Input", None))
-        self.groupBox_15.setTitle(QCoreApplication.translate("SimpleMask", u"Metadata", None))
         self.comboBox_beamline.setItemText(0, QCoreApplication.translate("SimpleMask", u"APS_8IDI", None))
         self.comboBox_beamline.setItemText(1, QCoreApplication.translate("SimpleMask", u"APS_9IDD", None))
         self.comboBox_beamline.setItemText(2, QCoreApplication.translate("SimpleMask", u"NativeFiles", None))
@@ -1477,37 +1364,30 @@ class Ui_SimpleMask(object):
         self.label_9.setText(QCoreApplication.translate("SimpleMask", u"begin index:", None))
         self.label_28.setText(QCoreApplication.translate("SimpleMask", u"num_frames", None))
         self.btn_load.setText(QCoreApplication.translate("SimpleMask", u"Load", None))
+        self.groupBox_15.setTitle(QCoreApplication.translate("SimpleMask", u"Metadata", None))
+        self.label_3.setText(QCoreApplication.translate("SimpleMask", u"BeamCenter:", None))
+        self.btn_swapxy.setText(QCoreApplication.translate("SimpleMask", u"Swap X-Y", None))
+        self.pushButton_goto_max.setText(QCoreApplication.translate("SimpleMask", u"Goto Maximal", None))
+        self.btn_find_center.setText(QCoreApplication.translate("SimpleMask", u"Find Center", None))
+        self.btn_update_parameters.setText(QCoreApplication.translate("SimpleMask", u"Update Metadata", None))
         self.label_17.setText(QCoreApplication.translate("SimpleMask", u"Scattering File:", None))
         self.fname.setPlaceholderText(QCoreApplication.translate("SimpleMask", u"filename", None))
         self.btn_select_raw.setText(QCoreApplication.translate("SimpleMask", u"...", None))
-        self.btn_swapxy.setText(QCoreApplication.translate("SimpleMask", u"Swap X-Y", None))
-        self.btn_update_parameters.setText(QCoreApplication.translate("SimpleMask", u"Update Metadata", None))
-        self.btn_find_center.setText(QCoreApplication.translate("SimpleMask", u"Find Center", None))
-        self.pushButton_goto_max.setText(QCoreApplication.translate("SimpleMask", u"Goto Maximal", None))
-        self.label_3.setText(QCoreApplication.translate("SimpleMask", u"BeamCenter:", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("SimpleMask", u"Mask", None))
         self.btn_mask_reset.setText(QCoreApplication.translate("SimpleMask", u"Reset", None))
-        self.btn_mask_undo.setText(QCoreApplication.translate("SimpleMask", u"Undo", None))
         self.btn_mask_redo.setText(QCoreApplication.translate("SimpleMask", u"Redo", None))
-        self.groupBox_8.setTitle(QCoreApplication.translate("SimpleMask", u"Additional File (hdf/tiff/mat):", None))
+        self.btn_mask_undo.setText(QCoreApplication.translate("SimpleMask", u"Undo", None))
+        self.btn_mask_apply.setText(QCoreApplication.translate("SimpleMask", u"Apply", None))
+        self.btn_mask_evaluate.setText(QCoreApplication.translate("SimpleMask", u"Evaluate", None))
+        self.groupBox_8.setTitle(QCoreApplication.translate("SimpleMask", u"Existing Files (hdf/tiff/mat):", None))
         self.label_18.setText(QCoreApplication.translate("SimpleMask", u"File name:", None))
         self.maskfile_fname.setText("")
         self.btn_select_maskfile.setText(QCoreApplication.translate("SimpleMask", u"Select", None))
         self.label_32.setText(QCoreApplication.translate("SimpleMask", u"HDF path:", None))
         self.maskfile_path.setText(QCoreApplication.translate("SimpleMask", u"/xpcs/mask", None))
-        self.btn_apply_maskfile.setText(QCoreApplication.translate("SimpleMask", u"Evaluate", None))
-        self.btn_mask_file_apply.setText(QCoreApplication.translate("SimpleMask", u"Apply", None))
-        self.groupBox_7.setTitle(QCoreApplication.translate("SimpleMask", u"Blemish File:", None))
-        self.label_30.setText(QCoreApplication.translate("SimpleMask", u"Blemish file:", None))
-        self.btn_select_blemish.setText(QCoreApplication.translate("SimpleMask", u"Select", None))
-        self.label_31.setText(QCoreApplication.translate("SimpleMask", u"HDF path:", None))
-        self.blemish_path.setText(QCoreApplication.translate("SimpleMask", u"/qmap/mask", None))
-        self.btn_apply_blemish.setText(QCoreApplication.translate("SimpleMask", u"Evaluate", None))
-        self.btn_mask_blemish_apply.setText(QCoreApplication.translate("SimpleMask", u"Apply", None))
         self.MaskWidget.setTabText(self.MaskWidget.indexOf(self.tab_6), QCoreApplication.translate("SimpleMask", u"Blemish/Files", None))
         self.label_14.setText(QCoreApplication.translate("SimpleMask", u"color:", None))
         self.label_8.setText(QCoreApplication.translate("SimpleMask", u"linewidth:", None))
-        self.btn_mask_draw_evaluate.setText(QCoreApplication.translate("SimpleMask", u"Evaluate", None))
         self.plot_width.setSpecialValueText("")
         self.label_22.setText(QCoreApplication.translate("SimpleMask", u"type:", None))
         self.cb_selector_type.setItemText(0, QCoreApplication.translate("SimpleMask", u"Circle", None))
@@ -1518,7 +1398,6 @@ class Ui_SimpleMask(object):
         self.cb_selector_mode.setItemText(0, QCoreApplication.translate("SimpleMask", u"exclusive", None))
         self.cb_selector_mode.setItemText(1, QCoreApplication.translate("SimpleMask", u"inclusive", None))
 
-        self.btn_mask_draw_apply.setText(QCoreApplication.translate("SimpleMask", u"Apply", None))
         self.label_23.setText(QCoreApplication.translate("SimpleMask", u"shape:", None))
         self.cb_selector_color.setItemText(0, QCoreApplication.translate("SimpleMask", u"red", None))
         self.cb_selector_color.setItemText(1, QCoreApplication.translate("SimpleMask", u"green", None))
@@ -1530,15 +1409,8 @@ class Ui_SimpleMask(object):
         self.cb_selector_color.setItemText(7, QCoreApplication.translate("SimpleMask", u"white", None))
 
         self.label_39.setText(QCoreApplication.translate("SimpleMask", u"num_edges:", None))
-        self.btn_mask_draw_add.setText(QCoreApplication.translate("SimpleMask", u"Add", None))
+        self.btn_mask_draw_add.setText(QCoreApplication.translate("SimpleMask", u"Draw", None))
         self.MaskWidget.setTabText(self.MaskWidget.indexOf(self.tab_2), QCoreApplication.translate("SimpleMask", u"Draw", None))
-        self.btn_mask_threshold_apply.setText(QCoreApplication.translate("SimpleMask", u"Apply", None))
-        self.groupBox_10.setTitle(QCoreApplication.translate("SimpleMask", u"Binary operation: (acts on the mask)", None))
-        self.pushButton_9.setText(QCoreApplication.translate("SimpleMask", u"dilate", None))
-        self.pushButton_5.setText(QCoreApplication.translate("SimpleMask", u"erode", None))
-        self.pushButton_15.setText(QCoreApplication.translate("SimpleMask", u"close", None))
-        self.pushButton_16.setText(QCoreApplication.translate("SimpleMask", u"open", None))
-        self.btn_mask_threshold_evaluate.setText(QCoreApplication.translate("SimpleMask", u"Evaluate", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("SimpleMask", u"Threshold: (acts on the scattering image)", None))
         self.label_26.setText(QCoreApplication.translate("SimpleMask", u"low:", None))
         self.checkBox_threshold_low_enable.setText(QCoreApplication.translate("SimpleMask", u"Enable", None))
@@ -1561,6 +1433,11 @@ class Ui_SimpleMask(object):
 
         self.label_25.setText(QCoreApplication.translate("SimpleMask", u">=", None))
         self.label_33.setText(QCoreApplication.translate("SimpleMask", u"<", None))
+        self.groupBox_10.setTitle(QCoreApplication.translate("SimpleMask", u"Binary operation: (acts on the mask)", None))
+        self.pushButton_9.setText(QCoreApplication.translate("SimpleMask", u"dilate", None))
+        self.pushButton_5.setText(QCoreApplication.translate("SimpleMask", u"erode", None))
+        self.pushButton_15.setText(QCoreApplication.translate("SimpleMask", u"close", None))
+        self.pushButton_16.setText(QCoreApplication.translate("SimpleMask", u"open", None))
         self.MaskWidget.setTabText(self.MaskWidget.indexOf(self.tab_4), QCoreApplication.translate("SimpleMask", u"Binary", None))
         self.groupBox_12.setTitle(QCoreApplication.translate("SimpleMask", u"Import from a file", None))
         self.mask_list_1based.setText(QCoreApplication.translate("SimpleMask", u"1-based", None))
@@ -1575,38 +1452,77 @@ class Ui_SimpleMask(object):
         self.label_19.setText(QCoreApplication.translate("SimpleMask", u"Radius:", None))
         self.label_24.setText(QCoreApplication.translate("SimpleMask", u"Intensity Variation (%):", None))
         self.groupBox_11.setTitle(QCoreApplication.translate("SimpleMask", u"xy list", None))
-        self.btn_mask_list_apply.setText(QCoreApplication.translate("SimpleMask", u"Apply", None))
-        self.btn_mask_list_evaluate.setText(QCoreApplication.translate("SimpleMask", u"Evaluate", None))
         self.btn_mask_list_clear.setText(QCoreApplication.translate("SimpleMask", u"Clear List", None))
         self.MaskWidget.setTabText(self.MaskWidget.indexOf(self.tab_3), QCoreApplication.translate("SimpleMask", u"Manual", None))
         self.label_outlier_target_info.setText(QCoreApplication.translate("SimpleMask", u"num. circular ROI:", None))
+        self.label_15.setText(QCoreApplication.translate("SimpleMask", u"cutoff (\u00b1std):", None))
+        self.label_44.setText(QCoreApplication.translate("SimpleMask", u"Method", None))
+        self.label_4.setText(QCoreApplication.translate("SimpleMask", u"Target", None))
         self.comboBox_outlier_target.setItemText(0, QCoreApplication.translate("SimpleMask", u"CircularRings", None))
         self.comboBox_outlier_target.setItemText(1, QCoreApplication.translate("SimpleMask", u"AdjacentPixels", None))
 
-        self.label_4.setText(QCoreApplication.translate("SimpleMask", u"Target", None))
-        self.btn_mask_outlier_evaluate.setText(QCoreApplication.translate("SimpleMask", u"Evaluate", None))
-        self.btn_mask_outlier_apply.setText(QCoreApplication.translate("SimpleMask", u"Apply", None))
-        self.label_15.setText(QCoreApplication.translate("SimpleMask", u"cutoff (\u00b1std):", None))
         self.comboBox_outlier_method.setItemText(0, QCoreApplication.translate("SimpleMask", u"median_absolute_deviation", None))
         self.comboBox_outlier_method.setItemText(1, QCoreApplication.translate("SimpleMask", u"percentile", None))
 
-        self.label_44.setText(QCoreApplication.translate("SimpleMask", u"Method", None))
         self.MaskWidget.setTabText(self.MaskWidget.indexOf(self.tab_5), QCoreApplication.translate("SimpleMask", u"Outlier", None))
-        self.btn_mask_param_delete.setText(QCoreApplication.translate("SimpleMask", u"Delete", None))
-        self.btn_mask_param_evaluate.setText(QCoreApplication.translate("SimpleMask", u"Evaluate", None))
-        self.btn_mask_param_apply.setText(QCoreApplication.translate("SimpleMask", u"Apply", None))
         self.comboBox_param_logic.setItemText(0, QCoreApplication.translate("SimpleMask", u"AND", None))
         self.comboBox_param_logic.setItemText(1, QCoreApplication.translate("SimpleMask", u"OR", None))
         self.comboBox_param_logic.setItemText(2, QCoreApplication.translate("SimpleMask", u"NOT", None))
 
-        self.btn_mask_param_add.setText(QCoreApplication.translate("SimpleMask", u"Add", None))
         self.label_2.setText(QCoreApplication.translate("SimpleMask", u"Logic:", None))
         self.label_42.setText(QCoreApplication.translate("SimpleMask", u"Mask_parametrization = True [logic_1] mask_1 ... [logic_n]mask_n", None))
         self.label_29.setText(QCoreApplication.translate("SimpleMask", u"map_name", None))
         self.label_param_minval.setText(QCoreApplication.translate("SimpleMask", u"Min:", None))
         self.label_param_maxval.setText(QCoreApplication.translate("SimpleMask", u"Max:", None))
+        self.btn_mask_param_delete.setText(QCoreApplication.translate("SimpleMask", u"Delete", None))
+        self.btn_mask_param_add.setText(QCoreApplication.translate("SimpleMask", u"Add", None))
         self.MaskWidget.setTabText(self.MaskWidget.indexOf(self.tab6), QCoreApplication.translate("SimpleMask", u"Parametrization", None))
+        self.groupBox_3.setTitle(QCoreApplication.translate("SimpleMask", u"Partition", None))
+        self.label_43.setText(QCoreApplication.translate("SimpleMask", u"offset (deg):", None))
+        self.label_13.setText(QCoreApplication.translate("SimpleMask", u"dynamic phi num:", None))
+        self.label.setText(QCoreApplication.translate("SimpleMask", u"static q num:", None))
+        self.partition_style.setItemText(0, QCoreApplication.translate("SimpleMask", u"linear", None))
+        self.partition_style.setItemText(1, QCoreApplication.translate("SimpleMask", u"logarithmic", None))
+
+        self.label_12.setText(QCoreApplication.translate("SimpleMask", u"static phi num:", None))
+        self.label_10.setText(QCoreApplication.translate("SimpleMask", u"dynamic q num:", None))
+        self.label_20.setText(QCoreApplication.translate("SimpleMask", u"q-style:", None))
+        self.label_41.setText(QCoreApplication.translate("SimpleMask", u"symmetry", None))
+        self.btn_compute_qpartition.setText(QCoreApplication.translate("SimpleMask", u"compute", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_9), QCoreApplication.translate("SimpleMask", u"q-phi", None))
+        self.label_34.setText(QCoreApplication.translate("SimpleMask", u"static x:", None))
+        self.label_38.setText(QCoreApplication.translate("SimpleMask", u"static y:", None))
+        self.label_37.setText(QCoreApplication.translate("SimpleMask", u"dynamic x:", None))
+        self.label_36.setText(QCoreApplication.translate("SimpleMask", u"dynamic y:", None))
+        self.btn_compute_qpartition2.setText(QCoreApplication.translate("SimpleMask", u"compute", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_10), QCoreApplication.translate("SimpleMask", u"xy-mesh", None))
+        self.label_35.setText(QCoreApplication.translate("SimpleMask", u"static x:", None))
+        self.label_40.setText(QCoreApplication.translate("SimpleMask", u"static y:", None))
+        self.label_49.setText(QCoreApplication.translate("SimpleMask", u"dynamic x:", None))
+        self.label_51.setText(QCoreApplication.translate("SimpleMask", u"dynamic y:", None))
+        self.btn_compute_qpartition4.setText(QCoreApplication.translate("SimpleMask", u"compute", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("SimpleMask", u"ellipse", None))
+        self.label_48.setText(QCoreApplication.translate("SimpleMask", u"Static partition:", None))
+        self.label_50.setText(QCoreApplication.translate("SimpleMask", u"Dynamic partition", None))
+        self.label_53.setText(QCoreApplication.translate("SimpleMask", u"MapName", None))
+        self.btn_compute_qpartition3.setText(QCoreApplication.translate("SimpleMask", u"compute", None))
+        self.comboBox_partition_style1.setItemText(0, QCoreApplication.translate("SimpleMask", u"Linear", None))
+        self.comboBox_partition_style1.setItemText(1, QCoreApplication.translate("SimpleMask", u"Logarithmic", None))
+
+        self.comboBox_partition_style0.setItemText(0, QCoreApplication.translate("SimpleMask", u"Linear", None))
+        self.comboBox_partition_style0.setItemText(1, QCoreApplication.translate("SimpleMask", u"Logarithmic", None))
+
+        self.label_46.setText(QCoreApplication.translate("SimpleMask", u"Style", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_8), QCoreApplication.translate("SimpleMask", u"general", None))
         self.groupBox_5.setTitle(QCoreApplication.translate("SimpleMask", u"Scattering, Mask and Partitions", None))
+        self.groupBox_6.setTitle(QCoreApplication.translate("SimpleMask", u"Output", None))
+        self.label_47.setText(QCoreApplication.translate("SimpleMask", u"Format", None))
+        self.comboBox_output_type.setItemText(0, QCoreApplication.translate("SimpleMask", u"Nexus-XPCS", None))
+        self.comboBox_output_type.setItemText(1, QCoreApplication.translate("SimpleMask", u"Mask-Only", None))
+
+        self.pushButton.setText(QCoreApplication.translate("SimpleMask", u"save", None))
+        self.groupBox_4.setTitle(QCoreApplication.translate("SimpleMask", u"Plot Settings", None))
+        self.checkBox_showxy.setText(QCoreApplication.translate("SimpleMask", u" xy", None))
         self.plot_index.setItemText(0, QCoreApplication.translate("SimpleMask", u"scattering", None))
         self.plot_index.setItemText(1, QCoreApplication.translate("SimpleMask", u"scattering * mask", None))
         self.plot_index.setItemText(2, QCoreApplication.translate("SimpleMask", u"mask", None))
@@ -1614,10 +1530,9 @@ class Ui_SimpleMask(object):
         self.plot_index.setItemText(4, QCoreApplication.translate("SimpleMask", u"static_q_partition", None))
         self.plot_index.setItemText(5, QCoreApplication.translate("SimpleMask", u"preview", None))
 
-        self.label_11.setText(QCoreApplication.translate("SimpleMask", u"coordinates:", None))
-        self.groupBox_4.setTitle(QCoreApplication.translate("SimpleMask", u"Plot Settings", None))
-        self.plot_center.setText(QCoreApplication.translate("SimpleMask", u"show center", None))
-        self.plot_log.setText(QCoreApplication.translate("SimpleMask", u"log scale", None))
+        self.plot_center.setText(QCoreApplication.translate("SimpleMask", u"center", None))
+        self.plot_log.setText(QCoreApplication.translate("SimpleMask", u"log", None))
+        self.label_45.setText(QCoreApplication.translate("SimpleMask", u"cmap", None))
         self.plot_cmap.setItemText(0, QCoreApplication.translate("SimpleMask", u"jet", None))
         self.plot_cmap.setItemText(1, QCoreApplication.translate("SimpleMask", u"cool", None))
         self.plot_cmap.setItemText(2, QCoreApplication.translate("SimpleMask", u"ocean", None))
@@ -1631,49 +1546,6 @@ class Ui_SimpleMask(object):
         self.plot_cmap.setItemText(10, QCoreApplication.translate("SimpleMask", u"magma", None))
 
         self.btn_plot.setText(QCoreApplication.translate("SimpleMask", u"Plot", None))
-        self.label_45.setText(QCoreApplication.translate("SimpleMask", u"colormap", None))
-        self.groupBox_3.setTitle(QCoreApplication.translate("SimpleMask", u"Partition", None))
-        self.label_43.setText(QCoreApplication.translate("SimpleMask", u"offset (deg):", None))
-        self.label_13.setText(QCoreApplication.translate("SimpleMask", u"dynamic phi partition:", None))
-        self.label.setText(QCoreApplication.translate("SimpleMask", u"static q partition:", None))
-        self.partition_style.setItemText(0, QCoreApplication.translate("SimpleMask", u"linear", None))
-        self.partition_style.setItemText(1, QCoreApplication.translate("SimpleMask", u"logarithmic", None))
-
-        self.label_12.setText(QCoreApplication.translate("SimpleMask", u"static phi partition:", None))
-        self.label_10.setText(QCoreApplication.translate("SimpleMask", u"dynamic q partition:", None))
-        self.label_20.setText(QCoreApplication.translate("SimpleMask", u"q-style:", None))
-        self.label_41.setText(QCoreApplication.translate("SimpleMask", u"symmetry", None))
-        self.btn_compute_qpartition.setText(QCoreApplication.translate("SimpleMask", u"compute", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_9), QCoreApplication.translate("SimpleMask", u"q-phi", None))
-        self.label_34.setText(QCoreApplication.translate("SimpleMask", u"static x:", None))
-        self.label_38.setText(QCoreApplication.translate("SimpleMask", u"static y:", None))
-        self.label_37.setText(QCoreApplication.translate("SimpleMask", u"dynamic x:", None))
-        self.label_36.setText(QCoreApplication.translate("SimpleMask", u"dynamic y:", None))
-        self.btn_compute_qpartition2.setText(QCoreApplication.translate("SimpleMask", u"compute", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_10), QCoreApplication.translate("SimpleMask", u"xy-mesh", None))
-        self.label_48.setText(QCoreApplication.translate("SimpleMask", u"Static partition:", None))
-        self.label_50.setText(QCoreApplication.translate("SimpleMask", u"Dynamic partition", None))
-        self.label_53.setText(QCoreApplication.translate("SimpleMask", u"MapName", None))
-        self.btn_compute_qpartition3.setText(QCoreApplication.translate("SimpleMask", u"compute", None))
-        self.comboBox_partition_style1.setItemText(0, QCoreApplication.translate("SimpleMask", u"Linear", None))
-        self.comboBox_partition_style1.setItemText(1, QCoreApplication.translate("SimpleMask", u"Logarithmic", None))
-
-        self.comboBox_partition_style0.setItemText(0, QCoreApplication.translate("SimpleMask", u"Linear", None))
-        self.comboBox_partition_style0.setItemText(1, QCoreApplication.translate("SimpleMask", u"Logarithmic", None))
-
-        self.label_46.setText(QCoreApplication.translate("SimpleMask", u"Style", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_8), QCoreApplication.translate("SimpleMask", u"General", None))
-        self.label_35.setText(QCoreApplication.translate("SimpleMask", u"static x:", None))
-        self.label_40.setText(QCoreApplication.translate("SimpleMask", u"static y:", None))
-        self.label_49.setText(QCoreApplication.translate("SimpleMask", u"dynamic x:", None))
-        self.label_51.setText(QCoreApplication.translate("SimpleMask", u"dynamic y:", None))
-        self.btn_compute_qpartition4.setText(QCoreApplication.translate("SimpleMask", u"compute", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("SimpleMask", u"ellipse", None))
-        self.groupBox_6.setTitle(QCoreApplication.translate("SimpleMask", u"Output", None))
-        self.label_47.setText(QCoreApplication.translate("SimpleMask", u"Format", None))
-        self.comboBox_output_type.setItemText(0, QCoreApplication.translate("SimpleMask", u"Nexus-XPCS", None))
-        self.comboBox_output_type.setItemText(1, QCoreApplication.translate("SimpleMask", u"Mask-Only", None))
-
-        self.pushButton.setText(QCoreApplication.translate("SimpleMask", u"save", None))
+        self.label_11.setText(QCoreApplication.translate("SimpleMask", u"coordinates:", None))
     # retranslateUi
 

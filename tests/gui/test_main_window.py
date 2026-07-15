@@ -76,10 +76,10 @@ def test_mask_apply_current_tab_dispatches_correctly(qapp, tmp_path):
     calls = []
 
     with patch.object(gui, "mask_apply", side_effect=lambda t: calls.append(t)):
-        # Tab 0: Blemish/Files → both mask_blemish and mask_file
+        # Tab 0: Files (blemish section removed from UI) → mask_file only
         gui.MaskWidget.setCurrentIndex(0)
         gui.mask_apply_current_tab()
-        assert calls == ["mask_blemish", "mask_file"], f"Tab 0: got {calls}"
+        assert calls == ["mask_file"], f"Tab 0: got {calls}"
         calls.clear()
 
         # Tab 2: Binary → mask_threshold
