@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.parametertree import Parameter
-from PySide6.QtCore import QByteArray, QTimer  # noqa: F401  (QTimer used by Task 2 frame browser)
+from PySide6.QtCore import QByteArray, QTimer
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -781,6 +781,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.spinBox_current_frame.setVisible(show_frame_controls)
 
         if idx == _RAWDATA_IDX:
+            self._read_and_show_frame()   # show frame 0 immediately
             return   # rawdata display handled by frame browser callbacks
 
         if not self.is_ready():
