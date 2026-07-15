@@ -16,12 +16,12 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
-    QGridLayout, QGroupBox, QHBoxLayout, QHeaderView,
-    QLabel, QLineEdit, QListWidget, QListWidgetItem,
-    QMainWindow, QPushButton, QScrollArea, QSizePolicy,
-    QSlider, QSpacerItem, QSpinBox, QSplitter,
-    QStatusBar, QTabWidget, QTableView, QToolButton,
-    QVBoxLayout, QWidget)
+    QFrame, QGridLayout, QGroupBox, QHBoxLayout,
+    QHeaderView, QLabel, QLineEdit, QListWidget,
+    QListWidgetItem, QMainWindow, QPushButton, QScrollArea,
+    QSizePolicy, QSlider, QSpacerItem, QSpinBox,
+    QSplitter, QStatusBar, QTabWidget, QTableView,
+    QToolButton, QVBoxLayout, QWidget)
 
 from .widgets import ImageViewROI
 from pyqtgraph import PlotWidget
@@ -1284,12 +1284,6 @@ class Ui_SimpleMask(object):
         self.gridLayout_3 = QGridLayout(self.groupBox_4)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.gridLayout_3.setContentsMargins(0, 0, 0, 0)
-        self.checkBox_showxy = QCheckBox(self.groupBox_4)
-        self.checkBox_showxy.setObjectName(u"checkBox_showxy")
-        self.checkBox_showxy.setChecked(True)
-
-        self.gridLayout_3.addWidget(self.checkBox_showxy, 1, 3, 1, 1)
-
         self.plot_index = QComboBox(self.groupBox_4)
         self.plot_index.addItem("")
         self.plot_index.addItem("")
@@ -1306,24 +1300,32 @@ class Ui_SimpleMask(object):
         self.plot_index.setSizePolicy(sizePolicy21)
         self.plot_index.setMinimumSize(QSize(0, 0))
 
-        self.gridLayout_3.addWidget(self.plot_index, 1, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.plot_index, 1, 1, 1, 1)
+
+        self.line_3 = QFrame(self.groupBox_4)
+        self.line_3.setObjectName(u"line_3")
+        self.line_3.setFrameShape(QFrame.Shape.VLine)
+        self.line_3.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout_3.addWidget(self.line_3, 1, 6, 1, 1)
 
         self.plot_center = QCheckBox(self.groupBox_4)
         self.plot_center.setObjectName(u"plot_center")
         self.plot_center.setChecked(True)
 
-        self.gridLayout_3.addWidget(self.plot_center, 1, 1, 1, 1)
-
-        self.plot_log = QCheckBox(self.groupBox_4)
-        self.plot_log.setObjectName(u"plot_log")
-        self.plot_log.setChecked(True)
-
-        self.gridLayout_3.addWidget(self.plot_log, 1, 4, 1, 1)
+        self.gridLayout_3.addWidget(self.plot_center, 1, 3, 1, 1)
 
         self.label_45 = QLabel(self.groupBox_4)
         self.label_45.setObjectName(u"label_45")
 
-        self.gridLayout_3.addWidget(self.label_45, 1, 5, 1, 1)
+        self.gridLayout_3.addWidget(self.label_45, 1, 7, 1, 1)
+
+        self.label_frame = QLabel(self.groupBox_4)
+        self.label_frame.setObjectName(u"label_frame")
+        sizePolicy6.setHeightForWidth(self.label_frame.sizePolicy().hasHeightForWidth())
+        self.label_frame.setSizePolicy(sizePolicy6)
+
+        self.gridLayout_3.addWidget(self.label_frame, 0, 0, 1, 1)
 
         self.plot_cmap = QComboBox(self.groupBox_4)
         self.plot_cmap.addItem("")
@@ -1341,40 +1343,75 @@ class Ui_SimpleMask(object):
         sizePolicy3.setHeightForWidth(self.plot_cmap.sizePolicy().hasHeightForWidth())
         self.plot_cmap.setSizePolicy(sizePolicy3)
 
-        self.gridLayout_3.addWidget(self.plot_cmap, 1, 6, 1, 1)
-
-        self.btn_plot = QPushButton(self.groupBox_4)
-        self.btn_plot.setObjectName(u"btn_plot")
-
-        self.gridLayout_3.addWidget(self.btn_plot, 1, 7, 1, 1)
-
-        self.label_frame = QLabel(self.groupBox_4)
-        self.label_frame.setObjectName(u"label_frame")
-
-        self.gridLayout_3.addWidget(self.label_frame, 0, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.plot_cmap, 1, 9, 1, 1)
 
         self.horizontalSlider_frame = QSlider(self.groupBox_4)
         self.horizontalSlider_frame.setObjectName(u"horizontalSlider_frame")
         self.horizontalSlider_frame.setOrientation(Qt.Orientation.Horizontal)
 
-        self.gridLayout_3.addWidget(self.horizontalSlider_frame, 0, 1, 1, 4)
-
-        self.spinBox_current_frame = QSpinBox(self.groupBox_4)
-        self.spinBox_current_frame.setObjectName(u"spinBox_current_frame")
-
-        self.gridLayout_3.addWidget(self.spinBox_current_frame, 0, 5, 1, 1)
-
-        self.label_6 = QLabel(self.groupBox_4)
-        self.label_6.setObjectName(u"label_6")
-
-        self.gridLayout_3.addWidget(self.label_6, 0, 6, 1, 1)
+        self.gridLayout_3.addWidget(self.horizontalSlider_frame, 0, 1, 1, 5)
 
         self.spinBox_frame_average = QSpinBox(self.groupBox_4)
         self.spinBox_frame_average.setObjectName(u"spinBox_frame_average")
         self.spinBox_frame_average.setMinimum(1)
         self.spinBox_frame_average.setMaximum(2500)
 
-        self.gridLayout_3.addWidget(self.spinBox_frame_average, 0, 7, 1, 1)
+        self.gridLayout_3.addWidget(self.spinBox_frame_average, 0, 11, 1, 1)
+
+        self.btn_plot = QPushButton(self.groupBox_4)
+        self.btn_plot.setObjectName(u"btn_plot")
+
+        self.gridLayout_3.addWidget(self.btn_plot, 1, 11, 1, 1)
+
+        self.line_2 = QFrame(self.groupBox_4)
+        self.line_2.setObjectName(u"line_2")
+        self.line_2.setFrameShape(QFrame.Shape.VLine)
+        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout_3.addWidget(self.line_2, 1, 10, 1, 1)
+
+        self.line = QFrame(self.groupBox_4)
+        self.line.setObjectName(u"line")
+        self.line.setFrameShape(QFrame.Shape.VLine)
+        self.line.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout_3.addWidget(self.line, 0, 8, 1, 1)
+
+        self.label_6 = QLabel(self.groupBox_4)
+        self.label_6.setObjectName(u"label_6")
+        sizePolicy6.setHeightForWidth(self.label_6.sizePolicy().hasHeightForWidth())
+        self.label_6.setSizePolicy(sizePolicy6)
+
+        self.gridLayout_3.addWidget(self.label_6, 1, 0, 1, 1)
+
+        self.spinBox_current_frame = QSpinBox(self.groupBox_4)
+        self.spinBox_current_frame.setObjectName(u"spinBox_current_frame")
+
+        self.gridLayout_3.addWidget(self.spinBox_current_frame, 0, 7, 1, 1)
+
+        self.plot_log = QCheckBox(self.groupBox_4)
+        self.plot_log.setObjectName(u"plot_log")
+        self.plot_log.setChecked(True)
+
+        self.gridLayout_3.addWidget(self.plot_log, 1, 5, 1, 1)
+
+        self.checkBox_showxy = QCheckBox(self.groupBox_4)
+        self.checkBox_showxy.setObjectName(u"checkBox_showxy")
+        self.checkBox_showxy.setChecked(True)
+
+        self.gridLayout_3.addWidget(self.checkBox_showxy, 1, 4, 1, 1)
+
+        self.label_average = QLabel(self.groupBox_4)
+        self.label_average.setObjectName(u"label_average")
+
+        self.gridLayout_3.addWidget(self.label_average, 0, 9, 1, 1)
+
+        self.line_4 = QFrame(self.groupBox_4)
+        self.line_4.setObjectName(u"line_4")
+        self.line_4.setFrameShape(QFrame.Shape.VLine)
+        self.line_4.setFrameShadow(QFrame.Shadow.Sunken)
+
+        self.gridLayout_3.addWidget(self.line_4, 1, 2, 1, 1)
 
 
         self.gridLayout_16.addWidget(self.groupBox_4, 2, 0, 1, 4)
@@ -1566,7 +1603,6 @@ class Ui_SimpleMask(object):
         self.groupBox_5.setTitle(QCoreApplication.translate("SimpleMask", u"Scattering, Mask and Partitions", None))
         self.label_11.setText(QCoreApplication.translate("SimpleMask", u"coordinates:", None))
         self.groupBox_4.setTitle(QCoreApplication.translate("SimpleMask", u"Plot Settings", None))
-        self.checkBox_showxy.setText(QCoreApplication.translate("SimpleMask", u" xy", None))
         self.plot_index.setItemText(0, QCoreApplication.translate("SimpleMask", u"rawdata", None))
         self.plot_index.setItemText(1, QCoreApplication.translate("SimpleMask", u"scattering", None))
         self.plot_index.setItemText(2, QCoreApplication.translate("SimpleMask", u"scattering * mask", None))
@@ -1576,8 +1612,8 @@ class Ui_SimpleMask(object):
         self.plot_index.setItemText(6, QCoreApplication.translate("SimpleMask", u"preview", None))
 
         self.plot_center.setText(QCoreApplication.translate("SimpleMask", u"center", None))
-        self.plot_log.setText(QCoreApplication.translate("SimpleMask", u"log", None))
         self.label_45.setText(QCoreApplication.translate("SimpleMask", u"cmap", None))
+        self.label_frame.setText(QCoreApplication.translate("SimpleMask", u"Frame index", None))
         self.plot_cmap.setItemText(0, QCoreApplication.translate("SimpleMask", u"jet", None))
         self.plot_cmap.setItemText(1, QCoreApplication.translate("SimpleMask", u"cool", None))
         self.plot_cmap.setItemText(2, QCoreApplication.translate("SimpleMask", u"ocean", None))
@@ -1591,7 +1627,9 @@ class Ui_SimpleMask(object):
         self.plot_cmap.setItemText(10, QCoreApplication.translate("SimpleMask", u"magma", None))
 
         self.btn_plot.setText(QCoreApplication.translate("SimpleMask", u"Plot", None))
-        self.label_frame.setText(QCoreApplication.translate("SimpleMask", u"Frame index", None))
-        self.label_6.setText(QCoreApplication.translate("SimpleMask", u"Average", None))
+        self.label_6.setText(QCoreApplication.translate("SimpleMask", u"Target", None))
+        self.plot_log.setText(QCoreApplication.translate("SimpleMask", u"log", None))
+        self.checkBox_showxy.setText(QCoreApplication.translate("SimpleMask", u" xy", None))
+        self.label_average.setText(QCoreApplication.translate("SimpleMask", u"Average", None))
     # retranslateUi
 
