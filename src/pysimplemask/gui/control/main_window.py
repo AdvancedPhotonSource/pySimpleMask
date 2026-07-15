@@ -268,7 +268,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
             "Changes take effect after clicking Update Parameters."
         )
         self.btn_update_parameters.setToolTip(
-            "Recompute the q/φ geometry from the current metadata values"
+            "Recompute the q/φ geometry from the current metadata values.\n"
+            "Activated automatically when you edit a metadata field."
         )
 
         # ── Beam center ───────────────────────────────────────────────────────
@@ -905,9 +906,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.update_parameter_to_dset
         )
         self.metadata_tree.setParameters(self.metadata_parameter, showTop=False)
+        # Metadata and qmap are now in sync — grey out Update Parameters.
+        self.btn_update_parameters.setEnabled(False)
 
     def update_parameter_to_dset(self, param, changes):
         self.sm.dset.update_metadata_from_changes(changes)
+        # Metadata changed → qmap is stale → activate Update Parameters.
+        self.btn_update_parameters.setEnabled(True)
 
     def _remove_xy_label(self):
         """Remove the floating (x, y) text item from the view."""
