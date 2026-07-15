@@ -866,6 +866,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         except Exception as exc:
             logger.error("Failed to read frame %d from %s: %s", idx, fname, exc)
             return
+        if self.plot_log.isChecked():
+            positive = frame[frame > 0]
+            floor = float(positive.min()) if positive.size else 1.0
+            frame = np.log10(np.maximum(frame, floor))
         vb = self.mp1.getView()
         saved_range = vb.viewRange() if self.mp1.image is not None else None
         self.mp1.setImage(frame)
