@@ -236,7 +236,7 @@
                  <x>0</x>
                  <y>0</y>
                  <width>710</width>
-                 <height>111</height>
+                 <height>68</height>
                 </rect>
                </property>
                <layout class="QGridLayout" name="gridLayout_9">
@@ -1565,7 +1565,7 @@
          </item>
         </layout>
        </widget>
-       <widget class="QWidget" name="">
+       <widget class="QWidget" name="layoutWidget">
         <layout class="QVBoxLayout" name="verticalLayout">
          <item>
           <widget class="QGroupBox" name="groupBox_3">
@@ -2454,17 +2454,34 @@
            <item row="0" column="0">
             <widget class="QLabel" name="label_frame">
              <property name="text">
-              <string>frame index</string>
+              <string>Frame index</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1" colspan="4">
+            <widget class="QSlider" name="horizontalSlider_frame">
+             <property name="orientation">
+              <enum>Qt::Orientation::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="5">
+            <widget class="QSpinBox" name="spinBox_current_frame"/>
+           </item>
+           <item row="0" column="6">
+            <widget class="QLabel" name="label_6">
+             <property name="text">
+              <string>Average</string>
              </property>
             </widget>
            </item>
            <item row="0" column="7">
-            <widget class="QSpinBox" name="spinBox_current_frame"/>
-           </item>
-           <item row="0" column="1" colspan="6">
-            <widget class="QSlider" name="horizontalSlider_frame">
-             <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
+            <widget class="QSpinBox" name="spinBox_frame_average">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+             <property name="maximum">
+              <number>2500</number>
              </property>
             </widget>
            </item>

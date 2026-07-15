@@ -155,7 +155,7 @@ class Ui_SimpleMask(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 710, 111))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 710, 68))
         self.gridLayout_9 = QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_9.setObjectName(u"gridLayout_9")
         self.gridLayout_9.setContentsMargins(0, 0, 0, 0)
@@ -851,12 +851,12 @@ class Ui_SimpleMask(object):
         self.gridLayout_4.addWidget(self.MaskWidget, 0, 0, 1, 5)
 
         self.splitter.addWidget(self.groupBox_2)
-        self.widget = QWidget(self.splitter)
-        self.widget.setObjectName(u"widget")
-        self.verticalLayout = QVBoxLayout(self.widget)
+        self.layoutWidget = QWidget(self.splitter)
+        self.layoutWidget.setObjectName(u"layoutWidget")
+        self.verticalLayout = QVBoxLayout(self.layoutWidget)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.verticalLayout.setContentsMargins(0, 0, 0, 0)
-        self.groupBox_3 = QGroupBox(self.widget)
+        self.groupBox_3 = QGroupBox(self.layoutWidget)
         self.groupBox_3.setObjectName(u"groupBox_3")
         sizePolicy16 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
         sizePolicy16.setHorizontalStretch(2)
@@ -1202,7 +1202,7 @@ class Ui_SimpleMask(object):
 
         self.verticalLayout.addWidget(self.groupBox_3)
 
-        self.groupBox_6 = QGroupBox(self.widget)
+        self.groupBox_6 = QGroupBox(self.layoutWidget)
         self.groupBox_6.setObjectName(u"groupBox_6")
         sizePolicy17 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
         sizePolicy17.setHorizontalStretch(1)
@@ -1236,7 +1236,7 @@ class Ui_SimpleMask(object):
 
         self.verticalLayout.addWidget(self.groupBox_6)
 
-        self.splitter.addWidget(self.widget)
+        self.splitter.addWidget(self.layoutWidget)
         self.splitter_2.addWidget(self.splitter)
         self.groupBox_5 = QGroupBox(self.splitter_2)
         self.groupBox_5.setObjectName(u"groupBox_5")
@@ -1353,16 +1353,28 @@ class Ui_SimpleMask(object):
 
         self.gridLayout_3.addWidget(self.label_frame, 0, 0, 1, 1)
 
-        self.spinBox_current_frame = QSpinBox(self.groupBox_4)
-        self.spinBox_current_frame.setObjectName(u"spinBox_current_frame")
-
-        self.gridLayout_3.addWidget(self.spinBox_current_frame, 0, 7, 1, 1)
-
         self.horizontalSlider_frame = QSlider(self.groupBox_4)
         self.horizontalSlider_frame.setObjectName(u"horizontalSlider_frame")
         self.horizontalSlider_frame.setOrientation(Qt.Orientation.Horizontal)
 
-        self.gridLayout_3.addWidget(self.horizontalSlider_frame, 0, 1, 1, 6)
+        self.gridLayout_3.addWidget(self.horizontalSlider_frame, 0, 1, 1, 4)
+
+        self.spinBox_current_frame = QSpinBox(self.groupBox_4)
+        self.spinBox_current_frame.setObjectName(u"spinBox_current_frame")
+
+        self.gridLayout_3.addWidget(self.spinBox_current_frame, 0, 5, 1, 1)
+
+        self.label_6 = QLabel(self.groupBox_4)
+        self.label_6.setObjectName(u"label_6")
+
+        self.gridLayout_3.addWidget(self.label_6, 0, 6, 1, 1)
+
+        self.spinBox_frame_average = QSpinBox(self.groupBox_4)
+        self.spinBox_frame_average.setObjectName(u"spinBox_frame_average")
+        self.spinBox_frame_average.setMinimum(1)
+        self.spinBox_frame_average.setMaximum(2500)
+
+        self.gridLayout_3.addWidget(self.spinBox_frame_average, 0, 7, 1, 1)
 
 
         self.gridLayout_16.addWidget(self.groupBox_4, 2, 0, 1, 4)
@@ -1579,6 +1591,7 @@ class Ui_SimpleMask(object):
         self.plot_cmap.setItemText(10, QCoreApplication.translate("SimpleMask", u"magma", None))
 
         self.btn_plot.setText(QCoreApplication.translate("SimpleMask", u"Plot", None))
-        self.label_frame.setText(QCoreApplication.translate("SimpleMask", u"frame index", None))
+        self.label_frame.setText(QCoreApplication.translate("SimpleMask", u"Frame index", None))
+        self.label_6.setText(QCoreApplication.translate("SimpleMask", u"Average", None))
     # retranslateUi
 

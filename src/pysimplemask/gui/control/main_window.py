@@ -137,9 +137,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
             w.setSizePolicy(sp)
 
         # Frame controls are hidden until rawdata channel is active
+        self._raw_total_frames = 0   # set by load() for frame-average range calculation
         self.label_frame.setVisible(False)
         self.horizontalSlider_frame.setVisible(False)
         self.spinBox_current_frame.setVisible(False)
+        self.spinBox_frame_average.setVisible(False)
 
         # rawdata item starts disabled (grayed) until a compatible file is loaded
         self._set_rawdata_enabled(False)
@@ -173,6 +175,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.plot_index.currentIndexChanged.connect(self._on_plot_index_changed)
         self.horizontalSlider_frame.valueChanged.connect(self._on_frame_changed)
         self.spinBox_current_frame.valueChanged.connect(self._on_frame_changed)
+        self.spinBox_frame_average.valueChanged.connect(self._on_frame_average_changed)
 
         # reset, redo, undo botton for mask
         self.btn_mask_reset.clicked.connect(lambda: self.mask_action("reset"))
@@ -790,6 +793,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.label_frame.setVisible(show_frame_controls)
         self.horizontalSlider_frame.setVisible(show_frame_controls)
         self.spinBox_current_frame.setVisible(show_frame_controls)
+        self.spinBox_frame_average.setVisible(show_frame_controls)
 
         if idx == _RAWDATA_IDX:
             self._read_and_show_frame()   # show frame 0 immediately
@@ -843,6 +847,28 @@ class SimpleMaskGUI(QMainWindow, Ui):
         except Exception:
             return False, 0
 
+    def _update_frame_range(self) -> None:
+        """Recompute slider/spinbox range from raw frame count and frame_average."""
+        n_avg = max(1, self.spinBox_frame_average.value())
+        n_available = max(1, self._raw_total_frames // n_avg)
+        current = min(self._pending_frame_idx, n_available - 1)
+        self.horizontalSlider_frame.setRange(0, n_available - 1)
+        self.spinBox_current_frame.setRange(0, n_available - 1)
+        self.horizontalSlider_frame.blockSignals(True)
+        self.spinBox_current_frame.blockSignals(True)
+        self.horizontalSlider_frame.setValue(current)
+        self.spinBox_current_frame.setValue(current)
+        self.horizontalSlider_frame.blockSignals(False)
+        self.spinBox_current_frame.blockSignals(False)
+        self._pending_frame_idx = current
+
+    def _on_frame_average_changed(self, _value: int) -> None:
+        """Called when spinBox_frame_average changes; adjusts range and re-reads."""
+        if not self.sm.is_ready() or self._raw_total_frames == 0:
+            return
+        self._update_frame_range()
+        self._read_and_show_frame()
+
     def _on_frame_changed(self, value: int) -> None:
         """Called by slider or spinbox; syncs the other widget and restarts debounce."""
         self._pending_frame_idx = value
@@ -859,23 +885,24 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self._frame_timer.start()   # restart: cancel pending read, schedule new one
 
     def _read_and_show_frame(self) -> None:
-        """Timer callback: read one raw frame from HDF5 and display it."""
+        """Timer callback: read (and average) raw frames from HDF5 and display."""
         import h5py
         if not self.sm.is_ready():
             return
         idx = self._pending_frame_idx
+        n_avg = max(1, self.spinBox_frame_average.value())
+        start = idx * n_avg
+        end = min(start + n_avg, self._raw_total_frames if self._raw_total_frames > 0 else start + 1)
         fname = self.sm.dset.fname
         try:
             with h5py.File(fname, "r") as f:
-                raw = f["/entry/data/data"][idx]
-                # Cast unsigned int to signed (uint16→int16, uint32→int32) before
-                # converting to float so that detector values near the type max are
-                # not misinterpreted as huge positive counts.
-                if raw.dtype.kind == "u":
-                    raw = raw.astype(np.dtype(f"int{raw.dtype.itemsize * 8}"))
-                frame = raw.astype(np.float32)
+                raw = f["/entry/data/data"][start:end]
+            # Cast unsigned int to signed (uint16→int16, uint32→int32)
+            if raw.dtype.kind == "u":
+                raw = raw.astype(np.dtype(f"int{raw.dtype.itemsize * 8}"))
+            frame = raw.mean(axis=0).astype(np.float32) if raw.ndim == 3 else raw.astype(np.float32)
         except Exception as exc:
-            logger.error("Failed to read frame %d from %s: %s", idx, fname, exc)
+            logger.error("Failed to read frames %d-%d from %s: %s", start, end, fname, exc)
             return
         if self.plot_log.isChecked():
             positive = frame[frame > 0]
@@ -1014,11 +1041,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         has_rawdata, num_frames = self._detect_rawdata()
         self._set_rawdata_enabled(has_rawdata)
         if has_rawdata:
-            self.horizontalSlider_frame.setRange(0, num_frames - 1)
-            self.horizontalSlider_frame.setValue(0)
-            self.spinBox_current_frame.setRange(0, num_frames - 1)
-            self.spinBox_current_frame.setValue(0)
-            self._pending_frame_idx = 0
+            self._raw_total_frames = num_frames
+            self.spinBox_frame_average.setValue(1)
+            self._update_frame_range()
+        else:
+            self._raw_total_frames = 0
         self.plot_index.setCurrentIndex(2)  # default to "scattering * mask" after load
         self.plot(reset_view=True)
         self.statusbar.showMessage("data is loaded", 500)
