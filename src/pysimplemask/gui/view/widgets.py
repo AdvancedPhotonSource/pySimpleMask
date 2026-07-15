@@ -32,7 +32,18 @@ class ImageViewROI(pg.ImageView):
         if self.image is not None:
             h = self.image.shape[-2]
             w = self.image.shape[-1]
+            # xMin/xMax/yMin/yMax are position limits (pan bounds).
+            # Setting them to ±1 image dimension means an image edge can reach
+            # at most the centre of the view — the image never fully leaves the
+            # canvas even on fast trackpad swipes.
+            # maxXRange/maxYRange = 2× caps zoom-out so the image is never
+            # smaller than 25% of the view.
+            # minXRange/minYRange caps zoom-in to 1/50 of image size.
+            # All values are derived from the image dimensions, NOT from the
+            # current view range, so window resize and repeated plot() calls
+            # cannot lock the view into a stale zoomed-in state.
             vb.setLimits(
+                xMin=-w, xMax=2 * w, yMin=-h, yMax=2 * h,
                 minXRange=max(w / 50, 1), minYRange=max(h / 50, 1),
                 maxXRange=w * 2,          maxYRange=h * 2,
             )
