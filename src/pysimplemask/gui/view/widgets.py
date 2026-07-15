@@ -13,6 +13,10 @@ class ImageViewROI(pg.ImageView):
         self.roi_idx = 0
         self.ui.roiBtn.setDisabled(True)
         self.ui.menuBtn.setDisabled(True)
+        # Hide the ROI/time-series plot panel — it was only used when the
+        # ImageView held a 3D stack with a time axis.  Now we feed 2D slices
+        # directly, so the panel is empty and wastes vertical space.
+        self.ui.roiPlot.hide()
 
     def roiClicked(self):
         pass
