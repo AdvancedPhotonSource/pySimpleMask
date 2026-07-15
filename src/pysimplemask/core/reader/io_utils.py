@@ -15,6 +15,19 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
+def _cast_to_signed(arr: np.ndarray) -> np.ndarray:
+    """Cast an unsigned integer array to its signed counterpart.
+
+    uint16 → int16, uint32 → int32, etc.  Signed and non-integer arrays are
+    returned unchanged.  The cast preserves bit patterns so that detector
+    overflow values (e.g. 65535 for uint16) become negative rather than
+    staying as large positive counts.
+    """
+    if arr.dtype.kind == "u":
+        return arr.astype(np.dtype(f"int{arr.dtype.itemsize * 8}"))
+    return arr
+
 # ---------------------------------------------------------------------------
 # GIL detection — evaluated once at module import (= app startup).
 # sys._is_gil_enabled() is present on CPython 3.13+ free-threaded builds;
@@ -88,7 +101,7 @@ def _read_and_sum_nogil(args):
     frame_u32 = np.empty(H * W, dtype=np.uint32)
     for byte_offset, raw_size in chunk_list:
         _decode_lz4_chunk(os.pread(fd, int(raw_size), int(byte_offset)), frame_u32)
-        partial += frame_u32.reshape(H, W)
+        partial += _cast_to_signed(frame_u32).reshape(H, W)
     return len(chunk_list)
 
 
@@ -146,7 +159,7 @@ def _run_nogil_average(file_path, lz4_frames, H, W, num_frames):
 def process_chunk(file_path, dataset_name, start_idx, end_idx):
     """Return the per-pixel float32 sum over ``[start_idx, end_idx)`` of a dataset."""
     with h5py.File(file_path, "r") as f:
-        chunk = f[dataset_name][start_idx:end_idx]
+        chunk = _cast_to_signed(f[dataset_name][start_idx:end_idx])
         return np.sum(chunk, axis=0, dtype=np.float32)
 
 
@@ -206,7 +219,7 @@ def average_frames_parallel(
 
         # Small ranges are cheaper to read in a single process.
         if num_frames < chunk_size:
-            frames = dataset[start_frame: start_frame + num_frames]
+            frames = _cast_to_signed(dataset[start_frame: start_frame + num_frames])
             return (np.sum(frames, axis=0, dtype=np.float32) / num_frames).astype(
                 np.float32
             )

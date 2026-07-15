@@ -34,7 +34,10 @@ class HdfDataset(ScatteringDataset):
         # A 2-D dataset is already a single image; there is nothing to average.
         if self.ndim == 2:
             with h5py.File(self.fname, "r") as f:
-                return f[self.data_path][()].astype(np.float32)
+                data = f[self.data_path][()]
+            if data.dtype.kind == "u":
+                data = data.astype(np.dtype(f"int{data.dtype.itemsize * 8}"))
+            return data.astype(np.float32)
         return average_frames_parallel(
             self.fname,
             dataset_name=self.data_path,
