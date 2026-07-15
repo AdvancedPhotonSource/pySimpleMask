@@ -534,9 +534,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def mouse_clicked(self, event):
         if not event.double():
             return
-        current_idx = self.MaskWidget.currentIndex()
-        if current_idx not in [3, 5]:
-            return
 
         if not self.mp1.scene.itemsBoundingRect().contains(event.pos()):
             return
@@ -544,6 +541,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
         mouse_point = self.mp1.getView().mapSceneToView(event.pos())
         col = int(mouse_point.x())
         row = int(mouse_point.y())
+
+        # Shift + double-click → set beam center to the clicked pixel
+        if event.modifiers() & QtCore.Qt.ShiftModifier:
+            if self.is_ready():
+                self.update_parameters(new_center_vh=(row, col))
+            return
+
+        current_idx = self.MaskWidget.currentIndex()
+        if current_idx not in [3, 5]:
+            return
         if current_idx == 3:
             # manual mode; select the dead pixel with mouse click
             if not self.mask_list_include.isChecked():
