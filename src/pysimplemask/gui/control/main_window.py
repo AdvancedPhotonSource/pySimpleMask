@@ -65,6 +65,34 @@ PVMAP = {
 
 # Maps MaskWidget tab index → mask target(s) applied by btn_mask_apply.
 # Tab 0 (Blemish/Files) applies both; an unevaluated worker is a safe no-op.
+def _find_hdf_datasets_matching_shape(fname, target_shape, max_depth=5):
+    """Return HDF5 dataset paths whose shape matches target_shape (H, W).
+
+    Also matches (1, H, W) stacks.  Traverses at most *max_depth* group levels.
+    """
+    import h5py
+    h, w = target_shape
+    matching = []
+
+    def _visit(group, depth):
+        if depth > max_depth:
+            return
+        for key in group:
+            obj = group[key]
+            if isinstance(obj, h5py.Dataset):
+                s = obj.shape
+                if s == (h, w) or (
+                    len(s) == 3 and s[0] == 1 and s[1] == h and s[2] == w
+                ):
+                    matching.append(obj.name)
+            elif isinstance(obj, h5py.Group):
+                _visit(obj, depth + 1)
+
+    with h5py.File(fname, "r") as f:
+        _visit(f, 0)
+    return matching
+
+
 _APPLY_TIP_READY = "Apply the evaluated mask for the currently active tab into the working mask"
 _APPLY_TIP_DISABLED = "Evaluate a mask first — Apply will become available after Evaluate"
 
@@ -263,8 +291,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
             "Browse for an external mask file (HDF5 or TIFF)"
         )
         self.maskfile_fname.setToolTip("Path to the external mask file")
-        self.maskfile_path.setToolTip(
-            "HDF5 dataset path inside the mask file (e.g. /xpcs/mask)"
+        self.comboBox_maskfile_path.setToolTip(
+            "HDF5 dataset path — populated automatically when an HDF file is loaded;\n"
+            "only datasets whose shape matches the scattering image are listed"
         )
 
         # ── Draw tab ──────────────────────────────────────────────────────────
@@ -608,7 +637,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         elif target == "mask_file":
             kwargs = {
                 "fname": self.maskfile_fname.text(),
-                "key": self.maskfile_path.text(),
+                "key": self.comboBox_maskfile_path.currentText(),
             }
         elif target == "mask_list":
             num_row = self.mask_list_xylist.count()
@@ -783,19 +812,36 @@ class SimpleMaskGUI(QMainWindow, Ui):
         return
 
     def select_maskfile(self):
+        if not self.is_ready():
+            self.statusbar.showMessage(
+                "Load a scattering image first before selecting a mask file.", 3000
+            )
+            return
         fname = QFileDialog.getOpenFileName(
             self,
             "Select mask file",
             filter="Supported Formats(*.tiff *.tif *.h5 *.hdf *.hdf5)",
         )[0]
-        # fname = "../tests/data/triangle_mask/mask_lambda_test.h5"
-        if fname not in [None, ""]:
-            self.maskfile_fname.setText(fname)
-        if fname.endswith(".tif") or fname.endswith(".tiff"):
-            self.maskfile_path.setDisabled(True)
+        if not fname:
+            return
+        self.maskfile_fname.setText(fname)
+        self.comboBox_maskfile_path.clear()
+        if fname.endswith((".tif", ".tiff")):
+            self.comboBox_maskfile_path.setEnabled(False)
         else:
-            self.maskfile_path.setEnabled(True)
-        return
+            # HDF file: populate comboBox with datasets matching the scattering shape
+            try:
+                paths = _find_hdf_datasets_matching_shape(fname, self.sm.shape)
+            except Exception as exc:
+                logger.warning("Failed to scan %s: %s", fname, exc)
+                paths = []
+            self.comboBox_maskfile_path.addItems(paths)
+            self.comboBox_maskfile_path.setEnabled(bool(paths))
+            if not paths:
+                self.statusbar.showMessage(
+                    f"No datasets matching shape {self.sm.shape} found in {fname}",
+                    5000,
+                )
 
     def load(self):
         # self.fname.setText('/mnt/c/Users/mqichu/Documents/local_dev/pysimplemask/tests/data/E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_att04_Rq0_00001_0001-100000.hdf')
