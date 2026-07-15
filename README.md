@@ -8,8 +8,11 @@ and a **headless Python API** that can drive the full pipeline from scripts.
 
 ## Features
 
-- **Versatile data support** — HDF5 (NeXus/XPCS), IMM, Rigaku 500k/3M binary, TIFF.
+- **Versatile data support** — HDF5 (NeXus/XPCS), IMM, Rigaku 500k/3M binary, TIFF,
+  native TIFF images (NativeFiles beamline with editable placeholder metadata).
   Supported beamlines: APS 8-ID-I (transmission) and APS 9-ID-D (reflection/GISAXS).
+  XPCS result HDF5 files (containing an `/xpcs` group) are auto-detected and their
+  saved partition is restored on load.
   On free-threaded Python (CPython 3.13+ `--disable-gil`), LZ4-chunked HDF5 files are
   read with a thread-parallel HDF5-bypass path (no GIL, no HDF5 mutex) for faster
   frame averaging; standard Python falls back automatically.
@@ -33,7 +36,10 @@ and a **headless Python API** that can drive the full pipeline from scripts.
   - Ellipse-corrected Q-Phi (eq-ephi).
   - Custom axis pair from any q-map channel.
 - **Visualization** — real-time display of scattering, mask, preview, and partition
-  maps; adjustable colormap, log scale, beam-center marker.
+  maps; adjustable colormap, log scale, beam-center marker; raw-frame browser with
+  per-frame or averaged display for multi-frame HDF5 files.
+- **Web viewer** — browser-based interface (Dash/Plotly) exposing the full mask and
+  partition workflow; launch with `pysimplemask web`.
 - **Output** — TIFF mask, Nexus-compatible HDF5 partition (hash + version stamped),
   one-page PDF pipeline summary, `pysimplemask-combine-qmaps` CLI to merge two partition files.
 
@@ -56,7 +62,7 @@ pip install .
 Launch the desktop application:
 
 ```bash
-pysimplemask
+pysimplemask                          # or: pysimplemask gui
 pysimplemask --path /path/to/data    # open at a specific directory
 ```
 
@@ -104,6 +110,17 @@ m.save_mask("mask.tif")
 
 Geometry helpers available on the model: `add_polygon`, `add_circle`, `add_ellipse`,
 `add_rectangle`, `add_line` (all accept `mode="exclusive"` or `"inclusive"`).
+
+## Web Viewer
+
+```bash
+pysimplemask web                     # start the Dash web server (default port 8050)
+pysimplemask web --port 8080
+```
+
+Open `http://localhost:8050` in a browser. The web viewer exposes the same mask
+and partition workflow as the desktop GUI, including all six mask tabs, four
+partition modes, and partition/mask save.
 
 ## CLI Tools
 
@@ -176,4 +193,4 @@ launches with X11 forwarding is provided at `scripts/run_container.sh`.
 ## Credits
 
 - **Author**: Miaoqi Chu (mqichu@anl.gov)
-- **License**: BSD 3-Clause
+- **License**: Apache 2.0 — Copyright © UChicago Argonne LLC
