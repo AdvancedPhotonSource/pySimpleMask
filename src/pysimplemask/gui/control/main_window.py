@@ -111,6 +111,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.metadata_parameter = None
         self.mp1.sigTimeChanged.connect(self.update_index)
         self.state = "lock"
+        self._xy_text_item = None   # pg.TextItem shown next to cursor when checkBox_showxy is on
 
         # mask_list
         self.btn_mask_list_load.clicked.connect(self.mask_list_load)
@@ -437,6 +438,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
             "What to display: scattering image, mask, dynamic/static partition, or preview"
         )
         self.plot_center.setToolTip("Show or hide the beam center crosshair")
+        self.checkBox_showxy.setToolTip(
+            "Show (x, y) pixel coordinates next to the cursor while hovering over the image"
+        )
         self.plot_log.setToolTip("Use logarithmic color scale")
         self.plot_cmap.setToolTip("Colormap for intensity display")
         self.btn_plot.setToolTip("Refresh the image display")
@@ -877,10 +881,20 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def update_parameter_to_dset(self, param, changes):
         self.sm.dset.update_metadata_from_changes(changes)
 
+    def _remove_xy_label(self):
+        """Remove the floating (x, y) text item from the view."""
+        if self._xy_text_item is not None:
+            try:
+                self.mp1.getView().removeItem(self._xy_text_item)
+            except Exception:
+                pass
+            self._xy_text_item = None
+
     def show_location(self, pos):
         if self.sm.shape is None:
             return
         if not self.mp1.scene.itemsBoundingRect().contains(pos):
+            self._remove_xy_label()
             return
         mouse_point = self.mp1.getView().mapSceneToView(pos)
         idx = self.mp1.currentIndex
@@ -890,6 +904,22 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if msg:
             self.infobar.clear()
             self.infobar.setText(msg)
+
+        # Floating (x, y) label next to the cursor
+        h, w = self.sm.shape
+        show_xy = self.checkBox_showxy.isChecked()
+        if show_xy and 0 <= col < w and 0 <= row < h:
+            if self._xy_text_item is None:
+                self._xy_text_item = pg.TextItem(
+                    color=(255, 255, 0), anchor=(0, 0)
+                )
+                self.mp1.getView().addItem(self._xy_text_item)
+            self._xy_text_item.setText(f"({col}, {row})")
+            # Offset slightly so the label doesn't sit on top of the cursor pixel
+            offset = max(w, h) * 0.01
+            self._xy_text_item.setPos(col + offset, row + offset)
+        else:
+            self._remove_xy_label()
 
     def plot(self):
         if not self.is_ready():
