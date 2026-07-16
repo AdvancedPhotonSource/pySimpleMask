@@ -138,13 +138,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
             sp.setHorizontalPolicy(_QSP.Policy.Preferred)
             w.setSizePolicy(sp)
 
-        # Frame controls are hidden until rawdata channel is active
+        # Frame controls are disabled until rawdata channel is active
         self._raw_total_frames = 0   # set by load() for frame-average range calculation
-        self.label_frame.setVisible(False)
-        self.horizontalSlider_frame.setVisible(False)
-        self.spinBox_current_frame.setVisible(False)
-        self.spinBox_frame_average.setVisible(False)
-        self.label_average.setVisible(False)
+        self.label_frame.setEnabled(False)
+        self.horizontalSlider_frame.setEnabled(False)
+        self.spinBox_current_frame.setEnabled(False)
+        self.spinBox_frame_average.setEnabled(False)
+        self.label_average.setEnabled(False)
 
         # rawdata item starts disabled (grayed) until a compatible file is loaded
         self._set_rawdata_enabled(False)
@@ -793,11 +793,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def _on_plot_index_changed(self, idx):
         """Update the displayed 2D slice when the channel selector changes."""
         show_frame_controls = (idx == _RAWDATA_IDX)
-        self.label_frame.setVisible(show_frame_controls)
-        self.horizontalSlider_frame.setVisible(show_frame_controls)
-        self.spinBox_current_frame.setVisible(show_frame_controls)
-        self.spinBox_frame_average.setVisible(show_frame_controls)
-        self.label_average.setVisible(show_frame_controls)
+        self.label_frame.setEnabled(show_frame_controls)
+        self.horizontalSlider_frame.setEnabled(show_frame_controls)
+        self.spinBox_current_frame.setEnabled(show_frame_controls)
+        self.spinBox_frame_average.setEnabled(show_frame_controls)
+        self.label_average.setEnabled(show_frame_controls)
 
         if idx == _RAWDATA_IDX:
             self._read_and_show_frame()   # show frame 0 immediately
