@@ -9,7 +9,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import h5py
 import numpy as np
 import pytest
-from PySide6.QtWidgets import QApplication, QMessageBox
+from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
 from pysimplemask.gui.control.main_window import SimpleMaskGUI
 
@@ -314,16 +314,35 @@ def test_maybe_prompt_unapplied_mask_returns_true_when_nothing_pending(qapp, tmp
 
 
 def test_maybe_prompt_unapplied_mask_apply_and_continue(qapp, tmp_path, monkeypatch):
-    """'Apply & Continue' applies the pending mask and returns True."""
+    """'Apply & Continue' applies the pending mask directly (skipping the
+    metadata prompt) and returns True."""
     from unittest.mock import patch
 
     gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
     gui._set_apply_state(True)
     _click_message_box(monkeypatch, "Apply && Continue")
-    with patch.object(gui, "mask_apply_current_tab") as mock_apply:
+    with patch.object(gui, "_apply_current_tab_targets") as mock_apply:
         result = gui._maybe_prompt_unapplied_mask()
     assert result is True
     mock_apply.assert_called_once()
+
+
+def test_maybe_prompt_unapplied_mask_apply_and_continue_skips_metadata_prompt(qapp, tmp_path, monkeypatch):
+    """'Apply & Continue' does not re-trigger the metadata-staleness prompt,
+    even if metadata is still stale — regression test for the nested-dialog
+    finding from manual verification."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui.MaskWidget.setCurrentIndex(2)  # Binary tab -> mask_threshold
+    gui._set_apply_state(True)
+    gui._set_update_parameters_state(True)  # metadata still stale
+    _click_message_box(monkeypatch, "Apply && Continue")
+    with patch.object(gui, "_maybe_prompt_metadata_update") as mock_metadata_prompt:
+        result = gui._maybe_prompt_unapplied_mask()
+    assert result is True
+    mock_metadata_prompt.assert_not_called()
+    assert not gui.btn_mask_apply.isEnabled()  # mask was actually applied
 
 
 def test_maybe_prompt_unapplied_mask_continue_anyway(qapp, tmp_path, monkeypatch):
@@ -372,3 +391,21 @@ def test_compute_partition_proceeds_when_unapplied_mask_confirmed(qapp, tmp_path
         with patch.object(gui.sm, "compute_partition") as mock_compute:
             gui.compute_partition()
     mock_compute.assert_called_once()
+
+
+def test_save_mask_does_not_report_success_when_partition_cancelled(qapp, tmp_path):
+    """save_mask must not call save_partition (or show success) if compute_partition
+    was aborted (e.g. by cancelling the unapplied-mask prompt) and left new_partition unset."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui.comboBox_output_type.setCurrentText("Nexus-XPCS")
+    assert gui.sm.new_partition is None
+
+    save_path = str(tmp_path / "out.hdf")
+    with patch.object(QFileDialog, "getSaveFileName", return_value=(save_path, "")):
+        with patch.object(gui, "compute_partition") as mock_compute:
+            with patch.object(gui.sm, "save_partition") as mock_save:
+                gui.save_mask()
+    mock_compute.assert_called_once()
+    mock_save.assert_not_called()

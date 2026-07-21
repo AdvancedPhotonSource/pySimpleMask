@@ -584,6 +584,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
         self._maybe_prompt_metadata_update()
+        self._apply_current_tab_targets()
+
+    def _apply_current_tab_targets(self):
+        """Apply the mask(s) for the currently active MaskWidget tab.
+
+        Shared by mask_apply_current_tab (after the metadata-staleness prompt)
+        and _maybe_prompt_unapplied_mask's "Apply & Continue" (which
+        deliberately skips that prompt — the user is mid-decision on the
+        partition dialog and already saw it during Evaluate/Apply).
+        """
         idx = self.MaskWidget.currentIndex()
         if idx < 0 or idx >= len(_TAB_MASK_TARGETS):
             return
@@ -887,7 +897,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         box.exec()
         clicked = box.clickedButton()
         if clicked is apply_btn:
-            self.mask_apply_current_tab()
+            self._apply_current_tab_targets()
             return True
         return clicked is continue_btn
 
@@ -1400,6 +1410,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 save_fname += ".hdf"
             if self.sm.new_partition is None:
                 self.compute_partition()
+                if self.sm.new_partition is None:
+                    return  # user cancelled the unapplied-mask prompt, or compute failed
             target_function = self.sm.save_partition
         elif save_type == "Mask-Only":
             save_fname = QFileDialog.getSaveFileName(
