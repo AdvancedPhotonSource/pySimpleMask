@@ -178,3 +178,49 @@ def test_rawdata_disabled_after_loading_single_frame_hdf(qapp, tmp_path):
     gui = _load_gui(tmp_path, np.ones((1, 20, 24), dtype=np.uint16))
     model = gui.plot_index.model()
     assert not model.item(0).isEnabled()
+
+
+def test_set_apply_state_toggles_bold_with_enabled(qapp, tmp_path):
+    """_set_apply_state keeps isEnabled() and font().bold() in lockstep."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_apply_state(True)
+    assert gui.btn_mask_apply.isEnabled()
+    assert gui.btn_mask_apply.font().bold()
+    gui._set_apply_state(False)
+    assert not gui.btn_mask_apply.isEnabled()
+    assert not gui.btn_mask_apply.font().bold()
+
+
+def test_set_update_parameters_state_toggles_bold_with_enabled(qapp, tmp_path):
+    """_set_update_parameters_state keeps isEnabled() and font().bold() in lockstep."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_update_parameters_state(True)
+    assert gui.btn_update_parameters.isEnabled()
+    assert gui.btn_update_parameters.font().bold()
+    gui._set_update_parameters_state(False)
+    assert not gui.btn_update_parameters.isEnabled()
+    assert not gui.btn_update_parameters.font().bold()
+
+
+def test_apply_button_bold_after_evaluate_and_apply(qapp, tmp_path):
+    """mask_evaluate_current_tab / mask_apply_current_tab drive bold via _set_apply_state."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui.MaskWidget.setCurrentIndex(2)  # Binary tab -> mask_threshold
+    gui.mask_evaluate_current_tab()
+    assert gui.btn_mask_apply.isEnabled()
+    assert gui.btn_mask_apply.font().bold()
+    gui.mask_apply_current_tab()
+    assert not gui.btn_mask_apply.isEnabled()
+    assert not gui.btn_mask_apply.font().bold()
+
+
+def test_update_parameters_button_bold_after_edit_and_sync(qapp, tmp_path):
+    """display_metadata / update_parameter_to_dset drive bold via _set_update_parameters_state."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui.display_metadata()
+    assert not gui.btn_update_parameters.isEnabled()
+    assert not gui.btn_update_parameters.font().bold()
+    param = gui.metadata_parameter.children()[0]
+    gui.update_parameter_to_dset(None, [(param, "value", param.value())])
+    assert gui.btn_update_parameters.isEnabled()
+    assert gui.btn_update_parameters.font().bold()

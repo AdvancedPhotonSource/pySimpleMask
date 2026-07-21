@@ -148,6 +148,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         # rawdata item starts disabled (grayed) until a compatible file is loaded
         self._set_rawdata_enabled(False)
+
+        # No metadata loaded yet — nothing to update until a file is loaded and
+        # a metadata field is edited (re-enabled in update_parameter_to_dset).
+        self._set_update_parameters_state(False)
         
         # Set application icon
         try:
@@ -185,12 +189,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_redo.clicked.connect(lambda: self.mask_action("redo"))
         self.btn_mask_undo.clicked.connect(lambda: self.mask_action("undo"))
         self.btn_mask_apply.clicked.connect(self.mask_apply_current_tab)
-        self.btn_mask_apply.setEnabled(False)
-        self.btn_mask_apply.setToolTip(_APPLY_TIP_DISABLED)
-        self.MaskWidget.currentChanged.connect(lambda _: (
-            self.btn_mask_apply.setEnabled(False),
-            self.btn_mask_apply.setToolTip(_APPLY_TIP_DISABLED),
-        ))
+        self._set_apply_state(False)
+        self.MaskWidget.currentChanged.connect(lambda _: self._set_apply_state(False))
 
         # headless core model + view-side mouse hover
         self.sm = SimpleMaskModel()
@@ -588,8 +588,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
         for target in _TAB_MASK_TARGETS[idx]:
             self.mask_apply(target)
-        self.btn_mask_apply.setEnabled(False)
-        self.btn_mask_apply.setToolTip(_APPLY_TIP_DISABLED)
+        self._set_apply_state(False)
 
     def mask_evaluate_current_tab(self):
         """Evaluate (preview) the mask(s) for the currently active MaskWidget tab."""
@@ -600,8 +599,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
         for target in _TAB_MASK_EVALUATE_TARGETS[idx]:
             self.mask_evaluate(target)
-        self.btn_mask_apply.setEnabled(True)
-        self.btn_mask_apply.setToolTip(_APPLY_TIP_READY)
+        self._set_apply_state(True)
 
     def find_center(self):
         if not self.is_ready():
@@ -828,6 +826,21 @@ class SimpleMaskGUI(QMainWindow, Ui):
             item.setEnabled(enabled)
         if not enabled and self.plot_index.currentIndex() == _RAWDATA_IDX:
             self.plot_index.setCurrentIndex(_RAWDATA_IDX + 1)
+
+    def _set_apply_state(self, ready: bool) -> None:
+        """Enable/disable btn_mask_apply and keep its tooltip + bold in sync."""
+        self.btn_mask_apply.setEnabled(ready)
+        self.btn_mask_apply.setToolTip(_APPLY_TIP_READY if ready else _APPLY_TIP_DISABLED)
+        font = self.btn_mask_apply.font()
+        font.setBold(ready)
+        self.btn_mask_apply.setFont(font)
+
+    def _set_update_parameters_state(self, stale: bool) -> None:
+        """Enable/disable btn_update_parameters and keep its bold state in sync."""
+        self.btn_update_parameters.setEnabled(stale)
+        font = self.btn_update_parameters.font()
+        font.setBold(stale)
+        self.btn_update_parameters.setFont(font)
 
     def _detect_rawdata(self) -> tuple:
         """Return (has_rawdata, num_frames) for the currently loaded file.
@@ -1064,12 +1077,12 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
         self.metadata_tree.setParameters(self.metadata_parameter, showTop=False)
         # Metadata and qmap are now in sync — grey out Update Parameters.
-        self.btn_update_parameters.setEnabled(False)
+        self._set_update_parameters_state(False)
 
     def update_parameter_to_dset(self, param, changes):
         self.sm.dset.update_metadata_from_changes(changes)
         # Metadata changed → qmap is stale → activate Update Parameters.
-        self.btn_update_parameters.setEnabled(True)
+        self._set_update_parameters_state(True)
 
     def _remove_xy_label(self):
         """Remove the floating (x, y) text item from the view."""
