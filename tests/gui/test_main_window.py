@@ -303,3 +303,72 @@ def test_mask_apply_current_tab_checks_metadata_staleness(qapp, tmp_path):
     with patch.object(gui, "_maybe_prompt_metadata_update") as mock_prompt:
         gui.mask_apply_current_tab()
     mock_prompt.assert_called_once()
+
+
+def test_maybe_prompt_unapplied_mask_returns_true_when_nothing_pending(qapp, tmp_path, monkeypatch):
+    """No dialog, and returns True, when there's no evaluated-but-unapplied mask."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_apply_state(False)
+    _forbid_message_box(monkeypatch)
+    assert gui._maybe_prompt_unapplied_mask() is True
+
+
+def test_maybe_prompt_unapplied_mask_apply_and_continue(qapp, tmp_path, monkeypatch):
+    """'Apply & Continue' applies the pending mask and returns True."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_apply_state(True)
+    _click_message_box(monkeypatch, "Apply && Continue")
+    with patch.object(gui, "mask_apply_current_tab") as mock_apply:
+        result = gui._maybe_prompt_unapplied_mask()
+    assert result is True
+    mock_apply.assert_called_once()
+
+
+def test_maybe_prompt_unapplied_mask_continue_anyway(qapp, tmp_path, monkeypatch):
+    """'Continue Anyway' returns True without applying the pending mask."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_apply_state(True)
+    _click_message_box(monkeypatch, "Continue Anyway")
+    with patch.object(gui, "mask_apply_current_tab") as mock_apply:
+        result = gui._maybe_prompt_unapplied_mask()
+    assert result is True
+    mock_apply.assert_not_called()
+
+
+def test_maybe_prompt_unapplied_mask_cancel(qapp, tmp_path, monkeypatch):
+    """'Cancel' returns False without applying the pending mask."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_apply_state(True)
+    _click_message_box(monkeypatch, "Cancel")
+    with patch.object(gui, "mask_apply_current_tab") as mock_apply:
+        result = gui._maybe_prompt_unapplied_mask()
+    assert result is False
+    mock_apply.assert_not_called()
+
+
+def test_compute_partition_aborts_when_unapplied_mask_cancelled(qapp, tmp_path):
+    """compute_partition does not compute anything if the prompt returns False."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    with patch.object(gui, "_maybe_prompt_unapplied_mask", return_value=False):
+        with patch.object(gui.sm, "compute_partition") as mock_compute:
+            gui.compute_partition()
+    mock_compute.assert_not_called()
+
+
+def test_compute_partition_proceeds_when_unapplied_mask_confirmed(qapp, tmp_path):
+    """compute_partition proceeds normally if the prompt returns True."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    with patch.object(gui, "_maybe_prompt_unapplied_mask", return_value=True):
+        with patch.object(gui.sm, "compute_partition") as mock_compute:
+            gui.compute_partition()
+    mock_compute.assert_called_once()

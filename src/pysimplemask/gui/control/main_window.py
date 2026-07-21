@@ -866,6 +866,31 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if box.clickedButton() is update_btn:
             self.update_parameters()
 
+    def _maybe_prompt_unapplied_mask(self) -> bool:
+        """If a mask was evaluated but not applied, confirm before computing a partition.
+
+        Returns True if compute_partition should proceed, False to abort.
+        """
+        if not self.btn_mask_apply.isEnabled():
+            return True
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Warning)
+        box.setWindowTitle("Unapplied Mask")
+        box.setText(
+            "A mask was evaluated but not applied to the working mask.\n"
+            "Apply it before computing the partition?"
+        )
+        apply_btn = box.addButton("Apply && Continue", QMessageBox.AcceptRole)
+        continue_btn = box.addButton("Continue Anyway", QMessageBox.DestructiveRole)
+        box.addButton("Cancel", QMessageBox.RejectRole)
+        box.setDefaultButton(apply_btn)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked is apply_btn:
+            self.mask_apply_current_tab()
+            return True
+        return clicked is continue_btn
+
     def _detect_rawdata(self) -> tuple:
         """Return (has_rawdata, num_frames) for the currently loaded file.
 
@@ -1288,6 +1313,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     def compute_partition(self):
         if not self.is_ready():
+            return
+        if not self._maybe_prompt_unapplied_mask():
             return
 
         tab_name = self.tabWidget.tabText(self.tabWidget.currentIndex())
