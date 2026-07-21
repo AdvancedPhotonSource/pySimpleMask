@@ -2,6 +2,7 @@
 # See LICENSE file for details
 """GUI application entry point."""
 
+import platform
 import sys
 
 from PySide6.QtWidgets import QApplication
@@ -11,6 +12,8 @@ from pysimplemask.gui.control.main_window import SimpleMaskGUI
 
 def main_gui(path=None):
     app = QApplication(sys.argv)
+    if platform.system() == "Windows":
+        app.setStyle("Fusion")
     window = SimpleMaskGUI(path)  # noqa: F841 (kept alive by the event loop)
     app.exec()
 

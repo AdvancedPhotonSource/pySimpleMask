@@ -138,16 +138,20 @@ class SimpleMaskGUI(QMainWindow, Ui):
             sp.setHorizontalPolicy(_QSP.Policy.Preferred)
             w.setSizePolicy(sp)
 
-        # Frame controls are hidden until rawdata channel is active
+        # Frame controls are disabled until rawdata channel is active
         self._raw_total_frames = 0   # set by load() for frame-average range calculation
-        self.label_frame.setVisible(False)
-        self.horizontalSlider_frame.setVisible(False)
-        self.spinBox_current_frame.setVisible(False)
-        self.spinBox_frame_average.setVisible(False)
-        self.label_average.setVisible(False)
+        self.label_frame.setEnabled(False)
+        self.horizontalSlider_frame.setEnabled(False)
+        self.spinBox_current_frame.setEnabled(False)
+        self.spinBox_frame_average.setEnabled(False)
+        self.label_average.setEnabled(False)
 
         # rawdata item starts disabled (grayed) until a compatible file is loaded
         self._set_rawdata_enabled(False)
+
+        # No metadata loaded yet — nothing to update until a file is loaded and
+        # a metadata field is edited (re-enabled in update_parameter_to_dset).
+        self._set_update_parameters_state(False)
         
         # Set application icon
         try:
@@ -185,12 +189,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_mask_redo.clicked.connect(lambda: self.mask_action("redo"))
         self.btn_mask_undo.clicked.connect(lambda: self.mask_action("undo"))
         self.btn_mask_apply.clicked.connect(self.mask_apply_current_tab)
-        self.btn_mask_apply.setEnabled(False)
-        self.btn_mask_apply.setToolTip(_APPLY_TIP_DISABLED)
-        self.MaskWidget.currentChanged.connect(lambda _: (
-            self.btn_mask_apply.setEnabled(False),
-            self.btn_mask_apply.setToolTip(_APPLY_TIP_DISABLED),
-        ))
+        self._set_apply_state(False)
+        self.MaskWidget.currentChanged.connect(lambda _: self._set_apply_state(False))
 
         # headless core model + view-side mouse hover
         self.sm = SimpleMaskModel()
@@ -583,25 +583,35 @@ class SimpleMaskGUI(QMainWindow, Ui):
         """Apply the mask(s) for the currently active MaskWidget tab."""
         if not self.is_ready():
             return
+        self._maybe_prompt_metadata_update()
+        self._apply_current_tab_targets()
+
+    def _apply_current_tab_targets(self):
+        """Apply the mask(s) for the currently active MaskWidget tab.
+
+        Shared by mask_apply_current_tab (after the metadata-staleness prompt)
+        and _maybe_prompt_unapplied_mask's "Apply & Continue" (which
+        deliberately skips that prompt — the user is mid-decision on the
+        partition dialog and already saw it during Evaluate/Apply).
+        """
         idx = self.MaskWidget.currentIndex()
         if idx < 0 or idx >= len(_TAB_MASK_TARGETS):
             return
         for target in _TAB_MASK_TARGETS[idx]:
             self.mask_apply(target)
-        self.btn_mask_apply.setEnabled(False)
-        self.btn_mask_apply.setToolTip(_APPLY_TIP_DISABLED)
+        self._set_apply_state(False)
 
     def mask_evaluate_current_tab(self):
         """Evaluate (preview) the mask(s) for the currently active MaskWidget tab."""
         if not self.is_ready():
             return
+        self._maybe_prompt_metadata_update()
         idx = self.MaskWidget.currentIndex()
         if idx < 0 or idx >= len(_TAB_MASK_EVALUATE_TARGETS):
             return
         for target in _TAB_MASK_EVALUATE_TARGETS[idx]:
             self.mask_evaluate(target)
-        self.btn_mask_apply.setEnabled(True)
-        self.btn_mask_apply.setToolTip(_APPLY_TIP_READY)
+        self._set_apply_state(True)
 
     def find_center(self):
         if not self.is_ready():
@@ -793,11 +803,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def _on_plot_index_changed(self, idx):
         """Update the displayed 2D slice when the channel selector changes."""
         show_frame_controls = (idx == _RAWDATA_IDX)
-        self.label_frame.setVisible(show_frame_controls)
-        self.horizontalSlider_frame.setVisible(show_frame_controls)
-        self.spinBox_current_frame.setVisible(show_frame_controls)
-        self.spinBox_frame_average.setVisible(show_frame_controls)
-        self.label_average.setVisible(show_frame_controls)
+        self.label_frame.setEnabled(show_frame_controls)
+        self.horizontalSlider_frame.setEnabled(show_frame_controls)
+        self.spinBox_current_frame.setEnabled(show_frame_controls)
+        self.spinBox_frame_average.setEnabled(show_frame_controls)
+        self.label_average.setEnabled(show_frame_controls)
 
         if idx == _RAWDATA_IDX:
             self._read_and_show_frame()   # show frame 0 immediately
@@ -828,6 +838,68 @@ class SimpleMaskGUI(QMainWindow, Ui):
             item.setEnabled(enabled)
         if not enabled and self.plot_index.currentIndex() == _RAWDATA_IDX:
             self.plot_index.setCurrentIndex(_RAWDATA_IDX + 1)
+
+    def _set_apply_state(self, ready: bool) -> None:
+        """Enable/disable btn_mask_apply and keep its tooltip + bold in sync."""
+        self.btn_mask_apply.setEnabled(ready)
+        self.btn_mask_apply.setToolTip(_APPLY_TIP_READY if ready else _APPLY_TIP_DISABLED)
+        font = self.btn_mask_apply.font()
+        font.setBold(ready)
+        self.btn_mask_apply.setFont(font)
+
+    def _set_update_parameters_state(self, stale: bool) -> None:
+        """Enable/disable btn_update_parameters and keep its bold state in sync."""
+        self.btn_update_parameters.setEnabled(stale)
+        font = self.btn_update_parameters.font()
+        font.setBold(stale)
+        self.btn_update_parameters.setFont(font)
+
+    def _maybe_prompt_metadata_update(self) -> None:
+        """If metadata was edited but not applied to the qmap, offer to update it.
+
+        Advisory only — declining proceeds with the mask action against the current
+        (possibly stale) qmap.
+        """
+        if not self.btn_update_parameters.isEnabled():
+            return
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Warning)
+        box.setWindowTitle("Metadata Changed")
+        box.setText(
+            "Metadata has been edited but not applied to the q/φ geometry.\n"
+            "Update metadata before creating this mask?"
+        )
+        update_btn = box.addButton("Update Metadata", QMessageBox.AcceptRole)
+        box.addButton("Continue Without Updating", QMessageBox.RejectRole)
+        box.setDefaultButton(update_btn)
+        box.exec()
+        if box.clickedButton() is update_btn:
+            self.update_parameters()
+
+    def _maybe_prompt_unapplied_mask(self) -> bool:
+        """If a mask was evaluated but not applied, confirm before computing a partition.
+
+        Returns True if compute_partition should proceed, False to abort.
+        """
+        if not self.btn_mask_apply.isEnabled():
+            return True
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Warning)
+        box.setWindowTitle("Unapplied Mask")
+        box.setText(
+            "A mask was evaluated but not applied to the working mask.\n"
+            "Apply it before computing the partition?"
+        )
+        apply_btn = box.addButton("Apply && Continue", QMessageBox.AcceptRole)
+        continue_btn = box.addButton("Continue Anyway", QMessageBox.DestructiveRole)
+        box.addButton("Cancel", QMessageBox.RejectRole)
+        box.setDefaultButton(apply_btn)
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked is apply_btn:
+            self._apply_current_tab_targets()
+            return True
+        return clicked is continue_btn
 
     def _detect_rawdata(self) -> tuple:
         """Return (has_rawdata, num_frames) for the currently loaded file.
@@ -1064,12 +1136,12 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
         self.metadata_tree.setParameters(self.metadata_parameter, showTop=False)
         # Metadata and qmap are now in sync — grey out Update Parameters.
-        self.btn_update_parameters.setEnabled(False)
+        self._set_update_parameters_state(False)
 
     def update_parameter_to_dset(self, param, changes):
         self.sm.dset.update_metadata_from_changes(changes)
         # Metadata changed → qmap is stale → activate Update Parameters.
-        self.btn_update_parameters.setEnabled(True)
+        self._set_update_parameters_state(True)
 
     def _remove_xy_label(self):
         """Remove the floating (x, y) text item from the view."""
@@ -1252,6 +1324,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def compute_partition(self):
         if not self.is_ready():
             return
+        if not self._maybe_prompt_unapplied_mask():
+            return
 
         tab_name = self.tabWidget.tabText(self.tabWidget.currentIndex())
         if tab_name == "q-phi":
@@ -1336,6 +1410,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 save_fname += ".hdf"
             if self.sm.new_partition is None:
                 self.compute_partition()
+                if self.sm.new_partition is None:
+                    return  # user cancelled the unapplied-mask prompt, or compute failed
             target_function = self.sm.save_partition
         elif save_type == "Mask-Only":
             save_fname = QFileDialog.getSaveFileName(

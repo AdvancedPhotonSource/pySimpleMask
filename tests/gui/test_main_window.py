@@ -9,7 +9,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import h5py
 import numpy as np
 import pytest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
 from pysimplemask.gui.control.main_window import SimpleMaskGUI
 
@@ -178,3 +178,234 @@ def test_rawdata_disabled_after_loading_single_frame_hdf(qapp, tmp_path):
     gui = _load_gui(tmp_path, np.ones((1, 20, 24), dtype=np.uint16))
     model = gui.plot_index.model()
     assert not model.item(0).isEnabled()
+
+
+def test_set_apply_state_toggles_bold_with_enabled(qapp, tmp_path):
+    """_set_apply_state keeps isEnabled() and font().bold() in lockstep."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_apply_state(True)
+    assert gui.btn_mask_apply.isEnabled()
+    assert gui.btn_mask_apply.font().bold()
+    gui._set_apply_state(False)
+    assert not gui.btn_mask_apply.isEnabled()
+    assert not gui.btn_mask_apply.font().bold()
+
+
+def test_set_update_parameters_state_toggles_bold_with_enabled(qapp, tmp_path):
+    """_set_update_parameters_state keeps isEnabled() and font().bold() in lockstep."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_update_parameters_state(True)
+    assert gui.btn_update_parameters.isEnabled()
+    assert gui.btn_update_parameters.font().bold()
+    gui._set_update_parameters_state(False)
+    assert not gui.btn_update_parameters.isEnabled()
+    assert not gui.btn_update_parameters.font().bold()
+
+
+def test_apply_button_bold_after_evaluate_and_apply(qapp, tmp_path):
+    """mask_evaluate_current_tab / mask_apply_current_tab drive bold via _set_apply_state."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui.MaskWidget.setCurrentIndex(2)  # Binary tab -> mask_threshold
+    gui.mask_evaluate_current_tab()
+    assert gui.btn_mask_apply.isEnabled()
+    assert gui.btn_mask_apply.font().bold()
+    gui.mask_apply_current_tab()
+    assert not gui.btn_mask_apply.isEnabled()
+    assert not gui.btn_mask_apply.font().bold()
+
+
+def test_update_parameters_button_bold_after_edit_and_sync(qapp, tmp_path):
+    """display_metadata / update_parameter_to_dset drive bold via _set_update_parameters_state."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui.display_metadata()
+    assert not gui.btn_update_parameters.isEnabled()
+    assert not gui.btn_update_parameters.font().bold()
+    param = gui.metadata_parameter.children()[0]
+    gui.update_parameter_to_dset(None, [(param, "value", param.value())])
+    assert gui.btn_update_parameters.isEnabled()
+    assert gui.btn_update_parameters.font().bold()
+
+
+def _click_message_box(monkeypatch, button_text):
+    """Patch QMessageBox.exec so it synchronously clicks the button with this text.
+
+    QMessageBox.clickedButton() is set as a side effect of a button's clicked signal
+    firing inside the real (blocking) exec() event loop. Calling .click() on the
+    target button reproduces that without needing a real event loop.
+    """
+    def _fake_exec(self):
+        for button in self.buttons():
+            if button.text() == button_text:
+                button.click()
+                return 0
+        raise AssertionError(f"no QMessageBox button with text {button_text!r}")
+
+    monkeypatch.setattr(QMessageBox, "exec", _fake_exec)
+
+
+def _forbid_message_box(monkeypatch):
+    """Patch QMessageBox.exec to fail the test if a dialog is shown at all."""
+    def _fail_exec(self):
+        raise AssertionError("QMessageBox.exec should not have been called")
+
+    monkeypatch.setattr(QMessageBox, "exec", _fail_exec)
+
+
+def test_maybe_prompt_metadata_update_skips_dialog_when_synced(qapp, tmp_path, monkeypatch):
+    """No dialog at all when metadata is already in sync."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_update_parameters_state(False)
+    _forbid_message_box(monkeypatch)
+    gui._maybe_prompt_metadata_update()  # must not raise
+
+
+def test_maybe_prompt_metadata_update_choosing_update_calls_update_parameters(qapp, tmp_path, monkeypatch):
+    """Choosing 'Update Metadata' calls update_parameters()."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_update_parameters_state(True)
+    _click_message_box(monkeypatch, "Update Metadata")
+    with patch.object(gui, "update_parameters") as mock_update:
+        gui._maybe_prompt_metadata_update()
+    mock_update.assert_called_once()
+
+
+def test_maybe_prompt_metadata_update_choosing_continue_skips_update(qapp, tmp_path, monkeypatch):
+    """Choosing 'Continue Without Updating' does not call update_parameters()."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_update_parameters_state(True)
+    _click_message_box(monkeypatch, "Continue Without Updating")
+    with patch.object(gui, "update_parameters") as mock_update:
+        gui._maybe_prompt_metadata_update()
+    mock_update.assert_not_called()
+
+
+def test_mask_evaluate_current_tab_checks_metadata_staleness(qapp, tmp_path):
+    """mask_evaluate_current_tab calls the staleness check."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui.MaskWidget.setCurrentIndex(2)
+    with patch.object(gui, "_maybe_prompt_metadata_update") as mock_prompt:
+        gui.mask_evaluate_current_tab()
+    mock_prompt.assert_called_once()
+
+
+def test_mask_apply_current_tab_checks_metadata_staleness(qapp, tmp_path):
+    """mask_apply_current_tab calls the staleness check."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui.MaskWidget.setCurrentIndex(2)
+    with patch.object(gui, "_maybe_prompt_metadata_update") as mock_prompt:
+        gui.mask_apply_current_tab()
+    mock_prompt.assert_called_once()
+
+
+def test_maybe_prompt_unapplied_mask_returns_true_when_nothing_pending(qapp, tmp_path, monkeypatch):
+    """No dialog, and returns True, when there's no evaluated-but-unapplied mask."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_apply_state(False)
+    _forbid_message_box(monkeypatch)
+    assert gui._maybe_prompt_unapplied_mask() is True
+
+
+def test_maybe_prompt_unapplied_mask_apply_and_continue(qapp, tmp_path, monkeypatch):
+    """'Apply & Continue' applies the pending mask directly (skipping the
+    metadata prompt) and returns True."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_apply_state(True)
+    _click_message_box(monkeypatch, "Apply && Continue")
+    with patch.object(gui, "_apply_current_tab_targets") as mock_apply:
+        result = gui._maybe_prompt_unapplied_mask()
+    assert result is True
+    mock_apply.assert_called_once()
+
+
+def test_maybe_prompt_unapplied_mask_apply_and_continue_skips_metadata_prompt(qapp, tmp_path, monkeypatch):
+    """'Apply & Continue' does not re-trigger the metadata-staleness prompt,
+    even if metadata is still stale — regression test for the nested-dialog
+    finding from manual verification."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui.MaskWidget.setCurrentIndex(2)  # Binary tab -> mask_threshold
+    gui._set_apply_state(True)
+    gui._set_update_parameters_state(True)  # metadata still stale
+    _click_message_box(monkeypatch, "Apply && Continue")
+    with patch.object(gui, "_maybe_prompt_metadata_update") as mock_metadata_prompt:
+        result = gui._maybe_prompt_unapplied_mask()
+    assert result is True
+    mock_metadata_prompt.assert_not_called()
+    assert not gui.btn_mask_apply.isEnabled()  # mask was actually applied
+
+
+def test_maybe_prompt_unapplied_mask_continue_anyway(qapp, tmp_path, monkeypatch):
+    """'Continue Anyway' returns True without applying the pending mask."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_apply_state(True)
+    _click_message_box(monkeypatch, "Continue Anyway")
+    with patch.object(gui, "mask_apply_current_tab") as mock_apply:
+        result = gui._maybe_prompt_unapplied_mask()
+    assert result is True
+    mock_apply.assert_not_called()
+
+
+def test_maybe_prompt_unapplied_mask_cancel(qapp, tmp_path, monkeypatch):
+    """'Cancel' returns False without applying the pending mask."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_apply_state(True)
+    _click_message_box(monkeypatch, "Cancel")
+    with patch.object(gui, "mask_apply_current_tab") as mock_apply:
+        result = gui._maybe_prompt_unapplied_mask()
+    assert result is False
+    mock_apply.assert_not_called()
+
+
+def test_compute_partition_aborts_when_unapplied_mask_cancelled(qapp, tmp_path):
+    """compute_partition does not compute anything if the prompt returns False."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    with patch.object(gui, "_maybe_prompt_unapplied_mask", return_value=False):
+        with patch.object(gui.sm, "compute_partition") as mock_compute:
+            gui.compute_partition()
+    mock_compute.assert_not_called()
+
+
+def test_compute_partition_proceeds_when_unapplied_mask_confirmed(qapp, tmp_path):
+    """compute_partition proceeds normally if the prompt returns True."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    with patch.object(gui, "_maybe_prompt_unapplied_mask", return_value=True):
+        with patch.object(gui.sm, "compute_partition") as mock_compute:
+            gui.compute_partition()
+    mock_compute.assert_called_once()
+
+
+def test_save_mask_does_not_report_success_when_partition_cancelled(qapp, tmp_path):
+    """save_mask must not call save_partition (or show success) if compute_partition
+    was aborted (e.g. by cancelling the unapplied-mask prompt) and left new_partition unset."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui.comboBox_output_type.setCurrentText("Nexus-XPCS")
+    assert gui.sm.new_partition is None
+
+    save_path = str(tmp_path / "out.hdf")
+    with patch.object(QFileDialog, "getSaveFileName", return_value=(save_path, "")):
+        with patch.object(gui, "compute_partition") as mock_compute:
+            with patch.object(gui.sm, "save_partition") as mock_save:
+                gui.save_mask()
+    mock_compute.assert_called_once()
+    mock_save.assert_not_called()
