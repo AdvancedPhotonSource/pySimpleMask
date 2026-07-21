@@ -583,6 +583,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         """Apply the mask(s) for the currently active MaskWidget tab."""
         if not self.is_ready():
             return
+        self._maybe_prompt_metadata_update()
         idx = self.MaskWidget.currentIndex()
         if idx < 0 or idx >= len(_TAB_MASK_TARGETS):
             return
@@ -594,6 +595,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         """Evaluate (preview) the mask(s) for the currently active MaskWidget tab."""
         if not self.is_ready():
             return
+        self._maybe_prompt_metadata_update()
         idx = self.MaskWidget.currentIndex()
         if idx < 0 or idx >= len(_TAB_MASK_EVALUATE_TARGETS):
             return
@@ -841,6 +843,28 @@ class SimpleMaskGUI(QMainWindow, Ui):
         font = self.btn_update_parameters.font()
         font.setBold(stale)
         self.btn_update_parameters.setFont(font)
+
+    def _maybe_prompt_metadata_update(self) -> None:
+        """If metadata was edited but not applied to the qmap, offer to update it.
+
+        Advisory only — declining proceeds with the mask action against the current
+        (possibly stale) qmap.
+        """
+        if not self.btn_update_parameters.isEnabled():
+            return
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Warning)
+        box.setWindowTitle("Metadata Changed")
+        box.setText(
+            "Metadata has been edited but not applied to the q/φ geometry.\n"
+            "Update metadata before creating this mask?"
+        )
+        update_btn = box.addButton("Update Metadata", QMessageBox.AcceptRole)
+        box.addButton("Continue Without Updating", QMessageBox.RejectRole)
+        box.setDefaultButton(update_btn)
+        box.exec()
+        if box.clickedButton() is update_btn:
+            self.update_parameters()
 
     def _detect_rawdata(self) -> tuple:
         """Return (has_rawdata, num_frames) for the currently loaded file.

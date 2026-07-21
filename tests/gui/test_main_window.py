@@ -9,7 +9,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import h5py
 import numpy as np
 import pytest
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from pysimplemask.gui.control.main_window import SimpleMaskGUI
 
@@ -224,3 +224,82 @@ def test_update_parameters_button_bold_after_edit_and_sync(qapp, tmp_path):
     gui.update_parameter_to_dset(None, [(param, "value", param.value())])
     assert gui.btn_update_parameters.isEnabled()
     assert gui.btn_update_parameters.font().bold()
+
+
+def _click_message_box(monkeypatch, button_text):
+    """Patch QMessageBox.exec so it synchronously clicks the button with this text.
+
+    QMessageBox.clickedButton() is set as a side effect of a button's clicked signal
+    firing inside the real (blocking) exec() event loop. Calling .click() on the
+    target button reproduces that without needing a real event loop.
+    """
+    def _fake_exec(self):
+        for button in self.buttons():
+            if button.text() == button_text:
+                button.click()
+                return 0
+        raise AssertionError(f"no QMessageBox button with text {button_text!r}")
+
+    monkeypatch.setattr(QMessageBox, "exec", _fake_exec)
+
+
+def _forbid_message_box(monkeypatch):
+    """Patch QMessageBox.exec to fail the test if a dialog is shown at all."""
+    def _fail_exec(self):
+        raise AssertionError("QMessageBox.exec should not have been called")
+
+    monkeypatch.setattr(QMessageBox, "exec", _fail_exec)
+
+
+def test_maybe_prompt_metadata_update_skips_dialog_when_synced(qapp, tmp_path, monkeypatch):
+    """No dialog at all when metadata is already in sync."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_update_parameters_state(False)
+    _forbid_message_box(monkeypatch)
+    gui._maybe_prompt_metadata_update()  # must not raise
+
+
+def test_maybe_prompt_metadata_update_choosing_update_calls_update_parameters(qapp, tmp_path, monkeypatch):
+    """Choosing 'Update Metadata' calls update_parameters()."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_update_parameters_state(True)
+    _click_message_box(monkeypatch, "Update Metadata")
+    with patch.object(gui, "update_parameters") as mock_update:
+        gui._maybe_prompt_metadata_update()
+    mock_update.assert_called_once()
+
+
+def test_maybe_prompt_metadata_update_choosing_continue_skips_update(qapp, tmp_path, monkeypatch):
+    """Choosing 'Continue Without Updating' does not call update_parameters()."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui._set_update_parameters_state(True)
+    _click_message_box(monkeypatch, "Continue Without Updating")
+    with patch.object(gui, "update_parameters") as mock_update:
+        gui._maybe_prompt_metadata_update()
+    mock_update.assert_not_called()
+
+
+def test_mask_evaluate_current_tab_checks_metadata_staleness(qapp, tmp_path):
+    """mask_evaluate_current_tab calls the staleness check."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui.MaskWidget.setCurrentIndex(2)
+    with patch.object(gui, "_maybe_prompt_metadata_update") as mock_prompt:
+        gui.mask_evaluate_current_tab()
+    mock_prompt.assert_called_once()
+
+
+def test_mask_apply_current_tab_checks_metadata_staleness(qapp, tmp_path):
+    """mask_apply_current_tab calls the staleness check."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui.MaskWidget.setCurrentIndex(2)
+    with patch.object(gui, "_maybe_prompt_metadata_update") as mock_prompt:
+        gui.mask_apply_current_tab()
+    mock_prompt.assert_called_once()
