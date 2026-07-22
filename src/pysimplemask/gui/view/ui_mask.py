@@ -1,5 +1,3 @@
-# Copyright © UChicago Argonne LLC
-# See LICENSE file for details
 # -*- coding: utf-8 -*-
 
 ################################################################################
@@ -295,17 +293,15 @@ class Ui_SimpleMask(object):
 
         self.gridLayout_12.addWidget(self.maskfile_fname, 0, 1, 1, 1)
 
-        self.btn_select_maskfile = QPushButton(self.groupBox_8)
+        self.btn_select_maskfile = QToolButton(self.groupBox_8)
         self.btn_select_maskfile.setObjectName(u"btn_select_maskfile")
-        sizePolicy3.setHeightForWidth(self.btn_select_maskfile.sizePolicy().hasHeightForWidth())
-        self.btn_select_maskfile.setSizePolicy(sizePolicy3)
 
         self.gridLayout_12.addWidget(self.btn_select_maskfile, 0, 2, 1, 1)
 
         self.comboBox_hdffile_path = QComboBox(self.groupBox_8)
         self.comboBox_hdffile_path.setObjectName(u"comboBox_hdffile_path")
 
-        self.gridLayout_12.addWidget(self.comboBox_hdffile_path, 1, 1, 1, 1)
+        self.gridLayout_12.addWidget(self.comboBox_hdffile_path, 1, 1, 1, 2)
 
 
         self.gridLayout_17.addLayout(self.gridLayout_12, 1, 0, 1, 1)
@@ -1431,7 +1427,7 @@ class Ui_SimpleMask(object):
         self.mask_list_include.toggled.connect(self.mask_list_radius.setEnabled)
         self.mask_list_include.toggled.connect(self.mask_list_variation.setEnabled)
 
-        self.MaskWidget.setCurrentIndex(4)
+        self.MaskWidget.setCurrentIndex(0)
         self.tabWidget.setCurrentIndex(0)
 
 
@@ -1467,7 +1463,7 @@ class Ui_SimpleMask(object):
         self.label_18.setText(QCoreApplication.translate("SimpleMask", u"File name:", None))
         self.label_32.setText(QCoreApplication.translate("SimpleMask", u"HDF path:", None))
         self.maskfile_fname.setText("")
-        self.btn_select_maskfile.setText(QCoreApplication.translate("SimpleMask", u"Select", None))
+        self.btn_select_maskfile.setText(QCoreApplication.translate("SimpleMask", u"...", None))
         self.MaskWidget.setTabText(self.MaskWidget.indexOf(self.tab_6), QCoreApplication.translate("SimpleMask", u"Blemish/Files", None))
         self.label_14.setText(QCoreApplication.translate("SimpleMask", u"color:", None))
         self.label_8.setText(QCoreApplication.translate("SimpleMask", u"linewidth:", None))
