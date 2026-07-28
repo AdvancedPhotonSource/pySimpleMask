@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=pySimpleMask
+Comment=Create masks and q-partition maps for SAXS/WAXS/XPCS data reduction
+Exec=pySimpleMask
+Icon=pySimpleMask
+Terminal=false
+Categories=Science;

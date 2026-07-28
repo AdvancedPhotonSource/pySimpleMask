@@ -1,0 +1,171 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
+name: Build GUI releases
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  windows-build:
+    name: Build Windows executable
+    # Use a self-hosted runner with a GPU/display capable machine.
+    # Replace with `windows-latest` for a HEADLESS smoke test only.
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache PyInstaller build
+        uses: actions/cache@v5
+        with:
+          path: build/
+          key: pyinstaller-win-${{ hashFiles('pysimplemask.spec', 'packaging/entrypoint.py') }}
+          restore-keys: |
+            pyinstaller-win-
+
+      - name: Install project and PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[pyinstaller]"
+
+      - name: Build executable
+        run: pyinstaller pysimplemask.spec
+
+      - name: Rename executable with version
+        shell: bash
+        run: |
+          TAG="${{ github.event_name == 'push' && github.ref_name || github.event.inputs.version_tag }}"
+          mv dist/pySimpleMask.exe "dist/pySimpleMask-${TAG}-windows.exe"
+
+      - name: Smoke test executable launches
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          $TAG = if ($env:GITHUB_EVENT_NAME -eq 'push') { $env:GITHUB_REF_NAME } else { $env:VERSION_TAG }
+          $exe = Get-ChildItem dist -Filter "pySimpleMask-*-windows.exe" | Select-Object -First 1
+          if (-not $exe) { throw "No .exe found in dist/" }
+          $proc = Start-Process -FilePath $exe.FullName -PassThru
+          Start-Sleep -Seconds 8
+          if ($proc.HasExited) {
+            Write-Error "Executable exited early with code $($proc.ExitCode)"
+            exit 1
+          }
+          Write-Host "Executable is running after 8s, smoke test passed"
+          Stop-Process -Id $proc.Id -Force
+
+      - name: Upload Windows executable artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-exe
+          path: dist/pySimpleMask-*-windows.exe
+          retention-days: 14
+
+  linux-appimage-build:
+    name: Build Linux AppImage
+    runs-on: ubuntu-latest
+    container: rockylinux:9
+    steps:
+      - name: Install git
+        run: dnf install -y git
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install system dependencies
+        run: |
+          dnf install -y python3.11 python3.11-pip \
+            mesa-libGL mesa-libEGL libxkbcommon libxkbcommon-x11 \
+            xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil \
+            dbus-libs fontconfig freetype file curl
+
+      - name: Cache PyInstaller build
+        uses: actions/cache@v5
+        with:
+          path: build/
+          key: pyinstaller-linux-${{ hashFiles('pysimplemask.spec', 'packaging/entrypoint.py') }}
+          restore-keys: |
+            pyinstaller-linux-
+
+      - name: Install project and PyInstaller
+        run: |
+          python3.11 -m pip install --upgrade pip
+          python3.11 -m pip install -e ".[pyinstaller]"
+
+      - name: Build AppImage
+        run: |
+          TAG="${{ github.event_name == 'push' && github.ref_name || github.event.inputs.version_tag }}"
+          bash packaging/linux/build-appimage.sh "$TAG"
+
+      - name: Smoke test AppImage launches
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          APPIMAGE=$(ls dist/pySimpleMask-*-x86_64.AppImage 2>/dev/null || echo "")
+          if [ -z "$APPIMAGE" ]; then
+            echo "No AppImage found"
+            ls -la dist/
+            exit 1
+          fi
+          chmod +x "$APPIMAGE"
+          timeout 8 "$APPIMAGE" --appimage-extract-and-run > /tmp/run.log 2>&1 &
+          RPID=$!
+          sleep 6
+          if kill -0 $RPID 2>/dev/null; then
+            echo "Smoke test passed: AppImage is running after 6s"
+            kill $RPID
+          else
+            wait $RPID || true
+            echo "Smoke test FAILED: AppImage exited early"
+            cat /tmp/run.log
+            exit 1
+          fi
+
+      - name: Upload Linux AppImage artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-appimage
+          path: dist/pySimpleMask-*-x86_64.AppImage
+          retention-days: 14
+
+  github-release:
+    name: Publish GitHub Release
+    needs: [windows-build, linux-appimage-build]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Windows executable artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: windows-exe
+          path: dist/
+
+      - name: Download Linux AppImage artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: linux-appimage
+          path: dist/
+
+      - name: Create/update GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "pySimpleMask ${{ github.ref_name }}"
+          generate_release_notes: true
+          files: |
+            dist/pySimpleMask-*-windows.exe
+            dist/pySimpleMask-*-x86_64.AppImage

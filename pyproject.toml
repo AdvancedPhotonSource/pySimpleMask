@@ -46,6 +46,9 @@ web = [
   "dash>=2.14",
   "plotly>=5.18",
 ]
+pyinstaller = [
+  "pyinstaller>=6.21",
+]
 
 [project.scripts]
 pysimplemask = "pysimplemask.cli:main"
