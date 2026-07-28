@@ -15,8 +15,17 @@ VERSION="${1:?Usage: build-appimage.sh <version-tag>}"
 
 rm -rf build dist/pySimpleMask dist/AppDir
 
+# Prefer whatever "python" resolves to in the active environment (local dev:
+# the activated venv/conda env with PyInstaller installed). Fall back to
+# python3.11 before the bare "python3" system interpreter: rockylinux:9 ships
+# its own /usr/bin/python3 (3.9) for OS tooling, which does NOT have
+# PyInstaller installed by the CI workflow (that targets python3.11
+# explicitly), so picking it up here would silently build with the wrong
+# interpreter.
+PYTHON="${PYTHON:-$(command -v python || command -v python3.11 || command -v python3)}"
+
 # Build the one-dir bundle with PyInstaller
-python -m PyInstaller pysimplemask.spec
+"$PYTHON" -m PyInstaller pysimplemask.spec
 
 # --- Assemble AppDir ---
 mkdir -p dist/AppDir/usr/bin
