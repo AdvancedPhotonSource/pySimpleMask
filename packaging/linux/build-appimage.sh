@@ -11,6 +11,7 @@
 set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/../.."
+REPO_ROOT="$(pwd)"
 VERSION="${1:?Usage: build-appimage.sh <version-tag>}"
 
 rm -rf build dist/pySimpleMask dist/AppDir
@@ -45,8 +46,11 @@ curl -sL -o dist/appimagetool \
 chmod +x dist/appimagetool
 
 # --- Build AppImage ---
+# appimagetool's --appimage-extract-and-run chdirs during self-extraction, so
+# relative path arguments resolve against the wrong directory. Use absolute
+# paths.
 dist/appimagetool --appimage-extract-and-run \
-  dist/AppDir \
-  "dist/pySimpleMask-${VERSION}-x86_64.AppImage"
+  "$REPO_ROOT/dist/AppDir" \
+  "$REPO_ROOT/dist/pySimpleMask-${VERSION}-x86_64.AppImage"
 
 echo "AppImage built: dist/pySimpleMask-${VERSION}-x86_64.AppImage"
