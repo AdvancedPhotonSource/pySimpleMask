@@ -89,7 +89,7 @@ jobs:
           dnf install -y python3.11 python3.11-pip \
             mesa-libGL mesa-libEGL libxkbcommon libxkbcommon-x11 \
             xcb-util-wm xcb-util-image xcb-util-keysyms xcb-util-renderutil \
-            dbus-libs fontconfig freetype file curl
+            dbus-libs fontconfig freetype file
 
       - name: Cache PyInstaller build
         uses: actions/cache@v5
