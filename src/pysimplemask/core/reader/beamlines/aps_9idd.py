@@ -52,9 +52,11 @@ METADATA_KEYMAPS = {
 }
 
 
-def get_nexus_metadata(fname):
+def get_nexus_metadata(fname, metadata_fname=None):
     """Read 9-ID-D NeXus metadata and derive beam-center / specular positions."""
-    meta, _meta_fname = read_nexus_metadata(fname, METADATA_KEYMAPS)
+    meta, _meta_fname = read_nexus_metadata(
+        fname, METADATA_KEYMAPS, metadata_fname=metadata_fname,
+    )
 
     pixel_size = meta["pixel_size"]
     beam_center_x = (
@@ -76,10 +78,10 @@ def get_nexus_metadata(fname):
     return meta
 
 
-def get_metadata(fname):
+def get_metadata(fname, metadata_fname=None):
     """Return 9-ID-D metadata, falling back to defaults on any failure."""
     try:
-        return get_nexus_metadata(fname)
+        return get_nexus_metadata(fname, metadata_fname=metadata_fname)
     except Exception:
         logger.info(
             "Failed to read metadata from %s; using defaults.", fname, exc_info=True
@@ -101,5 +103,5 @@ class APS9IDDReader(FileReader):
     def get_scattering(self, **kwargs):
         return self.loader.get_scattering(**kwargs)
 
-    def _get_metadata(self):
-        return get_metadata(self.fname)
+    def _get_metadata(self, metadata_fname=None):
+        return get_metadata(self.fname, metadata_fname=metadata_fname)

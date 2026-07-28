@@ -43,6 +43,21 @@ class NativeFilesReader(FileReader):
             )
         return data
 
-    def _get_metadata(self) -> dict:
-        """Return placeholder metadata; edited by the user after loading."""
+    def _get_metadata(self, metadata_fname: str | None = None) -> dict:
+        """Return placeholder metadata, or real metadata from an override file.
+
+        When ``metadata_fname`` is provided and contains valid APS 8-ID-I NeXus
+        fields, those values are returned.  Otherwise a warning is logged and
+        placeholder metadata is used.
+        """
+        if metadata_fname:
+            from ..metadata import has_nexus_fields
+            from .aps_8idi import METADATA_KEYMAPS, OPTIONAL_FIELDS, get_nexus_metadata
+
+            if has_nexus_fields(metadata_fname, METADATA_KEYMAPS, OPTIONAL_FIELDS):
+                return get_nexus_metadata(metadata_fname)
+            logger.warning(
+                "metadata_fname %s is missing required 8-ID-I NeXus fields; "
+                "using placeholder metadata", metadata_fname,
+            )
         return get_fake_metadata()

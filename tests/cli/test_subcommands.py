@@ -151,3 +151,23 @@ def test_main_toplevel_path_launches_gui(monkeypatch, tmp_path):
         except SystemExit:
             pass
     mock_gui.assert_called_once_with(str(tmp_path))
+
+
+def test_build_subcommand_metadata_fname_passes_through(monkeypatch, tmp_path):
+    """pysimplemask build FILE --metadata-fname META forwards metadata_fname to read_data."""
+    import h5py
+    import numpy as np
+    p = str(tmp_path / "scan.h5")
+    meta = str(tmp_path / "custom_meta.hdf")
+    with h5py.File(p, "w") as h:
+        h["/entry/data/data"] = np.zeros((2, 4, 4), dtype=np.uint16)
+    monkeypatch.setattr(
+        sys, "argv", ["pysimplemask", "build", p, "--metadata-fname", meta]
+    )
+    mock_run = MagicMock()
+    with patch("pysimplemask.cli._run_build_qmap", mock_run):
+        from pysimplemask import cli
+        cli.main()
+    mock_run.assert_called_once()
+    call_args = mock_run.call_args[0][0]
+    assert call_args.metadata_fname == meta

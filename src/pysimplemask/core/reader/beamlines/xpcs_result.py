@@ -76,12 +76,16 @@ class XPCSResultReader(FileReader):
         with h5py.File(self.fname, "r") as f:
             return f["/xpcs/temporal_mean/scattering_2d"][0].astype(np.float32)
 
-    def _get_metadata(self):
+    def _get_metadata(self, metadata_fname: str | None = None):
         """Read instrument metadata.
 
         Tries ``/xpcs/qmap`` scalars first; falls back to
         ``/entry/instrument`` paths when any required key is absent.
         Swing angles default to 0.0 — XPCS result files do not store them.
+
+        The ``metadata_fname`` parameter is accepted for compatibility with the
+        shared ``prepare_data`` call path but is not used — this reader extracts
+        metadata from the result file itself.
         """
         try:
             meta = read_keymap(self.fname, _XPCS_QMAP_KEYMAP)

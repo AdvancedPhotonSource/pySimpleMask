@@ -112,8 +112,8 @@ class FileReader(object):
         self.scat = None
         self.scat_log = None
 
-    def prepare_data(self, *args, **kwargs):
-        self.metadata = self.get_metadata()
+    def prepare_data(self, *args, metadata_fname=None, **kwargs):
+        self.metadata = self.get_metadata(metadata_fname=metadata_fname)
         self.scat = self.get_scattering(*args, **kwargs).astype(np.float32)
         self.shape = self.scat.shape
         # update metadata shape with the real values

@@ -41,6 +41,10 @@ def _add_build_args(parser: argparse.ArgumentParser) -> None:
         "--num-frames", type=int, default=-1, metavar="N",
         help="Frames to average. 0=all, -1=representative subset.",
     )
+    grp_load.add_argument(
+        "--metadata-fname", default=None, metavar="FILE",
+        help="Explicit metadata HDF5 file. Falls back to automatic discovery if omitted or invalid.",
+    )
 
     # beam center
     grp_cen = parser.add_argument_group("beam center")
@@ -315,6 +319,7 @@ def _run_build_qmap(args) -> None:
         beamline=args.beamline,
         begin_idx=args.begin_idx,
         num_frames=args.num_frames,
+        metadata_fname=args.metadata_fname,
     )
     if not ok:
         raise RuntimeError(f"Failed to load dataset: {args.dataset}")
@@ -389,6 +394,7 @@ def _run_build_qmap(args) -> None:
             "beamline": args.beamline,
             "begin_idx": args.begin_idx,
             "num_frames": args.num_frames,
+            "metadata_fname": args.metadata_fname,
             "find_center": not args.no_find_center,
             "max_radius": args.max_radius,
             "beamstop_diameter": args.beamstop_diameter,
