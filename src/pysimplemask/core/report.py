@@ -229,7 +229,7 @@ def generate_report(model, output_path, crop_half_size=100, params=None):
     # Row 3 — Mask
     thr = p.get("threshold_high")
     thr_str = f"{thr:.4g}" if thr is not None else "none"
-    blemish_str = os.path.basename(p["blemish"]) if p.get("blemish") else "auto (~/Documents/areaDetectorBlemish)"
+    blemish_str = os.path.basename(p["blemish"]) if p.get("blemish") else "auto"
     n_masked = int((~model.mask.astype(bool)).sum())
     mask_line = (
         f"Mask:      blemish={blemish_str}"
