@@ -14,9 +14,10 @@ env:
 jobs:
   windows-build:
     name: Build Windows executable
-    # Use a self-hosted runner with a GPU/display capable machine.
-    # Replace with `windows-latest` for a HEADLESS smoke test only.
-    runs-on: [self-hosted, Windows, X64]
+    # TODO: switch back to [self-hosted, Windows, X64] once a self-hosted
+    # Windows runner is registered for this repo. windows-latest gives a
+    # HEADLESS smoke test only (no GPU/display).
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
         with:
