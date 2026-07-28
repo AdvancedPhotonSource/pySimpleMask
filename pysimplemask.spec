@@ -10,8 +10,11 @@
 
 from pathlib import Path
 
-spec_dir = Path(SPECPATH).parent
-repo_root = spec_dir.parent
+# SPECPATH is the directory containing this spec file (set by PyInstaller),
+# not the file path itself. This spec lives at the repo root alongside
+# packaging/ and src/, so both anchors are that same directory.
+spec_dir = Path(SPECPATH)
+repo_root = spec_dir
 
 a = Analysis(
     [str(spec_dir / 'packaging' / 'entrypoint.py')],
