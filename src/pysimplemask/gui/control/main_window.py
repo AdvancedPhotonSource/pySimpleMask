@@ -127,17 +127,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.setupUi(self)
         self.setWindowTitle(f"pySimpleMask {__version__}")
 
-        # Allow the left column to shrink below its content's natural size hint.
-        # Groupboxes with hsizetype="Minimum" refuse to shrink, causing the splitter
-        # to collapse the entire left panel instead of narrowing it gradually.
-        # Changing to Preferred lets Qt honour the splitter position at any width.
-        from PySide6.QtWidgets import QSizePolicy as _QSP
-        for i in range(self.splitter.count()):
-            w = self.splitter.widget(i)
-            sp = w.sizePolicy()
-            sp.setHorizontalPolicy(_QSP.Policy.Preferred)
-            w.setSizePolicy(sp)
-
         # Frame controls are disabled until rawdata channel is active
         self._raw_total_frames = 0   # set by load() for frame-average range calculation
         self.label_frame.setEnabled(False)

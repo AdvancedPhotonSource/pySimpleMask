@@ -6,6 +6,8 @@ Covers :mod:`pysimplemask.core.reader.metadata` and the ``get_nexus_metadata`` /
 ``get_metadata`` entry points of the 8-ID-I and 9-ID-D beamline modules.
 """
 
+import logging
+
 import pytest
 import numpy as np
 
@@ -245,3 +247,132 @@ def test_get_parametertree_structure_hides_shape_keys(tmp_path):
     child_names = {child["name"] for child in struct["children"]}
     assert "detector_shape_x" not in child_names
     assert "detector_shape_y" not in child_names
+
+
+# ---------------------------------------------------------------------------
+# 11. read_nexus_metadata with metadata_fname override
+# ---------------------------------------------------------------------------
+
+
+def test_read_nexus_metadata_valid_override_used_directly(make_nexus_8idi, make_hdf):
+    """Valid metadata_fname override is used directly; no sibling glob triggered."""
+    override_path, _ = make_nexus_8idi(name="override_meta.hdf")
+    # Data file in a directory with NO sibling metadata file — forces override path
+    data_path = make_hdf(np.zeros((1, 2, 2)), name="orphan_data.h5")
+    metadata, meta_fname = read_nexus_metadata(
+        data_path, KEYMAP_8IDI, OPTIONAL_8IDI, metadata_fname=override_path,
+    )
+    assert meta_fname == override_path
+    assert metadata["meta_fname"] == override_path
+
+
+def test_read_nexus_metadata_invalid_override_falls_back(caplog, make_nexus_8idi, make_hdf):
+    """Invalid metadata_fname (missing fields) logs warning and falls back to sibling."""
+    override_path = make_hdf(np.zeros((1, 2)), name="bad_override.hdf")
+    data_path = make_hdf(np.zeros((1, 4, 4)), name="scan.h5")
+    # Create a valid sibling metadata file for the fallback
+    meta_path, _ = make_nexus_8idi(name="scan_metadata.hdf")
+
+    with caplog.at_level(logging.WARNING):
+        metadata, meta_fname = read_nexus_metadata(
+            data_path, KEYMAP_8IDI, OPTIONAL_8IDI, metadata_fname=override_path,
+        )
+    assert "falling back to automatic discovery" in caplog.text
+    assert meta_fname == meta_path
+
+
+def test_read_nexus_metadata_none_unchanged(make_nexus_8idi):
+    """metadata_fname=None behaves identically to calling without the parameter."""
+    path, _ = make_nexus_8idi()
+    metadata, meta_fname = read_nexus_metadata(
+        path, KEYMAP_8IDI, OPTIONAL_8IDI, metadata_fname=None,
+    )
+    assert meta_fname == path
+
+
+# ---------------------------------------------------------------------------
+# 12. Beamline-level get_metadata / get_nexus_metadata thread metadata_fname
+# ---------------------------------------------------------------------------
+
+
+def test_get_metadata_8idi_threads_metadata_fname(make_nexus_8idi, make_hdf):
+    """get_metadata passes metadata_fname through to read_nexus_metadata."""
+    override_path, _ = make_nexus_8idi(name="override_meta.hdf")
+    data_path = make_hdf(np.zeros((1, 4, 4)), name="scan.h5")
+    meta = meta_8idi(data_path, metadata_fname=override_path)
+    assert meta["meta_fname"] == override_path
+    assert np.isclose(meta["energy"], 8.0)
+
+
+def test_get_nexus_metadata_8idi_override_derives_fields(make_nexus_8idi, make_hdf):
+    """Override file's raw values are used for derived fields (beam_center, pixel_size)."""
+    override_path, raw = make_nexus_8idi(name="override.hdf", energy=15.0)
+    data_path = make_hdf(np.zeros((1, 4, 4)), name="scan.h5")
+    meta = nexus_8idi(data_path, metadata_fname=override_path)
+
+    assert np.isclose(meta["energy"], 15.0)
+    assert np.isclose(meta["pixel_size"], raw["x_pixel_size"])
+    expected_bcx = raw["bcx0"] + (raw["ccdx"] - raw["ccdx0"]) / raw["x_pixel_size"]
+    assert np.isclose(meta["beam_center_x"], expected_bcx)
+
+
+# ---------------------------------------------------------------------------
+# 13. NativeFilesReader _get_metadata with metadata_fname
+# ---------------------------------------------------------------------------
+
+
+def test_native_files_reader_valid_override(tmp_path, make_nexus_8idi):
+    """Valid 8-ID-I override returns real (non-placeholder) metadata."""
+    import tifffile
+    from pysimplemask.core.reader.beamlines.native_files import NativeFilesReader
+
+    override_path, _ = make_nexus_8idi(name="real_meta.hdf", energy=12.0)
+    img_path = str(tmp_path / "img.tif")
+    tifffile.imwrite(img_path, np.ones((16, 12), dtype=np.float32))
+
+    reader = NativeFilesReader(img_path)
+    meta = reader._get_metadata(metadata_fname=override_path)
+    assert meta["energy"] == 12.0
+    assert meta["energy"] != 12.3  # not the placeholder default
+
+
+def test_native_files_reader_invalid_override(tmp_path):
+    """Invalid override falls back to placeholder metadata."""
+    import tifffile
+    from pysimplemask.core.reader.beamlines.native_files import NativeFilesReader
+
+    img_path = str(tmp_path / "img.tif")
+    tifffile.imwrite(img_path, np.ones((16, 12), dtype=np.float32))
+
+    reader = NativeFilesReader(img_path)
+    meta = reader._get_metadata(metadata_fname="/nonexistent/path.hdf")
+    assert meta["energy"] == 12.3  # placeholder default
+
+
+def test_native_files_reader_no_override(tmp_path):
+    """metadata_fname=None returns placeholder metadata (unchanged behavior)."""
+    import tifffile
+    from pysimplemask.core.reader.beamlines.native_files import NativeFilesReader
+
+    img_path = str(tmp_path / "img.tif")
+    tifffile.imwrite(img_path, np.ones((16, 12), dtype=np.float32))
+
+    reader = NativeFilesReader(img_path)
+    meta = reader._get_metadata()
+    assert meta["energy"] == 12.3  # placeholder default
+
+
+# ---------------------------------------------------------------------------
+# 14. XPCSResultReader regression — prepare_data still works
+# ---------------------------------------------------------------------------
+
+
+def test_xpcs_result_reader_prepare_data_compatible(make_xpcs_result):
+    """XPCSResultReader.prepare_data() works now that metadata_fname is threaded through."""
+    from pysimplemask.core.reader.beamlines.xpcs_result import XPCSResultReader
+
+    path = make_xpcs_result()
+    reader = XPCSResultReader(path)
+    reader.prepare_data()  # should not crash
+    assert reader.metadata is not None
+    assert np.isclose(reader.metadata["energy"], 10.0)

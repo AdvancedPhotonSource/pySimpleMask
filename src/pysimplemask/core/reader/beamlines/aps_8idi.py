@@ -45,9 +45,11 @@ METADATA_KEYMAPS = {
 OPTIONAL_FIELDS = ["swing_angle_horizontal", "swing_angle_vertical"]
 
 
-def get_nexus_metadata(fname):
+def get_nexus_metadata(fname, metadata_fname=None):
     """Read 8-ID-I NeXus metadata and derive the beam center."""
-    meta, _meta_fname = read_nexus_metadata(fname, METADATA_KEYMAPS, OPTIONAL_FIELDS)
+    meta, _meta_fname = read_nexus_metadata(
+        fname, METADATA_KEYMAPS, OPTIONAL_FIELDS, metadata_fname=metadata_fname,
+    )
 
     for key in ("swing_angle_horizontal", "swing_angle_vertical"):
         if meta.get(key) is None:
@@ -78,10 +80,10 @@ def get_nexus_metadata(fname):
     return meta
 
 
-def get_metadata(fname):
+def get_metadata(fname, metadata_fname=None):
     """Return 8-ID-I metadata, falling back to defaults on any failure."""
     try:
-        return get_nexus_metadata(fname)
+        return get_nexus_metadata(fname, metadata_fname=metadata_fname)
     except Exception:
         logger.info(
             "Failed to read metadata from %s; using defaults.", fname, exc_info=True
@@ -103,5 +105,5 @@ class APS8IDIReader(FileReader):
     def get_scattering(self, **kwargs):
         return self.loader.get_scattering(**kwargs)
 
-    def _get_metadata(self):
-        return get_metadata(self.fname)
+    def _get_metadata(self, metadata_fname=None):
+        return get_metadata(self.fname, metadata_fname=metadata_fname)

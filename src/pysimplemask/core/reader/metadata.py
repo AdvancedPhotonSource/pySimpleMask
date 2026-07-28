@@ -89,18 +89,35 @@ def find_metadata_file(fname):
     return matches[0]
 
 
-def read_nexus_metadata(fname, keymap, optional_fields=None):
+def read_nexus_metadata(fname, keymap, optional_fields=None, metadata_fname=None):
     """Locate and read NeXus metadata for ``fname``.
 
-    The data file itself is used when it already contains the required fields;
-    otherwise a sibling ``*_metadata.hdf`` file is located and validated.
+    An explicit ``metadata_fname`` override takes precedence when the file
+    exists and contains all required fields.  When omitted or invalid, the
+    normal discovery chain runs: data file itself → sibling ``*_metadata.hdf``
+    → ``FileNotFoundError``.
+
+    Args:
+        fname: Primary data file path (used for self-check and sibling glob).
+        keymap: Mapping of metadata key -> HDF5 path.
+        optional_fields: Keys allowed to be absent.
+        metadata_fname: Optional explicit metadata file path.  When provided
+            and valid, it is used directly; otherwise a warning is logged and
+            the automatic discovery chain runs.
 
     Returns:
         tuple: ``(metadata_dict, meta_fname)``.
     """
-    if has_nexus_fields(fname, keymap, optional_fields):
+    if metadata_fname and has_nexus_fields(metadata_fname, keymap, optional_fields):
+        meta_fname = metadata_fname
+    elif has_nexus_fields(fname, keymap, optional_fields):
         meta_fname = fname
     else:
+        if metadata_fname:
+            logger.warning(
+                "metadata_fname %s is missing required fields; "
+                "falling back to automatic discovery", metadata_fname,
+            )
         meta_fname = find_metadata_file(fname)
         if not has_nexus_fields(meta_fname, keymap, optional_fields):
             raise FileNotFoundError(f"No valid metadata found in {meta_fname}")

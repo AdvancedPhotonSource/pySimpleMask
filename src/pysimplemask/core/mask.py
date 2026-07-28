@@ -195,39 +195,19 @@ class MaskAssemble:
     def update_qmap(self, qmap_all):
         self.qmap = qmap_all
 
-    def get_default_blemish(
-        self, default_blemish_path="~/Documents/areaDetectorBlemish"
-    ):
-        shape = tuple(self.shape)
-        _detector_blemish_files = {
-            (1813, 1558): "8idLambda2m/latest_blemish.tif",
-            (2162, 2068): "8idEiger4m/latest_blemish.tif",
-            (1676, 2100): "8idRigaku3m/latest_blemish.tif",
-            (4362, 4148): "9idEiger16m/latest_blemish.tif",
-            (516, 1556): "8idLambda750k/latest_blemish.tif",
-            (516, 1554): "detLambda750k/latest_blemish.tif",
-            (512, 1024): "8idRigaku500k/latest_blemish.tif",
-        }
-        rel_path = _detector_blemish_files.get(shape, None)
-        fname = (
-            os.path.join(os.path.expanduser(default_blemish_path), rel_path)
-            if rel_path
-            else None
-        )
-
+    def get_default_blemish(self):
         try:
-            if not fname or not os.path.isfile(fname):
-                raise FileNotFoundError(f"not found for shape {shape}")
-            # logger.info(f"apply blemish: {os.path.realpath(fname)}")
-            # self.evaluate("mask_blemish", fname=fname)
-            # self.apply("mask_blemish")
-            blemish = skio.imread(fname)
-        except Exception as e:
-            logger.warning("Failed to load default blemish: %s", e)
-            logger.info("Use default blemish: np.ones(self.shape, dtype=bool)")
-            blemish = np.ones(self.shape, dtype=bool)
+            from ADHelper.loader import get_blemish
 
-        return blemish
+            blemish = get_blemish(detector_shape=self.shape)
+            if blemish is not None:
+                return blemish
+        except ImportError:
+            pass  # ADHelper not installed — fall back
+        except Exception:
+            pass  # ADHelper failed — fall back
+        logger.info("No default blemish found for shape %s", self.shape)
+        return np.ones(self.shape, dtype=bool)
 
     def apply(self, target=None):
         if target is None:
