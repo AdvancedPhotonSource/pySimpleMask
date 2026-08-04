@@ -20,10 +20,13 @@ class _Recorder:
 
     def __init__(self):
         self.calls = []
+        self.results = []
 
     def __call__(self, *args, **kwargs):
         self.calls.append((args, kwargs))
-        return object()
+        result = object()
+        self.results.append(result)
+        return result
 
 
 class _AnalysisStub:
@@ -61,13 +64,15 @@ def test_macos_branch_wraps_exe_in_app_bundle(monkeypatch):
     exe_rec, bundle_rec, collect_rec = _run_spec(monkeypatch, "darwin")
 
     assert len(exe_rec.calls) == 1
+    assert len(collect_rec.calls) == 1
     assert len(bundle_rec.calls) == 1
-    assert len(collect_rec.calls) == 0
 
     _, exe_kwargs = exe_rec.calls[0]
     assert exe_kwargs["codesign_identity"] is None
+    assert exe_kwargs["exclude_binaries"] is True
 
-    _, bundle_kwargs = bundle_rec.calls[0]
+    bundle_args, bundle_kwargs = bundle_rec.calls[0]
+    assert bundle_args[0] is collect_rec.results[0]
     assert bundle_kwargs["name"] == "pySimpleMask.app"
     assert bundle_kwargs["bundle_identifier"] == "gov.anl.aps.pysimplemask"
     assert bundle_kwargs["icon"].endswith("packaging/macos/icon.icns")

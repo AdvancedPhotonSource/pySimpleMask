@@ -142,16 +142,19 @@ elif sys.platform == 'linux':
         name='pySimpleMask',
     )
 else:
-    # macOS or other — single-dir EXE wrapped in an .app bundle.
+    # macOS or other — one-dir EXE + COLLECT wrapped in an .app bundle.
+    # Mirrors the Linux branch's onedir shape (not onefile like Windows):
+    # notarization and `codesign --deep` only cover code that's laid out as
+    # separate files in the bundle, not binaries hidden inside PyInstaller's
+    # onefile CArchive.
     # codesign_identity stays None: the release workflow does an explicit
     # `codesign --deep --options runtime` pass afterward so it can apply the
     # hardened-runtime entitlements notarization needs.
     exe = EXE(
         pyz,
         a.scripts,
-        a.binaries,
-        a.datas,
         [],
+        exclude_binaries=True,
         name='pySimpleMask',
         debug=False,
         bootloader_ignore_signals=False,
@@ -164,8 +167,17 @@ else:
         codesign_identity=None,
         entitlements_file=None,
     )
-    app = BUNDLE(
+    coll = COLLECT(
         exe,
+        a.binaries,
+        a.datas,
+        strip=False,
+        upx=False,
+        upx_exclude=[],
+        name='pySimpleMask',
+    )
+    app = BUNDLE(
+        coll,
         name='pySimpleMask.app',
         icon=str(spec_dir / 'packaging' / 'macos' / 'icon.icns'),
         bundle_identifier='gov.anl.aps.pysimplemask',

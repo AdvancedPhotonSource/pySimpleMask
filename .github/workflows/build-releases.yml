@@ -239,6 +239,23 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "dist/pySimpleMask.app"
           codesign --display --verbose=4 "dist/pySimpleMask.app"
 
+      - name: Notarize and staple app bundle
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
+        run: |
+          ditto -c -k --keepParent "dist/pySimpleMask.app" "dist/pySimpleMask.zip"
+
+          xcrun notarytool submit "dist/pySimpleMask.zip" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+
+          xcrun stapler staple "dist/pySimpleMask.app"
+          rm -f "dist/pySimpleMask.zip"
+
       - name: Smoke test app launches
         run: |
           "dist/pySimpleMask.app/Contents/MacOS/pySimpleMask" &
