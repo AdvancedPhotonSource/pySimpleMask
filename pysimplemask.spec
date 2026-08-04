@@ -142,7 +142,10 @@ elif sys.platform == 'linux':
         name='pySimpleMask',
     )
 else:
-    # macOS or other — single-dir EXE
+    # macOS or other — single-dir EXE wrapped in an .app bundle.
+    # codesign_identity stays None: the release workflow does an explicit
+    # `codesign --deep --options runtime` pass afterward so it can apply the
+    # hardened-runtime entitlements notarization needs.
     exe = EXE(
         pyz,
         a.scripts,
@@ -160,4 +163,13 @@ else:
         target_arch=None,
         codesign_identity=None,
         entitlements_file=None,
+    )
+    app = BUNDLE(
+        exe,
+        name='pySimpleMask.app',
+        icon=str(spec_dir / 'packaging' / 'macos' / 'icon.icns'),
+        bundle_identifier='gov.anl.aps.pysimplemask',
+        info_plist={
+            'NSHighResolutionCapable': True,
+        },
     )
