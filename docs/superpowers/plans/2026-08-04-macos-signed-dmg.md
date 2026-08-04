@@ -35,7 +35,10 @@ other two platforms.
   (`actions/checkout@v7`, `actions/setup-python@v7`, `actions/cache@v5`,
   `actions/upload-artifact@v7`, `actions/download-artifact@v8`).
 - Never print `BUILD_CERTIFICATE_BASE64`, `P12_PASSWORD`, `KEYCHAIN_PASSWORD`,
-  `APPLE_ID`, `APPLE_APP_PASSWORD`, or `APPLE_TEAM_ID` in logs.
+  `APPLE_ID`, or `APPLE_APP_PASSWORD` in logs. (`APPLE_TEAM_ID` is a `vars.` value, not
+  a secret — it's already public in every signed binary via `codesign -dv`, and
+  `security find-identity`/`codesign --display` legitimately print it; the final
+  whole-branch review confirmed this isn't a leak.)
 - No macOS runner and no real Apple credentials exist in this dev environment — tasks
   below test everything that's testable without them (YAML structure, spec branch
   logic, plist/shell syntax) and call out explicitly what can only be verified via a

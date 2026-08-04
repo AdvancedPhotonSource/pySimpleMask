@@ -91,8 +91,8 @@ git push origin v1.2.3
 
 The workflow (`.github/workflows/build-releases.yml`) does:
 
-1. **Windows:** builds `.exe` on a self-hosted runner, smoke tests with
-   `QT_QPA_PLATFORM=offscreen`, uploads as an artifact.
+1. **Windows:** builds `.exe` on `windows-latest` (see "Windows runner note" below),
+   smoke tests with `QT_QPA_PLATFORM=offscreen`, uploads as an artifact.
 2. **Linux:** builds in a Rocky Linux 9 container, assembles an AppImage,
    smoke tests, uploads as an artifact.
 3. **macOS:** imports the Apple Developer ID certificate, builds a one-dir `.app`
