@@ -1,7 +1,7 @@
 # Building GUI Releases
 
 This document describes how to build standalone GUI binaries for pySimpleMask:
-a **Windows `.exe`** and a **Linux AppImage**.
+a **Windows `.exe`**, a **Linux AppImage**, and a signed/notarized **macOS `.dmg`**.
 
 ## Quick Start
 
@@ -25,6 +25,23 @@ pip install pyinstaller
 powershell -ExecutionPolicy Bypass -File packaging/build_gui.ps1
 .\dist\pySimpleMask.exe
 ```
+
+### Local build (macOS, unsigned)
+
+```bash
+pip install pyinstaller
+
+# Generate the .icns app icon (macOS-only tooling; must run before pyinstaller)
+bash packaging/macos/make_icns.sh
+
+pyinstaller pysimplemask.spec
+open dist/pySimpleMask.app
+```
+
+This produces an **unsigned** `.app` — Gatekeeper will refuse to open it without
+right-click → Open. Signing and notarization only happen in CI (see below), where the
+Apple Developer ID certificate and notarization credentials live as GitHub secrets in
+the `macos-signing` environment.
 
 ### Build an AppImage (Linux)
 
@@ -50,6 +67,8 @@ module structure.
 **Spec file:** `pysimplemask.spec` — the master config. It is platform-aware:
 - **Windows:** single-file `.exe` (`onefile`-style, all binaries in the exe)
 - **Linux:** one-dir bundle (required for AppImage assembly)
+- **macOS:** one-dir bundle (same shape as Linux) wrapped in an `.app` via `BUNDLE`,
+  signed + notarized in CI
 
 ### What gets packaged
 
@@ -72,11 +91,14 @@ git push origin v1.2.3
 
 The workflow (`.github/workflows/build-releases.yml`) does:
 
-1. **Windows:** builds `.exe` on a self-hosted runner, smoke tests with
-   `QT_QPA_PLATFORM=offscreen`, uploads as an artifact.
+1. **Windows:** builds `.exe` on `windows-latest` (see "Windows runner note" below),
+   smoke tests with `QT_QPA_PLATFORM=offscreen`, uploads as an artifact.
 2. **Linux:** builds in a Rocky Linux 9 container, assembles an AppImage,
    smoke tests, uploads as an artifact.
-3. **GitHub Release:** creates/updates a GitHub release with both binaries
+3. **macOS:** imports the Apple Developer ID certificate, builds a one-dir `.app`
+   bundle, deep-codesigns it with hardened runtime, notarizes and staples both the
+   `.app` and the final `.dmg`, verifies with Gatekeeper, uploads as an artifact.
+4. **GitHub Release:** creates/updates a GitHub release with all three binaries
    as attachments (only on tag pushes, not manual dispatches).
 
 ### Manual trigger
@@ -84,12 +106,13 @@ The workflow (`.github/workflows/build-releases.yml`) does:
 You can also run the workflow manually from the GitHub Actions tab
 (`workflow_dispatch`). A version tag input lets you name the artifact.
 
-### Self-hosted Windows runner
+### Windows runner note
 
-The Windows job uses `runs-on: [self-hosted, Windows, X64]` because it needs
-a machine with a display server for the smoke test. To use GitHub-hosted
-runners instead, change this to `windows-latest` — the smoke test still
-passes with `QT_QPA_PLATFORM=offscreen`.
+The Windows job currently runs on `windows-latest` (GitHub-hosted) rather than a
+self-hosted runner — see the `TODO` comment above the `windows-build` job in
+`build-releases.yml` for context. This gives a headless smoke test only (no
+GPU/display); switch back to `[self-hosted, Windows, X64]` once a self-hosted Windows
+runner is registered for this repo.
 
 ---
 
@@ -100,12 +123,16 @@ pysimplemask.spec              # PyInstaller master spec (platform-aware)
 packaging/
 ├── entrypoint.py              # Thin GUI entry point for PyInstaller
 ├── icon.ico                   # Windows executable icon (derived from logo.svg)
+├── icon.png                   # Source icon (256x256), used to generate icon.icns
 ├── build_gui.sh               # Local Linux build script
 ├── build_gui.ps1              # Local Windows build script
+├── macos/
+│   ├── make_icns.sh           # Generates icon.icns from icon.png (macOS-only tools)
+│   └── entitlements.plist     # Hardened-runtime entitlements for codesign
 └── linux/
     ├── build-appimage.sh      # AppImage assembly script
     ├── AppRun                 # AppImage entry point
-    ├── pySimpleMask.desktop   # Desktop integration file
+    └── pySimpleMask.desktop   # Desktop integration file
 ```
 
 ---

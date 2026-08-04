@@ -40,6 +40,7 @@ dev = [
   "coverage", # Testing
   "mypy",     # Type checking
   "pytest",   # Testing
+  "pyyaml",   # Testing (workflow YAML structural checks)
   "ruff",     # Linting
 ]
 web = [
