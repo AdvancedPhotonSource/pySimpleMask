@@ -283,6 +283,14 @@ jobs:
             -ov \
             "dist/pySimpleMask.dmg"
 
+      - name: Sign DMG
+        run: |
+          codesign \
+            --force \
+            --timestamp \
+            --sign "$SIGNING_IDENTITY" \
+            "dist/pySimpleMask.dmg"
+
       - name: Notarize and staple DMG
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
