@@ -6,6 +6,8 @@ import argparse
 import sys
 from unittest.mock import patch, MagicMock
 
+import pytest
+
 
 def test_run_web_importable():
     from pysimplemask.web.server import run_web  # noqa: F401
@@ -92,7 +94,7 @@ def test_main_web_subcommand_calls_run_web(monkeypatch):
 
 
 def test_main_combine_subcommand_calls_combine(monkeypatch, tmp_path):
-    """pysimplemask combine a.h5 b.h5 out.h5 calls combine_qmap_files."""
+    """pysimplemask combine a.h5 b.h5 out.h5 calls combine_qmap_files with a file list."""
     a = str(tmp_path / "a.h5")
     b = str(tmp_path / "b.h5")
     o = str(tmp_path / "out.h5")
@@ -101,7 +103,34 @@ def test_main_combine_subcommand_calls_combine(monkeypatch, tmp_path):
     with patch("pysimplemask.core.partition.combine_qmap_files", mock_combine):
         from pysimplemask import cli
         cli.main()
-    mock_combine.assert_called_once_with(a, b, o)
+    mock_combine.assert_called_once_with([a, b], o)
+
+
+def test_main_combine_subcommand_supports_more_than_two_files(monkeypatch, tmp_path):
+    """pysimplemask combine a.h5 b.h5 c.h5 out.h5 forwards all input files as a list."""
+    a, b, c = (str(tmp_path / f"{name}.h5") for name in "abc")
+    o = str(tmp_path / "out.h5")
+    monkeypatch.setattr(sys, "argv", ["pysimplemask", "combine", a, b, c, o])
+    mock_combine = MagicMock()
+    with patch("pysimplemask.core.partition.combine_qmap_files", mock_combine):
+        from pysimplemask import cli
+        cli.main()
+    mock_combine.assert_called_once_with([a, b, c], o)
+
+
+def test_main_combine_subcommand_exits_nonzero_on_value_error(monkeypatch, tmp_path):
+    """A ValueError from combine_qmap_files (e.g. too few files) exits 1, not a traceback."""
+    a = str(tmp_path / "a.h5")
+    o = str(tmp_path / "out.h5")
+    monkeypatch.setattr(sys, "argv", ["pysimplemask", "combine", a, o])
+    mock_combine = MagicMock(
+        side_effect=ValueError("combine_qmap_files requires at least two input files, got 1")
+    )
+    with patch("pysimplemask.core.partition.combine_qmap_files", mock_combine):
+        from pysimplemask import cli
+        with pytest.raises(SystemExit) as exc_info:
+            cli.main()
+    assert exc_info.value.code == 1
 
 
 def test_main_build_subcommand_calls_run_build(monkeypatch, tmp_path):

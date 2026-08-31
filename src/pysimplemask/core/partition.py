@@ -1,5 +1,6 @@
 # Copyright © UChicago Argonne LLC
 # See LICENSE file for details
+import contextlib
 import hashlib
 import json
 import logging
@@ -373,44 +374,51 @@ def check_consistency(dqmap: np.ndarray, sqmap: np.ndarray, mask: np.ndarray) ->
     return True
 
 
-def combine_qmap_files(qmap_file1, qmap_file2, output_file):
+def combine_qmap_files(qmap_files, output_file):
     """
-    Combine two qmap files into a single qmap file.
+    Combine two or more qmap files into a single qmap file.
 
     Parameters
     ----------
-    qmap_file1 : str
-        Path to the first qmap file.
-    qmap_file2 : str
-        Path to the second qmap file.
+    qmap_files : list[str]
+        Paths to the qmap files to combine, in order. Must contain at least two.
     output_file : str
         Path to the output qmap file.
     """
-    logger.info("Combining qmap files:")
-    logger.info("  file1 : %s", qmap_file1)
-    logger.info("  file2 : %s", qmap_file2)
-    logger.info("  output: %s", output_file)
-
-    with h5py.File(qmap_file1, "r") as f1, h5py.File(qmap_file2, "r") as f2:
-        map_names1 = tuple(f1["/qmap/map_names"][()])
-        map_names2 = tuple(f2["/qmap/map_names"][()])
-        assert map_names1 == map_names2, (
-            f"map_names must be the same: {map_names1!r} != {map_names2!r}"
+    if len(qmap_files) < 2:
+        raise ValueError(
+            f"combine_qmap_files requires at least two input files, got {len(qmap_files)}"
         )
-        logger.info("map_names validated: %s", map_names1)
 
-        logger.info("Copying file1 -> output file as base ...")
-        shutil.copy(qmap_file1, output_file)
+    logger.info("Combining %d qmap files:", len(qmap_files))
+    for i, fname in enumerate(qmap_files):
+        logger.info("  file[%d]: %s", i, fname)
+    logger.info("  output  : %s", output_file)
+
+    with contextlib.ExitStack() as stack:
+        handles = [stack.enter_context(h5py.File(fname, "r")) for fname in qmap_files]
+
+        map_names0 = tuple(handles[0]["/qmap/map_names"][()])
+        for fname, hf in zip(qmap_files[1:], handles[1:]):
+            map_names_i = tuple(hf["/qmap/map_names"][()])
+            assert map_names_i == map_names0, (
+                f"map_names must be the same across all files: "
+                f"{map_names0!r} != {map_names_i!r} ({fname!r})"
+            )
+        logger.info("map_names validated: %s", map_names0)
+
+        logger.info("Copying %s -> output file as base ...", qmap_files[0])
+        shutil.copy(qmap_files[0], output_file)
 
         with h5py.File(output_file, "r+") as fo:
             # Combine masks
-            mask1 = f1["/qmap/mask"][()]
-            mask2 = f2["/qmap/mask"][()]
-            combined_mask = np.logical_or(mask1, mask2)
+            masks = [hf["/qmap/mask"][()] for hf in handles]
+            combined_mask = masks[0]
+            for mask in masks[1:]:
+                combined_mask = np.logical_or(combined_mask, mask)
             logger.info(
-                "Mask: file1 valid=%d  file2 valid=%d  combined valid=%d",
-                mask1.sum(),
-                mask2.sum(),
+                "Mask: valid per file=%s  combined valid=%d",
+                [int(m.sum()) for m in masks],
                 combined_mask.sum(),
             )
             del fo["/qmap/mask"]
@@ -419,32 +427,26 @@ def combine_qmap_files(qmap_file1, qmap_file2, output_file):
             for prefix in ["static", "dynamic"]:
                 logger.info("--- Processing '%s' partition ---", prefix)
 
-                f1_num_pts = f1[f"/qmap/{prefix}_num_pts"][()]
-                f2_num_pts = f2[f"/qmap/{prefix}_num_pts"][()]
+                num_pts_list = [hf[f"/qmap/{prefix}_num_pts"][()] for hf in handles]
                 logger.debug(
-                    "  num_pts: file1=%s  file2=%s",
-                    f1_num_pts.tolist(),
-                    f2_num_pts.tolist(),
+                    "  num_pts per file: %s", [n.tolist() for n in num_pts_list]
                 )
 
-                dim0_num_pts = f1_num_pts[0] + f2_num_pts[0]
-                dim1_num_pts = max(f1_num_pts[1], f2_num_pts[1])
+                dim0_num_pts = int(sum(n[0] for n in num_pts_list))
+                dim1_num_pts = int(max(n[1] for n in num_pts_list))
                 logger.info(
-                    "  Combined num_pts: dim0=%d (file1 %d + file2 %d)  dim1=%d",
+                    "  Combined num_pts: dim0=%d (sum of %s)  dim1=%d (max of %s)",
                     dim0_num_pts,
-                    f1_num_pts[0],
-                    f2_num_pts[0],
+                    [int(n[0]) for n in num_pts_list],
                     dim1_num_pts,
+                    [int(n[1]) for n in num_pts_list],
                 )
                 del fo[f"/qmap/{prefix}_num_pts"]
                 fo[f"/qmap/{prefix}_num_pts"] = np.array([dim0_num_pts, dim1_num_pts])
 
-                # Combine dim0 value list (concatenate both ranges)
+                # Combine dim0 value list (concatenate all ranges, in file order)
                 v_list_dim0 = np.concatenate(
-                    [
-                        f1[f"/qmap/{prefix}_v_list_dim0"][()],
-                        f2[f"/qmap/{prefix}_v_list_dim0"][()],
-                    ]
+                    [hf[f"/qmap/{prefix}_v_list_dim0"][()] for hf in handles]
                 )
                 logger.debug(
                     "  v_list_dim0: range [%.6g, %.6g], %d entries",
@@ -455,29 +457,31 @@ def combine_qmap_files(qmap_file1, qmap_file2, output_file):
                 del fo[f"/qmap/{prefix}_v_list_dim0"]
                 fo[f"/qmap/{prefix}_v_list_dim0"] = v_list_dim0
 
-                # Keep the longer dim1 value list
-                if f1_num_pts[1] < f2_num_pts[1]:
+                # Keep the dim1 value list from whichever file has the most dim1
+                # bins (ties keep the earliest file, already the output's base).
+                winner = max(range(len(handles)), key=lambda i: num_pts_list[i][1])
+                if winner != 0:
                     logger.debug(
-                        "  v_list_dim1: using file2's list (%d > %d entries)",
-                        f2_num_pts[1],
-                        f1_num_pts[1],
+                        "  v_list_dim1: using file[%d]'s list (%d entries)",
+                        winner,
+                        num_pts_list[winner][1],
                     )
                     del fo[f"/qmap/{prefix}_v_list_dim1"]
-                    fo[f"/qmap/{prefix}_v_list_dim1"] = f2[
+                    fo[f"/qmap/{prefix}_v_list_dim1"] = handles[winner][
                         f"/qmap/{prefix}_v_list_dim1"
                     ][()]
 
-                # Merge roi maps: offset file2's non-zero indices so they don't
-                # collide with file1's, then add the two maps together.
-                roi_map1 = f1[f"/qmap/{prefix}_roi_map"][()]
-                roi_map2 = f2[f"/qmap/{prefix}_roi_map"][()].copy()
-                logger.debug(
-                    "  roi_map: file1 max=%d  file2 max=%d",
-                    roi_map1.max(),
-                    roi_map2.max(),
-                )
-                roi_map2[roi_map2 > 0] += np.max(roi_map1[roi_map1 > 0])
-                roi_map = roi_map1 + roi_map2
+                # Merge roi maps: fold files in one at a time, offsetting each
+                # newcomer's non-zero indices past the running total so they
+                # don't collide, then adding it in (files are assumed to cover
+                # disjoint pixels, same assumption the 2-file version made).
+                roi_map = handles[0][f"/qmap/{prefix}_roi_map"][()].astype(np.int64)
+                for hf in handles[1:]:
+                    next_roi = hf[f"/qmap/{prefix}_roi_map"][()].astype(np.int64)
+                    running_max = np.max(roi_map[roi_map > 0], initial=0)
+                    next_roi = next_roi.copy()
+                    next_roi[next_roi > 0] += running_max
+                    roi_map = roi_map + next_roi
 
                 start_index = np.min(roi_map)
 

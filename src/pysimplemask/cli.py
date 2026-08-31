@@ -206,10 +206,12 @@ def main() -> None:
 
     # ── combine ───────────────────────────────────────────────────────────────
     p_combine = subparsers.add_parser(
-        "combine", help="Combine two qmap HDF5 files into one."
+        "combine", help="Combine two or more qmap HDF5 files into one."
     )
-    p_combine.add_argument("qmap_file1", help="Path to the first qmap HDF5 file.")
-    p_combine.add_argument("qmap_file2", help="Path to the second qmap HDF5 file.")
+    p_combine.add_argument(
+        "qmap_files", nargs="+",
+        help="Paths to two or more qmap HDF5 files to combine.",
+    )
     p_combine.add_argument("output_file", help="Path for the combined output file.")
     p_combine.add_argument("-v", "--verbose", action="store_true",
                            help="Enable DEBUG-level logging.")
@@ -245,7 +247,11 @@ def main() -> None:
             datefmt="%H:%M:%S",
         )
         from pysimplemask.core.partition import combine_qmap_files as _combine
-        _combine(args.qmap_file1, args.qmap_file2, args.output_file)
+        try:
+            _combine(args.qmap_files, args.output_file)
+        except ValueError as exc:
+            logging.error("%s", exc)
+            sys.exit(1)
 
 
 # ---------------------------------------------------------------------------
@@ -254,13 +260,15 @@ def main() -> None:
 
 
 def combine_qmaps() -> None:
-    """CLI entry point: combine two qmap HDF5 files into one."""
+    """CLI entry point: combine two or more qmap HDF5 files into one."""
     parser = argparse.ArgumentParser(
         prog="pysimplemask-combine-qmaps",
-        description="Combine two pySimpleMask qmap HDF5 files into a single output file.",
+        description="Combine two or more pySimpleMask qmap HDF5 files into a single output file.",
     )
-    parser.add_argument("qmap_file1", help="Path to the first qmap HDF5 file.")
-    parser.add_argument("qmap_file2", help="Path to the second qmap HDF5 file.")
+    parser.add_argument(
+        "qmap_files", nargs="+",
+        help="Paths to two or more qmap HDF5 files to combine.",
+    )
     parser.add_argument("output_file", help="Path for the combined output qmap HDF5 file.")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Enable DEBUG-level logging.")
@@ -270,7 +278,11 @@ def combine_qmaps() -> None:
         format="%(asctime)s [%(levelname)s] %(message)s",
         datefmt="%H:%M:%S",
     )
-    combine_qmap_files(args.qmap_file1, args.qmap_file2, args.output_file)
+    try:
+        combine_qmap_files(args.qmap_files, args.output_file)
+    except ValueError as exc:
+        logging.error("%s", exc)
+        sys.exit(1)
 
 
 def _build_qmap_args(argv=None) -> argparse.Namespace:
