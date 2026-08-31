@@ -40,15 +40,26 @@ def test_group_index_renumbers_after_row_removal():
     assert model.data(model.index(0, 1), Qt.DisplayRole) == "phi"
 
 
-def test_group_index_column_not_editable():
+def test_table_is_read_only():
     model = XmapConstraintsTableModel()
     model.addRow(["q", "AND", "A^-1", 0.0, 1.0])
 
-    group_index_flags = model.flags(model.index(0, 0))
-    data_flags = model.flags(model.index(0, 1))
+    for col in range(model.columnCount()):
+        flags = model.flags(model.index(0, col))
+        assert flags & Qt.ItemIsEnabled
+        assert not (flags & Qt.ItemIsEditable)
 
-    assert not (group_index_flags & Qt.ItemIsEditable)
-    assert data_flags & Qt.ItemIsEditable
+
+def test_float_values_display_fixed_point_with_seven_digits():
+    model = XmapConstraintsTableModel()
+    model.addRow(["q", "AND", "A^-1", 1.2e-6, 0.1])
+
+    vbeg = model.data(model.index(0, 4), Qt.DisplayRole)
+    vend = model.data(model.index(0, 5), Qt.DisplayRole)
+
+    assert vbeg == "0.0000012"
+    assert vend == "0.1000000"
+    assert "e" not in vbeg.lower()
 
 
 def test_add_row_still_validated_against_constraint_columns_only():

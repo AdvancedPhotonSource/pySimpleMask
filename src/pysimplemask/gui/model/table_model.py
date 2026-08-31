@@ -41,7 +41,10 @@ class XmapConstraintsTableModel(QtCore.QAbstractTableModel):
             row, col = index.row(), index.column()
             if col == 0:
                 return str(row + 1)
-            return str(self._data[row][col - 1])  # Formatting numbers
+            value = self._data[row][col - 1]
+            if isinstance(value, float):
+                return f"{value:.7f}"  # fixed-point; never scientific notation
+            return str(value)
 
         return None  # Fix for unsupported roles
 
@@ -56,20 +59,10 @@ class XmapConstraintsTableModel(QtCore.QAbstractTableModel):
         self.endInsertRows()
 
     def flags(self, index):
-        """Makes the table editable, except for the derived group-index column."""
+        """The table is read-only; rows are managed via addRow/removeRow."""
         if not index.isValid():
             return Qt.NoItemFlags
-        if index.column() == 0:
-            return Qt.ItemIsSelectable | Qt.ItemIsEnabled
-        return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
-
-    # def setData(self, index, value, role=Qt.EditRole):
-    #     """Allows editing of cells."""
-    #     if index.isValid() and role == Qt.EditRole:
-    #         self._data[index.row()][index.column()] = value
-    #         self.dataChanged.emit(index, index, [Qt.DisplayRole])
-    #         return True
-    #     return False
+        return Qt.ItemIsSelectable | Qt.ItemIsEnabled
 
     def removeRow(self, row):
             """Remove a row from the table."""

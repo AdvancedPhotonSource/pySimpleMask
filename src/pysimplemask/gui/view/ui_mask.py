@@ -804,7 +804,7 @@ class Ui_SimpleMask(object):
 
         self.doubleSpinBox_param_vbeg = QDoubleSpinBox(self.tab6)
         self.doubleSpinBox_param_vbeg.setObjectName(u"doubleSpinBox_param_vbeg")
-        self.doubleSpinBox_param_vbeg.setDecimals(5)
+        self.doubleSpinBox_param_vbeg.setDecimals(7)
         self.doubleSpinBox_param_vbeg.setMinimum(-99999.000000000000000)
         self.doubleSpinBox_param_vbeg.setMaximum(99999.000000000000000)
         self.doubleSpinBox_param_vbeg.setValue(0.000000000000000)
@@ -820,7 +820,7 @@ class Ui_SimpleMask(object):
 
         self.doubleSpinBox_param_vend = QDoubleSpinBox(self.tab6)
         self.doubleSpinBox_param_vend.setObjectName(u"doubleSpinBox_param_vend")
-        self.doubleSpinBox_param_vend.setDecimals(5)
+        self.doubleSpinBox_param_vend.setDecimals(7)
         self.doubleSpinBox_param_vend.setMinimum(-9999.000000000000000)
         self.doubleSpinBox_param_vend.setMaximum(9999.000000000000000)
         self.doubleSpinBox_param_vend.setValue(0.004200000000000)

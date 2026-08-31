@@ -1483,7 +1483,7 @@
                <item>
                 <widget class="QDoubleSpinBox" name="doubleSpinBox_param_vbeg">
                  <property name="decimals">
-                  <number>5</number>
+                  <number>7</number>
                  </property>
                  <property name="minimum">
                   <double>-99999.000000000000000</double>
@@ -1512,7 +1512,7 @@
                <item>
                 <widget class="QDoubleSpinBox" name="doubleSpinBox_param_vend">
                  <property name="decimals">
-                  <number>5</number>
+                  <number>7</number>
                  </property>
                  <property name="minimum">
                   <double>-9999.000000000000000</double>

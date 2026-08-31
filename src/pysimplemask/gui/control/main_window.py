@@ -1305,8 +1305,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
         vmin, vmax = self.sm.qmap[xmap_name].min(), self.sm.qmap[xmap_name].max()
         unit = self.sm.qmap_unit[xmap_name]
-        self.label_param_minval.setText(f"Min: {vmin:.4f} {unit}")
-        self.label_param_maxval.setText(f"Max: {vmax:.4f} {unit}")
+        self.label_param_minval.setText(f"Min: {vmin:.7f} {unit}")
+        self.label_param_maxval.setText(f"Max: {vmax:.7f} {unit}")
         self.doubleSpinBox_param_vbeg.setValue(vmin)
         self.doubleSpinBox_param_vend.setValue(vmax)
 
