@@ -393,6 +393,38 @@ def test_compute_partition_proceeds_when_unapplied_mask_confirmed(qapp, tmp_path
     mock_compute.assert_called_once()
 
 
+def test_compute_partition_refreshes_already_selected_dynamic_map(qapp, tmp_path):
+    """Recomputing refreshes the image when the dynamic map is already selected."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui.plot_index.setCurrentIndex(4)
+    image_before = gui.mp1.image
+
+    gui.compute_partition()
+
+    assert gui.mp1.image is not image_before
+    np.testing.assert_array_equal(gui.mp1.image, gui.sm.dset.data_display[3])
+
+
+def test_update_parameters_refreshes_stale_dynamic_partition_display(qapp, tmp_path):
+    """Clicking "Update Parameters" (recompute the qmap) while the dynamic
+    partition is on screen must refresh it too, not just the qmap geometry
+    channels — otherwise the displayed dynamic/static partition silently goes
+    stale relative to the new geometry."""
+    from unittest.mock import patch
+
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    gui.compute_partition()
+    gui.plot_index.setCurrentIndex(4)  # dynamic_q_partition
+
+    with patch.object(
+        gui.sm, "compute_partition", wraps=gui.sm.compute_partition
+    ) as spy:
+        gui.update_parameters(new_center_vh=(8.0, 6.0))
+
+    spy.assert_called_once()
+    np.testing.assert_array_equal(gui.mp1.image, gui.sm.dset.data_display[3])
+
+
 def test_save_mask_does_not_report_success_when_partition_cancelled(qapp, tmp_path):
     """save_mask must not call save_partition (or show success) if compute_partition
     was aborted (e.g. by cancelling the unapplied-mask prompt) and left new_partition unset."""

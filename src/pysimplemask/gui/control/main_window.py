@@ -1377,7 +1377,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         try:
             self.sm.compute_partition(**kwargs)
             self.statusbar.showMessage("New partition is generated.", 1000)
-            self.plot_index.setCurrentIndex(4)
+            dynamic_map_index = 4
+            if self.plot_index.currentIndex() == dynamic_map_index:
+                self._on_plot_index_changed(dynamic_map_index)
+            else:
+                self.plot_index.setCurrentIndex(dynamic_map_index)
         except Exception:
             traceback.print_exc()
         finally:
@@ -1557,5 +1561,4 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def closeEvent(self, event):
         self.save_load_settings(mode="save")
         event.accept()
-
 

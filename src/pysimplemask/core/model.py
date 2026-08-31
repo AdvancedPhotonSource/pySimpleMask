@@ -52,6 +52,7 @@ class SimpleMaskModel(object):
         self.new_partition = None
         self.draw_rois = []
         self.bad_pixel_set = set()
+        self._partition_kwargs = None
 
     def is_ready(self):
         return self.dset is not None
@@ -244,6 +245,7 @@ class SimpleMaskModel(object):
         return saxs1d, zero_loc
 
     def compute_partition(self, mode="q-phi", **kwargs):
+        self._partition_kwargs = {"mode": mode, **kwargs}
         if mode == "eq-ephi":
             ellipse_param = find_ellipse_parameters(self.mask)
             rho, phi = compute_ellipse_gradient(
@@ -346,6 +348,12 @@ class SimpleMaskModel(object):
         self.dset.update_metadata(new_metadata)
         self.qmap, self.qmap_unit, _labels = self.dset.compute_qmap()
         self.mask_kernel.update_qmap(self.qmap)
+        # The dynamic/static partition maps are derived from self.qmap; once the
+        # geometry moves, a previously-computed partition is stale, so refresh
+        # it with the same settings rather than leave data_display showing a
+        # partition from the discarded geometry.
+        if self.new_partition is not None and self._partition_kwargs is not None:
+            self.compute_partition(**self._partition_kwargs)
 
     def get_center(self, mode="xy"):
         if self.dset is None:

@@ -2,6 +2,7 @@
 # See LICENSE file for details
 import subprocess
 import sys
+from unittest.mock import patch
 
 import numpy as np
 
@@ -39,6 +40,41 @@ def test_model_load_threshold_partition_save(tmp_path, make_hdf):
     out_qmap = tmp_path / "qmap.hdf"
     m.save_partition(str(out_qmap))
     assert out_qmap.exists()
+
+
+def test_update_parameters_recomputes_stale_partition(tmp_path, make_hdf):
+    """Recomputing the qmap must also refresh an already-computed partition.
+
+    Otherwise dset.data_display's dqmap/sqmap_partition channels keep showing a
+    partition derived from the discarded geometry, with nothing telling the
+    caller it is now stale.
+    """
+    path = make_hdf(_frames(), name="scan.h5")
+    m = SimpleMaskModel()
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+
+    partition_kwargs = dict(mode="q-phi", dq_num=2, sq_num=4, dp_num=4, sp_num=8)
+    m.compute_partition(**partition_kwargs)
+
+    new_center = {"beam_center_x": m.dset.metadata["beam_center_x"] + 4.0}
+    with patch.object(m, "compute_partition", wraps=m.compute_partition) as spy:
+        m.update_parameters(new_metadata=new_center)
+
+    spy.assert_called_once_with(**partition_kwargs)
+
+
+def test_update_parameters_does_not_compute_partition_when_none_exists(tmp_path, make_hdf):
+    """Before any partition has been computed, recomputing the qmap must not
+    trigger a partition computation out of nowhere."""
+    path = make_hdf(_frames(), name="scan.h5")
+    m = SimpleMaskModel()
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+    assert m.new_partition is None
+
+    with patch.object(m, "compute_partition", wraps=m.compute_partition) as spy:
+        m.update_parameters(new_metadata={"beam_center_x": 500.0})
+
+    spy.assert_not_called()
 
 
 def test_importing_core_does_not_import_qt():
