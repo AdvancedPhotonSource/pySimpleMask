@@ -1052,6 +1052,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
                     f"No datasets matching shape {self.sm.shape} found in {fname}",
                     5000,
                 )
+            else:
+                for preferred in ("/qmap/mask", "/xpcs/qmap/mask"):
+                    if preferred in paths:
+                        self.comboBox_hdffile_path.setCurrentText(preferred)
+                        break
 
     def load(self):
         # self.fname.setText('/mnt/c/Users/mqichu/Documents/local_dev/pysimplemask/tests/data/E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_att04_Rq0_00001_0001-100000.hdf')
