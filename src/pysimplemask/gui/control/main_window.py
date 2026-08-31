@@ -1303,10 +1303,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
         xmap_name = self.comboBox_param_xmap_name.currentText()
         if not xmap_name:
             return
-        vmin, vmax = self.sm.qmap[xmap_name].min(), self.sm.qmap[xmap_name].max()
+        xmap = self.sm.qmap[xmap_name]
+        mask = self.sm.mask
+        valid = xmap[mask] if mask is not None and mask.any() else xmap
+        vmin, vmax = float(valid.min()), float(valid.max())
         unit = self.sm.qmap_unit[xmap_name]
         self.label_param_minval.setText(f"Min: {vmin:.7f} {unit}")
         self.label_param_maxval.setText(f"Max: {vmax:.7f} {unit}")
+        for spinbox in (self.doubleSpinBox_param_vbeg, self.doubleSpinBox_param_vend):
+            spinbox.setMinimum(vmin)
+            spinbox.setMaximum(vmax)
         self.doubleSpinBox_param_vbeg.setValue(vmin)
         self.doubleSpinBox_param_vend.setValue(vmax)
 

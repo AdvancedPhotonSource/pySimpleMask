@@ -57,6 +57,28 @@ def test_find_center_button_no_crash(qapp, tmp_path):
     assert np.isfinite(cy) and np.isfinite(cx)
 
 
+def test_update_xmap_limits_excludes_masked_pixels(qapp, tmp_path):
+    """The min/max shown and the spinbox range must ignore masked-out pixels."""
+    gui = _load_gui(tmp_path, np.ones((2, 8, 8), dtype=np.uint16))
+    xmap_name = next(iter(gui.sm.qmap))
+    gui.comboBox_param_xmap_name.addItem(xmap_name)
+    gui.comboBox_param_xmap_name.setCurrentText(xmap_name)
+
+    xmap = gui.sm.qmap[xmap_name]
+    max_idx = np.unravel_index(np.argmax(xmap), xmap.shape)
+    gui.sm.mask[max_idx] = False
+    unmasked_max = xmap[gui.sm.mask].max()
+    assert unmasked_max < xmap.max()  # sanity: the mask actually excludes the peak
+
+    gui.update_xmap_limits()
+
+    assert gui.doubleSpinBox_param_vend.value() == pytest.approx(unmasked_max)
+    assert gui.doubleSpinBox_param_vend.maximum() == pytest.approx(unmasked_max)
+    assert gui.doubleSpinBox_param_vbeg.minimum() == pytest.approx(
+        xmap[gui.sm.mask].min()
+    )
+
+
 def test_log_scale_checkbox_switches_display_mode(qapp, tmp_path):
     """Toggling plot_log changes data_display channels 0 and 1."""
     rng = np.random.default_rng(42)
