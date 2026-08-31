@@ -171,6 +171,62 @@ def generate_partition(
     }
 
 
+def generate_groupindex_partitions(
+    map_name: str,
+    group_index_map: np.ndarray,
+    num_groups: int,
+    xmap: np.ndarray,
+    sq_num_per_group: int,
+    style: str = "linear",
+) -> tuple:
+    """
+    Builds dq/sq-equivalent partition packs from a pre-labeled group-index map
+    instead of a linear/log rebin of the whole ROI.
+
+    Each group (a value 1..num_groups in ``group_index_map``, 0 = excluded) becomes
+    exactly one dynamic bin, with its own ``sq_num_per_group`` static sub-bins.
+    Groups are assumed spatially disjoint. Returned packs have the same shape as
+    ``generate_partition``'s output and plug directly into ``combine_partitions``.
+
+    Returns
+    -------
+    tuple[dict, dict]
+        ``(pack_dq, pack_sq)`` — ``pack_dq`` has ``num_pts == num_groups``;
+        ``pack_sq`` has ``num_pts == num_groups * sq_num_per_group``.
+    """
+    dq_partition = np.zeros(group_index_map.shape, dtype=np.uint32)
+    dq_v_list = []
+    sq_partition = np.zeros(group_index_map.shape, dtype=np.uint32)
+    sq_v_list = []
+
+    for g in range(1, num_groups + 1):
+        sub_mask = group_index_map == g
+
+        pack_dq_g = generate_partition(map_name, sub_mask, xmap, 1, style=style)
+        dq_partition[pack_dq_g["partition"] > 0] = g
+        dq_v_list.append(pack_dq_g["v_list"][0])
+
+        pack_sq_g = generate_partition(map_name, sub_mask, xmap, sq_num_per_group, style=style)
+        local_sq = pack_sq_g["partition"]
+        offset = (g - 1) * sq_num_per_group
+        sq_partition[local_sq > 0] = local_sq[local_sq > 0] + offset
+        sq_v_list.append(pack_sq_g["v_list"])
+
+    pack_dq = {
+        "map_name": map_name,
+        "num_pts": num_groups,
+        "partition": dq_partition,
+        "v_list": np.array(dq_v_list),
+    }
+    pack_sq = {
+        "map_name": map_name,
+        "num_pts": num_groups * sq_num_per_group,
+        "partition": sq_partition,
+        "v_list": np.concatenate(sq_v_list) if sq_v_list else np.zeros(0),
+    }
+    return pack_dq, pack_sq
+
+
 def combine_partitions(
     pack1: Dict[str, Union[str, int, np.ndarray]],
     pack2: Dict[str, Union[str, int, np.ndarray]],

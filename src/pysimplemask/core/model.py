@@ -18,6 +18,7 @@ from .outlier_removal import outlier_removal_adjacent_boxes, outlier_removal_wit
 from .partition import (
     check_consistency,
     combine_partitions,
+    generate_groupindex_partitions,
     generate_partition,
     hash_numpy_dict,
     optimize_integer_array,
@@ -105,6 +106,13 @@ class SimpleMaskModel(object):
         else:
             self.mask = self.mask_kernel.apply(target)
         self.dset.update_mask(self.mask)
+
+    def get_parameter_group_count(self):
+        """Number of constraint groups from the last-evaluated parametrization mask
+        (see MaskParameter.group_index_map), or 0 if none is available yet."""
+        if self.mask_kernel is None:
+            return 0
+        return self.mask_kernel.workers["mask_parameter"].num_groups
 
     def get_pts_with_similar_intensity(self, cen=None, radius=50, variation=50):
         return self.dset.get_pts_with_similar_intensity(cen, radius, variation)
@@ -281,15 +289,71 @@ class SimpleMaskModel(object):
         sp_num=360,
         phi_offset=0.0,
         symmetry_fold=1,
+        use_groupindex_for_dq=False,
     ):
         if self.dset is None:
             return None
 
         name0, name1 = map_names
-        #  generate dynamic partition
-        pack_dq = generate_partition(
-            name0, self.mask, self.qmap[name0], dq_num, style=style, phi_offset=None
-        )
+
+        if use_groupindex_for_dq:
+            worker = self.mask_kernel.workers["mask_parameter"]
+            if not worker.num_groups or worker.group_index_map is None:
+                raise RuntimeError(
+                    "use_groupindex_for_dq requested but no parametrization "
+                    "constraint groups are available; evaluate/apply the "
+                    "parametrization mask first"
+                )
+            # the true group count comes from the mask engine, not the caller's
+            # dq_num, so a stale/mismatched dq_num can't silently corrupt the result
+            num_groups = worker.num_groups
+            overlaps = worker.find_overlaps(mask=self.mask)
+            if overlaps:
+                # group_index_map resolves overlaps via last-write-wins with no
+                # indication anything happened; use_groupindex_for_dq assumes
+                # non-overlapping groups, so surface it instead of silently
+                # mis-assigning pixels between groups.
+                details = "; ".join(
+                    f"{worker.describe_constraint(i)} overlaps "
+                    f"{worker.describe_constraint(j)} in {count} pixel(s)"
+                    for i, j, count in overlaps
+                )
+                raise RuntimeError(
+                    "use_groupindex_for_dq requires non-overlapping constraint "
+                    f"groups, but found overlap(s): {details}."
+                )
+            effective_group_index = worker.group_index_map * self.mask
+            present_groups = set(np.unique(effective_group_index).tolist()) - {0}
+            empty_groups = [g for g in range(1, num_groups + 1) if g not in present_groups]
+            if empty_groups:
+                # combine_partitions compacts away empty bins from the roi_map but
+                # leaves v_list_dim0 uncompacted, so proceeding would silently
+                # misalign the two in the saved file — fail loudly instead.
+                raise RuntimeError(
+                    "use_groupindex_for_dq: constraint group-index "
+                    f"{empty_groups} matched 0 pixels (after combining with the "
+                    "rest of the mask). Fix or remove the corresponding "
+                    "parametrization row(s) before computing the partition."
+                )
+            sq_num_per_group = sq_num // num_groups
+            pack_dq, pack_sq = generate_groupindex_partitions(
+                name0,
+                effective_group_index,
+                num_groups,
+                self.qmap[name0],
+                sq_num_per_group,
+                style=style,
+            )
+        else:
+            #  generate dynamic partition
+            pack_dq = generate_partition(
+                name0, self.mask, self.qmap[name0], dq_num, style=style, phi_offset=None
+            )
+            # generate static partition
+            pack_sq = generate_partition(
+                name0, self.mask, self.qmap[name0], sq_num, style=style, phi_offset=None
+            )
+
         pack_dp = generate_partition(
             name1,
             self.mask,
@@ -301,10 +365,6 @@ class SimpleMaskModel(object):
         )
         dynamic_map = combine_partitions(pack_dq, pack_dp, prefix="dynamic")
 
-        # generate static partition
-        pack_sq = generate_partition(
-            name0, self.mask, self.qmap[name0], sq_num, style=style, phi_offset=None
-        )
         pack_sp = generate_partition(
             name1,
             self.mask,

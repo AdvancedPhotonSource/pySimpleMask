@@ -5,8 +5,10 @@ import sys
 from unittest.mock import patch
 
 import numpy as np
+import pytest
 
 from pysimplemask.core import SimpleMaskModel
+from pysimplemask.core.partition import check_consistency
 
 
 def _frames():
@@ -75,6 +77,116 @@ def test_update_parameters_does_not_compute_partition_when_none_exists(tmp_path,
         m.update_parameters(new_metadata={"beam_center_x": 500.0})
 
     spy.assert_not_called()
+
+
+def test_compute_partition_with_groupindex_for_dq(tmp_path, make_hdf):
+    """Constraint groups from the parametrization mask can drive dq directly,
+    instead of a linear rebin of the q-range."""
+    path = make_hdf(_frames(), name="scan.h5")
+    m = SimpleMaskModel()
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+    assert m.get_parameter_group_count() == 0
+
+    q = m.qmap["q"]
+    q_min, q_max = q[m.mask].min(), q[m.mask].max()
+    q_mid = (q_min + q_max) / 2.0
+    num_groups = 2
+    constraints = [
+        ("q", "AND", m.qmap_unit["q"], q_min, q_mid),
+        ("q", "OR", m.qmap_unit["q"], q_mid, q_max),
+    ]
+    m.mask_evaluate("mask_parameter", constraints=constraints)
+    m.mask_apply("mask_parameter")
+    assert m.get_parameter_group_count() == num_groups
+
+    sq_num = 8
+    partition = m.compute_partition(
+        mode="q-phi", use_groupindex_for_dq=True, sq_num=sq_num, dp_num=2, sp_num=4
+    )
+
+    assert partition is not None
+    assert partition["dynamic_num_pts"][0] == num_groups
+    assert partition["static_num_pts"][0] == num_groups * (sq_num // num_groups)
+    assert check_consistency(
+        partition["dynamic_roi_map"], partition["static_roi_map"], m.mask
+    )
+
+
+def test_compute_partition_with_groupindex_for_dq_without_groups_raises(
+    tmp_path, make_hdf
+):
+    """use_groupindex_for_dq without an evaluated parametrization mask must fail
+    loudly rather than silently falling back to a linear rebin."""
+    path = make_hdf(_frames(), name="scan.h5")
+    m = SimpleMaskModel()
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+
+    with pytest.raises(RuntimeError):
+        m.compute_partition(
+            mode="q-phi", use_groupindex_for_dq=True, sq_num=8, dp_num=2, sp_num=4
+        )
+    assert m.new_partition is None
+
+
+def test_compute_partition_with_groupindex_for_dq_raises_on_empty_group(
+    tmp_path, make_hdf
+):
+    """An empty constraint group (its own range matches 0 pixels) must fail loudly.
+
+    combine_partitions compacts away empty bins in dynamic_roi_map/static_roi_map
+    but leaves v_list_dim0 uncompacted, so silently proceeding would save a qmap
+    file where v_list_dim0 no longer lines up with the roi_map's group numbers.
+    """
+    path = make_hdf(_frames(), name="scan.h5")
+    m = SimpleMaskModel()
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+
+    q = m.qmap["q"]
+    q_min, q_max = q[m.mask].min(), q[m.mask].max()
+    q_mid = (q_min + q_max) / 2.0
+    unit = m.qmap_unit["q"]
+    constraints = [
+        ("q", "AND", unit, q_min, q_mid),
+        ("q", "OR", unit, q_max + 100, q_max + 200),  # matches nothing: empty group
+        ("q", "OR", unit, q_mid, q_max),
+    ]
+    m.mask_evaluate("mask_parameter", constraints=constraints)
+    m.mask_apply("mask_parameter")
+    assert m.get_parameter_group_count() == 3
+
+    with pytest.raises(RuntimeError):
+        m.compute_partition(
+            mode="q-phi", use_groupindex_for_dq=True, sq_num=9, dp_num=2, sp_num=4
+        )
+    assert m.new_partition is None
+
+
+def test_compute_partition_with_groupindex_for_dq_raises_on_overlap(tmp_path, make_hdf):
+    """Overlapping constraint ranges violate the non-overlapping-groups assumption
+    and must fail loudly, with the offending rows named, rather than silently
+    resolving via last-write-wins."""
+    path = make_hdf(_frames(), name="scan.h5")
+    m = SimpleMaskModel()
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+
+    q = m.qmap["q"]
+    q_min, q_max = q[m.mask].min(), q[m.mask].max()
+    q_span = q_max - q_min
+    unit = m.qmap_unit["q"]
+    # row0: [q_min, q_min + 0.6*span]   row1: [q_min + 0.4*span, q_max]  -> overlap
+    constraints = [
+        ("q", "AND", unit, q_min, q_min + 0.6 * q_span),
+        ("q", "OR", unit, q_min + 0.4 * q_span, q_max),
+    ]
+    m.mask_evaluate("mask_parameter", constraints=constraints)
+    m.mask_apply("mask_parameter")
+    assert m.get_parameter_group_count() == 2
+
+    with pytest.raises(RuntimeError, match="overlap"):
+        m.compute_partition(
+            mode="q-phi", use_groupindex_for_dq=True, sq_num=8, dp_num=2, sp_num=4
+        )
+    assert m.new_partition is None
 
 
 def test_importing_core_does_not_import_qt():

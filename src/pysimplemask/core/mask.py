@@ -141,10 +141,16 @@ class MaskParameter(MaskBase):
     def __init__(self, shape=(512, 1024)) -> None:
         super().__init__(shape=shape)
         self.constraints = []
+        self.group_index_map = None
+        self.num_groups = 0
+        self.row_masks = []
 
     def evaluate(self, qmap=None, constraints=None):
+        constraints = constraints or []
         mask = np.ones(self.shape, dtype=bool)
-        for xmap_name, logic, unit, vbeg, vend in constraints:
+        group_index_map = np.zeros(self.shape, dtype=np.uint32)
+        row_masks = []
+        for i, (xmap_name, logic, unit, vbeg, vend) in enumerate(constraints):
             xmap = qmap[xmap_name]
             if xmap_name in ["phi", "chi", "alpha"] and unit == "deg":
                 # deal with the periodicity of the angle,
@@ -159,7 +165,42 @@ class MaskParameter(MaskBase):
                 mask = np.logical_and(mask, mask_t)
             elif logic == "OR":
                 mask = np.logical_or(mask, mask_t)
+            # group-index labels each pixel with the constraint row (1-based) whose
+            # own range captured it, independent of the AND/OR combination above.
+            # Rows are assumed spatially non-overlapping; a compound region built
+            # from several AND-ed rows simply ends up labeled by the last one.
+            group_index_map[mask_t] = i + 1
+            row_masks.append(mask_t)
+        group_index_map[~mask] = 0
         self.zero_loc = np.array(np.nonzero(~mask))
+        self.group_index_map = group_index_map
+        self.num_groups = len(constraints)
+        self.constraints = constraints
+        self.row_masks = row_masks
+
+    def find_overlaps(self, mask=None):
+        """Pairs of constraint rows whose own (pre AND/OR) candidate masks
+        overlap, restricted to `mask` (default: this worker's own final mask).
+
+        Returns a list of (row_i, row_j, pixel_count) tuples, 1-based, one per
+        conflicting pair. Empty if every row's own captured region is disjoint
+        from every other row's — the assumption group-index-based features rely
+        on.
+        """
+        if mask is None:
+            mask = self.get_mask()
+        conflicts = []
+        for i in range(len(self.row_masks)):
+            for j in range(i + 1, len(self.row_masks)):
+                count = int(np.count_nonzero(self.row_masks[i] & self.row_masks[j] & mask))
+                if count:
+                    conflicts.append((i + 1, j + 1, count))
+        return conflicts
+
+    def describe_constraint(self, row_index_1based):
+        """Human-readable description of one constraint row, for diagnostics."""
+        xmap_name, logic, unit, vbeg, vend = self.constraints[row_index_1based - 1]
+        return f"row {row_index_1based} ({xmap_name} {logic} [{vbeg:g}, {vend:g}] {unit})"
 
 
 class MaskArray(MaskBase):

@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'mask.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.6.3
+## Created by: Qt User Interface Compiler version 6.10.3
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -155,7 +155,7 @@ class Ui_SimpleMask(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 710, 68))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 718, 68))
         self.gridLayout_9 = QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_9.setObjectName(u"gridLayout_9")
         self.gridLayout_9.setContentsMargins(0, 0, 0, 0)
@@ -962,6 +962,11 @@ class Ui_SimpleMask(object):
 
         self.gridLayout_6.addWidget(self.spinBox_symmetry_fold, 1, 8, 3, 1)
 
+        self.checkBox_use_groupindex_for_dq = QCheckBox(self.tab_9)
+        self.checkBox_use_groupindex_for_dq.setObjectName(u"checkBox_use_groupindex_for_dq")
+
+        self.gridLayout_6.addWidget(self.checkBox_use_groupindex_for_dq, 0, 5, 1, 2)
+
 
         self.gridLayout_32.addLayout(self.gridLayout_6, 0, 0, 1, 1)
 
@@ -1302,8 +1307,8 @@ class Ui_SimpleMask(object):
 
         self.line_3 = QFrame(self.groupBox_4)
         self.line_3.setObjectName(u"line_3")
-        self.line_3.setFrameShape(QFrame.VLine)
-        self.line_3.setFrameShadow(QFrame.Sunken)
+        self.line_3.setFrameShape(QFrame.Shape.VLine)
+        self.line_3.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_3.addWidget(self.line_3, 1, 6, 1, 1)
 
@@ -1363,15 +1368,15 @@ class Ui_SimpleMask(object):
 
         self.line_2 = QFrame(self.groupBox_4)
         self.line_2.setObjectName(u"line_2")
-        self.line_2.setFrameShape(QFrame.VLine)
-        self.line_2.setFrameShadow(QFrame.Sunken)
+        self.line_2.setFrameShape(QFrame.Shape.VLine)
+        self.line_2.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_3.addWidget(self.line_2, 1, 10, 1, 1)
 
         self.line = QFrame(self.groupBox_4)
         self.line.setObjectName(u"line")
-        self.line.setFrameShape(QFrame.VLine)
-        self.line.setFrameShadow(QFrame.Sunken)
+        self.line.setFrameShape(QFrame.Shape.VLine)
+        self.line.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_3.addWidget(self.line, 0, 8, 1, 1)
 
@@ -1406,8 +1411,8 @@ class Ui_SimpleMask(object):
 
         self.line_4 = QFrame(self.groupBox_4)
         self.line_4.setObjectName(u"line_4")
-        self.line_4.setFrameShape(QFrame.VLine)
-        self.line_4.setFrameShadow(QFrame.Sunken)
+        self.line_4.setFrameShape(QFrame.Shape.VLine)
+        self.line_4.setFrameShadow(QFrame.Shadow.Sunken)
 
         self.gridLayout_3.addWidget(self.line_4, 1, 2, 1, 1)
 
@@ -1567,6 +1572,7 @@ class Ui_SimpleMask(object):
         self.label_13.setText(QCoreApplication.translate("SimpleMask", u"dynamic phi num:", None))
         self.label_43.setText(QCoreApplication.translate("SimpleMask", u"offset (deg):", None))
         self.label_41.setText(QCoreApplication.translate("SimpleMask", u"symmetry", None))
+        self.checkBox_use_groupindex_for_dq.setText(QCoreApplication.translate("SimpleMask", u"Use group-index for dq", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_9), QCoreApplication.translate("SimpleMask", u"q-phi", None))
         self.label_38.setText(QCoreApplication.translate("SimpleMask", u"static y:", None))
         self.label_34.setText(QCoreApplication.translate("SimpleMask", u"static x:", None))

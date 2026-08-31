@@ -26,7 +26,9 @@ and a **headless Python API** that can drive the full pipeline from scripts.
     - *CircularRings*: SAXS 1-D azimuthal average comparison per q-ring.
     - *AdjacentPixels*: fixed-size spatial boxes, sorted brightest-first.
     - Both support percentile-clip and MAD metrics.
-  - Parametric masking by q-map range (q, phi, x, y, …).
+  - Parametric masking by q-map range (q, phi, x, y, …); each constraint row gets a
+    1-based group-index, so a set of non-overlapping ranges can double as an explicit
+    dynamic-q grouping for partitioning (see below).
   - Undo / redo / reset mask history.
 - **Beam-center finding** — iterative centro-symmetry cross-correlation, converges
   in 1–2 passes; bounded crop for speed on large detectors.
@@ -35,6 +37,13 @@ and a **headless Python API** that can drive the full pipeline from scripts.
   - X-Y spatial partitions.
   - Ellipse-corrected Q-Phi (eq-ephi).
   - Custom axis pair from any q-map channel.
+  - **Group-index dynamic q** — drive the dynamic-q partition directly from the
+    parametrization tab's constraint groups instead of a linear/log rebin: each
+    constraint row becomes one dynamic bin, subdivided into its own static sub-bins.
+    Requires non-overlapping constraint ranges (validated — overlapping or empty
+    groups raise a descriptive error rather than silently mis-binning). GUI: the
+    "Use group-index for dq" checkbox on the q-phi partition tab. Script/CLI:
+    `use_groupindex_for_dq=True` / `--use-groupindex-for-dq`.
 - **Visualization** — real-time display of scattering, mask, preview, and partition
   maps; adjustable colormap, log scale, beam-center marker; raw-frame browser with
   per-frame or averaged display for multi-frame HDF5 files.
@@ -111,6 +120,20 @@ m.save_mask("mask.tif")
 Geometry helpers available on the model: `add_polygon`, `add_circle`, `add_ellipse`,
 `add_rectangle`, `add_line` (all accept `mode="exclusive"` or `"inclusive"`).
 
+To use explicit, non-overlapping q-ranges as the dynamic-q groups directly (instead of
+a linear/log rebin), evaluate/apply a parametrization mask, then pass
+`use_groupindex_for_dq=True`; `sq_num` is split evenly across the groups and `dq_num`
+is ignored (the group count is used instead):
+
+```python
+m.mask_evaluate("mask_parameter", constraints=[
+    ("q", "AND", "A^-1", 0.01, 0.05),   # group 1
+    ("q", "OR",  "A^-1", 0.05, 0.10),   # group 2
+])
+m.mask_apply("mask_parameter")
+m.compute_partition(mode="q-phi", use_groupindex_for_dq=True, sq_num=100, dp_num=36, sp_num=360)
+```
+
 ## Web Viewer
 
 ```bash
@@ -143,6 +166,15 @@ pysimplemask-build-qmap scan.hdf \
     --output-qmap qmap.hdf \
     --output-mask mask.tif \
     --report summary.pdf              # omit to auto-name, pass "" to skip
+
+# Group-index dynamic q: each --param-constraint becomes one non-overlapping
+# dynamic-q bin instead of a linear rebin; --dq-num is ignored.
+pysimplemask-build-qmap scan.hdf \
+    --param-constraint q:AND:0.01:0.05 \
+    --param-constraint q:OR:0.05:0.10 \
+    --use-groupindex-for-dq \
+    --sq-num 100 \
+    --output-qmap qmap.hdf
 
 # Merge two existing qmap files
 pysimplemask-combine-qmaps file1.hdf file2.hdf output.hdf

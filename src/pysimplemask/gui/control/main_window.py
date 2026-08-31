@@ -231,6 +231,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.tableView.setModel(self.model)
         self.btn_mask_param_add.clicked.connect(self.add_param_constraint)
         self.btn_mask_param_delete.clicked.connect(self.delete_param_constraint)
+        self.checkBox_use_groupindex_for_dq.toggled.connect(
+            self._on_use_groupindex_for_dq_toggled
+        )
 
         self.btn_mask_evaluate.clicked.connect(self.mask_evaluate_current_tab)
 
@@ -255,6 +258,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.MaskWidget.setCurrentIndex(0)
         header = self.tableView.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.tabWidget.setCurrentIndex(0)
 
         self.comboBox_partition_mapname0.currentIndexChanged.connect(
@@ -453,6 +457,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # ── Q-phi partition ───────────────────────────────────────────────────
         self.sb_sqnum.setToolTip("Number of q-rings in the static (fine) partition")
         self.sb_dqnum.setToolTip("Number of q-rings in the dynamic (coarse) partition")
+        self.checkBox_use_groupindex_for_dq.setToolTip(
+            "Use the parametrization tab's constraint groups as the dynamic q "
+            "partition directly, instead of a linear/log rebin. Requires "
+            "evaluating and applying a parametrization mask first."
+        )
         self.sb_spnum.setToolTip("Number of φ sectors in the static partition")
         self.sb_dpnum.setToolTip("Number of φ sectors in the dynamic partition")
         self.doubleSpinBox_phi_offset.setToolTip(
@@ -785,6 +794,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.mask_list_clear()
         elif target == "mask_parameter":
             self.model.clear()
+            if self.checkBox_use_groupindex_for_dq.isChecked():
+                # the group count may have changed with this new set of
+                # constraints, so re-sync sb_dqnum rather than let it go stale
+                self._on_use_groupindex_for_dq_toggled(True)
 
         self.plot()
         self.plot_index.setCurrentIndex(2)
@@ -1315,6 +1328,22 @@ class SimpleMaskGUI(QMainWindow, Ui):
         idx = self.tableView.currentIndex().row()
         self.model.removeRow(idx)
 
+    def _on_use_groupindex_for_dq_toggled(self, checked):
+        if not checked:
+            self.sb_dqnum.setDisabled(False)
+            return
+        num_groups = self.sm.get_parameter_group_count()
+        if not num_groups:
+            self.statusbar.showMessage(
+                "No parametrization constraint groups found — evaluate and apply "
+                "constraints on the parametrization tab first.",
+                5000,
+            )
+            self.checkBox_use_groupindex_for_dq.setChecked(False)
+            return
+        self.sb_dqnum.setValue(num_groups)
+        self.sb_dqnum.setDisabled(True)
+
     def compute_partition(self):
         if not self.is_ready():
             return
@@ -1332,6 +1361,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 "phi_offset": self.doubleSpinBox_phi_offset.value(),
                 "style": self.partition_style.currentText(),
                 "symmetry_fold": self.spinBox_symmetry_fold.value(),
+                "use_groupindex_for_dq": self.checkBox_use_groupindex_for_dq.isChecked(),
             }
             sq_spinbox, sp_spinbox = self.sb_sqnum, self.sb_spnum
         elif tab_name == "xy-mesh":

@@ -108,6 +108,16 @@ def _add_build_args(parser: argparse.ArgumentParser) -> None:
         "--style", default="linear", choices=["linear", "logarithmic"],
         help="Bin spacing style.",
     )
+    grp_part.add_argument(
+        "--use-groupindex-for-dq", action="store_true",
+        help=(
+            "Use the --param-constraint groups as the dynamic q partition "
+            "directly, instead of a linear/log rebin of the q-range. Each "
+            "constraint (in the order given) becomes one dynamic q bin, with "
+            "--sq-num // <number of constraints> static sub-bins; --dq-num is "
+            "ignored. Requires at least one --param-constraint."
+        ),
+    )
 
     # output
     grp_out = parser.add_argument_group("output")
@@ -360,10 +370,22 @@ def _run_build_qmap(args) -> None:
         m.mask_apply("mask_parameter")
         logging.info("Applied param constraints: %s", args.param_constraints)
 
+    if args.use_groupindex_for_dq and not m.get_parameter_group_count():
+        raise RuntimeError(
+            "--use-groupindex-for-dq requires at least one --param-constraint "
+            "to define the dynamic-q groups."
+        )
+
     bad = int(m.mask.size - m.mask.sum())
     logging.info("Final mask: %d pixels masked (%.2f%%)", bad, bad / m.mask.size * 100)
 
     # 4. Partition
+    if args.use_groupindex_for_dq:
+        logging.info(
+            "use-groupindex-for-dq enabled: --dq-num is ignored, using %d "
+            "groups from --param-constraint",
+            m.get_parameter_group_count(),
+        )
     m.compute_partition(
         mode=args.mode,
         dq_num=args.dq_num,
@@ -373,7 +395,10 @@ def _run_build_qmap(args) -> None:
         phi_offset=args.phi_offset,
         symmetry_fold=args.symmetry_fold,
         style=args.style,
+        use_groupindex_for_dq=args.use_groupindex_for_dq,
     )
+    if m.new_partition is None:
+        raise RuntimeError("Partition computation failed; see log above for details.")
     logging.info("Partition computed (mode=%s)", args.mode)
 
     # 5. Save
@@ -409,6 +434,7 @@ def _run_build_qmap(args) -> None:
             "phi_offset": args.phi_offset,
             "symmetry_fold": args.symmetry_fold,
             "style": args.style,
+            "use_groupindex_for_dq": args.use_groupindex_for_dq,
         }
         generate_report(m, report_path, params=report_params)
 

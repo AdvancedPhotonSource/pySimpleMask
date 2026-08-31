@@ -8,7 +8,10 @@ class XmapConstraintsTableModel(QtCore.QAbstractTableModel):
     def __init__(self, data=None, parent=None):
         super().__init__(parent)
         self._data = data or []  # Renamed from `self.data` to `self._data`
-        self.headers = ('map_name', 'logic', 'unit', 'val_begin', 'val_end')
+        self.data_headers = ('map_name', 'logic', 'unit', 'val_begin', 'val_end')
+        # group-index is derived from row position (1-based), not stored per-row,
+        # so it stays correct after rows are added/removed/reordered.
+        self.headers = ('group-index',) + self.data_headers
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int):
         """Returns the headers for the table."""
@@ -36,13 +39,15 @@ class XmapConstraintsTableModel(QtCore.QAbstractTableModel):
 
         if role == Qt.DisplayRole:
             row, col = index.row(), index.column()
-            return str(self._data[row][col])  # Formatting numbers
+            if col == 0:
+                return str(row + 1)
+            return str(self._data[row][col - 1])  # Formatting numbers
 
         return None  # Fix for unsupported roles
 
     def addRow(self, row_data):
         """Adds a new row to the model."""
-        if not row_data or len(row_data) != self.columnCount():
+        if not row_data or len(row_data) != len(self.data_headers):
             return  # Ignore invalid row data
 
         row_index = self.rowCount()
@@ -51,9 +56,11 @@ class XmapConstraintsTableModel(QtCore.QAbstractTableModel):
         self.endInsertRows()
 
     def flags(self, index):
-        """Makes the table editable."""
+        """Makes the table editable, except for the derived group-index column."""
         if not index.isValid():
             return Qt.NoItemFlags
+        if index.column() == 0:
+            return Qt.ItemIsSelectable | Qt.ItemIsEnabled
         return Qt.ItemIsSelectable | Qt.ItemIsEnabled | Qt.ItemIsEditable
 
     # def setData(self, index, value, role=Qt.EditRole):

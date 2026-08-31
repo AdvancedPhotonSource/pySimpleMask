@@ -441,3 +441,103 @@ def test_save_mask_does_not_report_success_when_partition_cancelled(qapp, tmp_pa
                 gui.save_mask()
     mock_compute.assert_called_once()
     mock_save.assert_not_called()
+
+
+def _apply_parametrization_groups(gui, constraints):
+    gui.sm.mask_evaluate("mask_parameter", constraints=constraints)
+    gui.mask_apply("mask_parameter")
+
+
+def _two_group_constraints(gui):
+    q = gui.sm.qmap["q"]
+    q_min, q_max = q[gui.sm.mask].min(), q[gui.sm.mask].max()
+    q_mid = (q_min + q_max) / 2.0
+    return [
+        ("q", "AND", gui.sm.qmap_unit["q"], q_min, q_mid),
+        ("q", "OR", gui.sm.qmap_unit["q"], q_mid, q_max),
+    ]
+
+
+def test_groupindex_checkbox_reverts_when_no_groups_available(qapp, tmp_path):
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    assert gui.sm.get_parameter_group_count() == 0
+
+    gui.checkBox_use_groupindex_for_dq.setChecked(True)
+
+    assert gui.checkBox_use_groupindex_for_dq.isChecked() is False
+    assert gui.sb_dqnum.isEnabled()
+    assert gui.statusbar.currentMessage() != ""
+
+
+def test_groupindex_checkbox_sets_and_disables_dqnum(qapp, tmp_path):
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    _apply_parametrization_groups(gui, _two_group_constraints(gui))
+
+    gui.checkBox_use_groupindex_for_dq.setChecked(True)
+
+    assert gui.checkBox_use_groupindex_for_dq.isChecked() is True
+    assert gui.sb_dqnum.value() == 2
+    assert not gui.sb_dqnum.isEnabled()
+
+
+def test_groupindex_checkbox_resyncs_dqnum_after_new_parametrization_apply(qapp, tmp_path):
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    q = gui.sm.qmap["q"]
+    q_min, q_max = q[gui.sm.mask].min(), q[gui.sm.mask].max()
+    unit = gui.sm.qmap_unit["q"]
+
+    _apply_parametrization_groups(gui, _two_group_constraints(gui))
+    gui.checkBox_use_groupindex_for_dq.setChecked(True)
+    assert gui.sb_dqnum.value() == 2
+
+    q1 = q_min + (q_max - q_min) / 3.0
+    q2 = q_min + 2 * (q_max - q_min) / 3.0
+    _apply_parametrization_groups(
+        gui,
+        [
+            ("q", "AND", unit, q_min, q1),
+            ("q", "OR", unit, q1, q2),
+            ("q", "OR", unit, q2, q_max),
+        ],
+    )
+
+    assert gui.sb_dqnum.value() == 3
+
+
+def test_compute_partition_with_empty_group_does_not_report_false_success(qapp, tmp_path):
+    """If a constraint group ends up empty, compute_partition_general now raises
+    instead of silently returning None — verify the GUI doesn't then show a
+    misleading "New partition is generated." message or update new_partition."""
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    q = gui.sm.qmap["q"]
+    q_min, q_max = q[gui.sm.mask].min(), q[gui.sm.mask].max()
+    q_mid = (q_min + q_max) / 2.0
+    unit = gui.sm.qmap_unit["q"]
+    _apply_parametrization_groups(
+        gui,
+        [
+            ("q", "AND", unit, q_min, q_mid),
+            ("q", "OR", unit, q_max + 100, q_max + 200),  # empty group
+            ("q", "OR", unit, q_mid, q_max),
+        ],
+    )
+    gui.checkBox_use_groupindex_for_dq.setChecked(True)
+    assert gui.sb_dqnum.value() == 3
+
+    gui.statusbar.clearMessage()
+    gui.compute_partition()
+
+    assert gui.sm.new_partition is None
+    assert gui.statusbar.currentMessage() != "New partition is generated."
+
+
+def test_compute_partition_uses_groupindex_for_dq_end_to_end(qapp, tmp_path):
+    gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
+    _apply_parametrization_groups(gui, _two_group_constraints(gui))
+    gui.checkBox_use_groupindex_for_dq.setChecked(True)
+    gui.sb_sqnum.setValue(8)
+
+    gui.compute_partition()
+
+    assert gui.sm.new_partition is not None
+    assert gui.sm.new_partition["dynamic_num_pts"][0] == 2

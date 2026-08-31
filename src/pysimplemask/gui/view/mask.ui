@@ -235,7 +235,7 @@
                 <rect>
                  <x>0</x>
                  <y>0</y>
-                 <width>710</width>
+                 <width>718</width>
                  <height>68</height>
                 </rect>
                </property>
@@ -1750,6 +1750,13 @@
                     </property>
                    </widget>
                   </item>
+                  <item row="0" column="5" colspan="2">
+                   <widget class="QCheckBox" name="checkBox_use_groupindex_for_dq">
+                    <property name="text">
+                     <string>Use group-index for dq</string>
+                    </property>
+                   </widget>
+                  </item>
                  </layout>
                 </item>
                </layout>
@@ -2539,15 +2546,15 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ParameterTree</class>
-   <extends>QWidget</extends>
-   <header>pyqtgraph.parametertree</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
    <class>PlotWidget</class>
    <extends>QWidget</extends>
    <header>pyqtgraph</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ParameterTree</class>
+   <extends>QWidget</extends>
+   <header>pyqtgraph.parametertree</header>
    <container>1</container>
   </customwidget>
   <customwidget>

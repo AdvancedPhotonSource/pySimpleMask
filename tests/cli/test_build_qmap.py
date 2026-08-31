@@ -60,6 +60,7 @@ def test_default_args_parsed(raw_hdf):
     assert args.report is None
     assert args.blemish is None
     assert args.threshold_high is None
+    assert args.use_groupindex_for_dq is False
 
 
 def test_custom_args_parsed(raw_hdf):
@@ -84,6 +85,7 @@ def test_custom_args_parsed(raw_hdf):
         "--output-qmap", "my.hdf",
         "--output-mask", "my.tif",
         "--threshold-high", "1000",
+        "--use-groupindex-for-dq",
     ])
     assert args.beamline == "APS_8IDI"
     assert args.begin_idx == 2
@@ -101,6 +103,7 @@ def test_custom_args_parsed(raw_hdf):
     assert args.output_qmap == "my.hdf"
     assert args.output_mask == "my.tif"
     assert args.threshold_high == 1000.0
+    assert args.use_groupindex_for_dq is True
 
 
 # ── end-to-end pipeline ───────────────────────────────────────────────────────
@@ -173,3 +176,113 @@ def test_pipeline_threshold_mask(raw_hdf, tmp_path, monkeypatch):
     mask = tifffile.imread("out.tif")
     # With threshold=1, most pixels should be masked (mask==0)
     assert mask.mean() < 0.5
+
+
+def _probe_q_range(raw_hdf):
+    """Load the dataset headlessly just to read its q-range, for building
+    --param-constraint tokens that actually split the detector into groups."""
+    from pysimplemask.core import SimpleMaskModel
+
+    probe = SimpleMaskModel()
+    assert probe.read_data(raw_hdf, beamline="APS_8IDI", num_frames=0) is True
+    q = probe.qmap["q"]
+    return float(q[probe.mask].min()), float(q[probe.mask].max())
+
+
+def test_pipeline_use_groupindex_for_dq(raw_hdf, tmp_path, monkeypatch):
+    """--use-groupindex-for-dq drives the dynamic q partition from
+    --param-constraint groups instead of a linear rebin."""
+    monkeypatch.chdir(tmp_path)
+    from pysimplemask.cli import _run_build_qmap, _build_qmap_args
+
+    q_min, q_max = _probe_q_range(raw_hdf)
+    q_mid = (q_min + q_max) / 2.0
+
+    args = _build_qmap_args([
+        raw_hdf,
+        "--num-frames", "0",
+        "--no-find-center",
+        "--param-constraint", f"q:AND:{q_min}:{q_mid}",
+        "--param-constraint", f"q:OR:{q_mid}:{q_max}",
+        "--use-groupindex-for-dq",
+        "--sq-num", "8",
+        "--dp-num", "1", "--sp-num", "1",
+        "--output-qmap", "out.hdf",
+        "--output-mask", "",
+    ])
+    _run_build_qmap(args)
+
+    with h5py.File("out.hdf") as h:
+        assert h["/qmap/dynamic_num_pts"][0] == 2
+        assert h["/qmap/static_num_pts"][0] == 8
+
+
+def test_pipeline_use_groupindex_with_empty_group_raises(raw_hdf, tmp_path, monkeypatch):
+    """One empty constraint group among several must also fail loudly, not just
+    the "no constraints at all" case."""
+    monkeypatch.chdir(tmp_path)
+    from pysimplemask.cli import _run_build_qmap, _build_qmap_args
+
+    q_min, q_max = _probe_q_range(raw_hdf)
+    q_mid = (q_min + q_max) / 2.0
+
+    args = _build_qmap_args([
+        raw_hdf,
+        "--num-frames", "0",
+        "--no-find-center",
+        "--param-constraint", f"q:AND:{q_min}:{q_mid}",
+        "--param-constraint", f"q:OR:{q_max + 100}:{q_max + 200}",  # empty
+        "--param-constraint", f"q:OR:{q_mid}:{q_max}",
+        "--use-groupindex-for-dq",
+        "--sq-num", "9",
+        "--output-qmap", "out.hdf",
+        "--output-mask", "",
+    ])
+    with pytest.raises(RuntimeError):
+        _run_build_qmap(args)
+    assert not Path("out.hdf").exists()
+
+
+def test_pipeline_use_groupindex_with_overlapping_constraints_raises(
+    raw_hdf, tmp_path, monkeypatch
+):
+    """Overlapping --param-constraint ranges must fail loudly, naming the rows."""
+    monkeypatch.chdir(tmp_path)
+    from pysimplemask.cli import _run_build_qmap, _build_qmap_args
+
+    q_min, q_max = _probe_q_range(raw_hdf)
+    span = q_max - q_min
+
+    args = _build_qmap_args([
+        raw_hdf,
+        "--num-frames", "0",
+        "--no-find-center",
+        "--param-constraint", f"q:AND:{q_min}:{q_min + 0.6 * span}",
+        "--param-constraint", f"q:OR:{q_min + 0.4 * span}:{q_max}",  # overlaps row 1
+        "--use-groupindex-for-dq",
+        "--sq-num", "8",
+        "--output-qmap", "out.hdf",
+        "--output-mask", "",
+    ])
+    with pytest.raises(RuntimeError, match="overlap"):
+        _run_build_qmap(args)
+    assert not Path("out.hdf").exists()
+
+
+def test_pipeline_use_groupindex_without_constraints_raises(raw_hdf, tmp_path, monkeypatch):
+    """--use-groupindex-for-dq with no parametrization groups must fail loudly,
+    not silently fall back to a linear rebin or write an empty qmap file."""
+    monkeypatch.chdir(tmp_path)
+    from pysimplemask.cli import _run_build_qmap, _build_qmap_args
+
+    args = _build_qmap_args([
+        raw_hdf,
+        "--num-frames", "0",
+        "--no-find-center",
+        "--use-groupindex-for-dq",
+        "--output-qmap", "out.hdf",
+        "--output-mask", "",
+    ])
+    with pytest.raises(RuntimeError):
+        _run_build_qmap(args)
+    assert not Path("out.hdf").exists()
