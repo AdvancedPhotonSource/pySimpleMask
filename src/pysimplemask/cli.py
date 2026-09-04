@@ -109,13 +109,15 @@ def _add_build_args(parser: argparse.ArgumentParser) -> None:
         help="Bin spacing style.",
     )
     grp_part.add_argument(
-        "--use-groupindex-for-dq", action="store_true",
+        "--use-groupindex-for-subpartition", action="store_true",
         help=(
-            "Use the --param-constraint groups as the dynamic q partition "
-            "directly, instead of a linear/log rebin of the q-range. Each "
-            "constraint (in the order given) becomes one dynamic q bin, with "
-            "--sq-num // <number of constraints> static sub-bins; --dq-num is "
-            "ignored. Requires at least one --param-constraint."
+            "Use the --param-constraint groups as independent pixel groups and "
+            "compute independent sub-partitions per group on BOTH axes (for "
+            "eq-ephi mode, each group also gets its own ellipse fit), then "
+            "combine them into one overall dynamic/static partition. --dq-num, "
+            "--sq-num, --dp-num, --sp-num are all applied per-group (each group "
+            "gets its own dq_num/dp_num dynamic bins and sq_num/sp_num static "
+            "bins). Requires at least one --param-constraint."
         ),
     )
 
@@ -382,21 +384,23 @@ def _run_build_qmap(args) -> None:
         m.mask_apply("mask_parameter")
         logging.info("Applied param constraints: %s", args.param_constraints)
 
-    if args.use_groupindex_for_dq and not m.get_parameter_group_count():
+    if args.use_groupindex_for_subpartition and not m.get_parameter_group_count():
         raise RuntimeError(
-            "--use-groupindex-for-dq requires at least one --param-constraint "
-            "to define the dynamic-q groups."
+            "--use-groupindex-for-subpartition requires at least one "
+            "--param-constraint to define the pixel groups."
         )
 
     bad = int(m.mask.size - m.mask.sum())
     logging.info("Final mask: %d pixels masked (%.2f%%)", bad, bad / m.mask.size * 100)
 
     # 4. Partition
-    if args.use_groupindex_for_dq:
+    if args.use_groupindex_for_subpartition:
         logging.info(
-            "use-groupindex-for-dq enabled: --dq-num is ignored, using %d "
-            "groups from --param-constraint",
-            m.get_parameter_group_count(),
+            "use-groupindex-for-subpartition enabled: %d groups from "
+            "--param-constraint, axis0 %d dynamic / %d static bins per group, "
+            "axis1 %d dynamic / %d static bins per group",
+            m.get_parameter_group_count(), args.dq_num, args.sq_num,
+            args.dp_num, args.sp_num,
         )
     m.compute_partition(
         mode=args.mode,
@@ -407,7 +411,7 @@ def _run_build_qmap(args) -> None:
         phi_offset=args.phi_offset,
         symmetry_fold=args.symmetry_fold,
         style=args.style,
-        use_groupindex_for_dq=args.use_groupindex_for_dq,
+        use_groupindex_for_subpartition=args.use_groupindex_for_subpartition,
     )
     if m.new_partition is None:
         raise RuntimeError("Partition computation failed; see log above for details.")
@@ -446,7 +450,7 @@ def _run_build_qmap(args) -> None:
             "phi_offset": args.phi_offset,
             "symmetry_fold": args.symmetry_fold,
             "style": args.style,
-            "use_groupindex_for_dq": args.use_groupindex_for_dq,
+            "use_groupindex_for_subpartition": args.use_groupindex_for_subpartition,
         }
         generate_report(m, report_path, params=report_params)
 

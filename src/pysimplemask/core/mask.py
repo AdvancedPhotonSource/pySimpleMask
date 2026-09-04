@@ -212,6 +212,44 @@ class MaskArray(MaskBase):
             self.zero_loc = np.array(np.nonzero(arr))
 
 
+class MaskDraw(MaskArray):
+    """Same as MaskArray, plus an optional group-index map for pixels covered
+    by tracked (numbered, inclusive) draw ROIs. See MaskParameter.group_index_map
+    for the analogous concept on the Parametrization tab."""
+
+    def __init__(self, shape=(512, 1024)) -> None:
+        super().__init__(shape=shape)
+        self.group_index_map = None
+        self.num_groups = 0
+        self.row_masks = {}
+
+    def evaluate(self, arr=None, group_index_map=None, row_masks=None):
+        super().evaluate(arr=arr)
+        self.group_index_map = group_index_map
+        self.num_groups = int(group_index_map.max()) if group_index_map is not None else 0
+        self.row_masks = row_masks or {}
+
+    def find_overlaps(self, mask=None):
+        """Pairs of tracked draw groups whose own (pre last-write-wins) filled
+        region overlaps, restricted to `mask` (default: this worker's own final
+        mask). Mirrors MaskParameter.find_overlaps."""
+        if mask is None:
+            mask = self.get_mask()
+        conflicts = []
+        keys = sorted(self.row_masks)
+        for a in range(len(keys)):
+            for b in range(a + 1, len(keys)):
+                i, j = keys[a], keys[b]
+                count = int(np.count_nonzero(self.row_masks[i] & self.row_masks[j] & mask))
+                if count:
+                    conflicts.append((i, j, count))
+        return conflicts
+
+    def describe_constraint(self, row_index_1based):
+        """Human-readable description of one tracked draw group, for diagnostics."""
+        return f"draw group {row_index_1based}"
+
+
 class MaskAssemble:
     def __init__(self, shape=(128, 128), saxs_lin=None, qmap=None) -> None:
         self.workers = {
@@ -219,7 +257,7 @@ class MaskAssemble:
             "mask_file": MaskFile(shape),
             "mask_threshold": MaskThreshold(shape),
             "mask_list": MaskList(shape),
-            "mask_draw": MaskArray(shape),
+            "mask_draw": MaskDraw(shape),
             "mask_outlier": MaskList(shape),
             "mask_parameter": MaskParameter(shape),
         }
@@ -232,6 +270,15 @@ class MaskAssemble:
         self.mask_ptr = 1
         # 0: no mask; 1: apply the default mask
         self.mask_ptr_min = 0
+        # Parallel to mask_record (same indices, kept in lockstep by apply()
+        # and redo_undo()): the combined mask from every applied target
+        # EXCEPT mask_draw. mask_draw is re-evaluated from scratch from
+        # whatever ROIs are currently live (see SimpleMaskModel.evaluate_draw),
+        # so re-applying it must combine against this baseline instead of the
+        # previous mask_record entry — that entry may already include an
+        # earlier, narrower mask_draw contribution, and AND can never recover
+        # a pixel a previous apply already excluded.
+        self.non_draw_baseline_record = list(self.mask_record)
 
     def update_qmap(self, qmap_all):
         self.qmap = qmap_all
@@ -242,7 +289,11 @@ class MaskAssemble:
 
             blemish = get_blemish(detector_shape=self.shape)
             if blemish is not None:
-                return blemish
+                # ADHelper returns whatever dtype the blemish file was saved with
+                # (e.g. uint8); this mask feeds self.mask directly, and a non-bool
+                # mask silently turns boolean masking (xmap[mask]) into advanced
+                # integer indexing elsewhere.
+                return blemish.astype(bool)
         except ImportError:
             pass  # ADHelper not installed — fall back
         except Exception:
@@ -254,13 +305,25 @@ class MaskAssemble:
         if target is None:
             return self.get_mask()
 
-        mask = self.get_one_mask(target)
-        mask = np.logical_and(self.get_mask(), mask)
+        worker_mask = self.get_one_mask(target)
+        if target == "mask_draw":
+            baseline = self.non_draw_baseline_record[self.mask_ptr]
+            mask = np.logical_and(baseline, worker_mask)
+        else:
+            mask = np.logical_and(self.get_mask(), worker_mask)
+
         if not np.allclose(self.mask_record[-1], mask):
             while len(self.mask_record) > self.mask_ptr + 1:
                 self.mask_record.pop()
+                self.non_draw_baseline_record.pop()
             # len(self.mask_record) == self.mask_ptr + 1
             self.mask_record.append(mask)
+            next_baseline = (
+                self.non_draw_baseline_record[-1]
+                if target == "mask_draw"
+                else np.logical_and(self.non_draw_baseline_record[-1], worker_mask)
+            )
+            self.non_draw_baseline_record.append(next_baseline)
             self.mask_ptr += 1
         return mask
 
@@ -286,6 +349,7 @@ class MaskAssemble:
             # if 1 + mask_ptr_min = 1: no default mask
             while len(self.mask_record) > 1 + self.mask_ptr_min:
                 self.mask_record.pop()
+                self.non_draw_baseline_record.pop()
             self.mask_ptr = self.mask_ptr_min
 
     def get_one_mask(self, target):

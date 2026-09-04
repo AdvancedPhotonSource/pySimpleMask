@@ -60,7 +60,7 @@ def test_default_args_parsed(raw_hdf):
     assert args.report is None
     assert args.blemish is None
     assert args.threshold_high is None
-    assert args.use_groupindex_for_dq is False
+    assert args.use_groupindex_for_subpartition is False
 
 
 def test_custom_args_parsed(raw_hdf):
@@ -85,7 +85,7 @@ def test_custom_args_parsed(raw_hdf):
         "--output-qmap", "my.hdf",
         "--output-mask", "my.tif",
         "--threshold-high", "1000",
-        "--use-groupindex-for-dq",
+        "--use-groupindex-for-subpartition",
     ])
     assert args.beamline == "APS_8IDI"
     assert args.begin_idx == 2
@@ -103,7 +103,7 @@ def test_custom_args_parsed(raw_hdf):
     assert args.output_qmap == "my.hdf"
     assert args.output_mask == "my.tif"
     assert args.threshold_high == 1000.0
-    assert args.use_groupindex_for_dq is True
+    assert args.use_groupindex_for_subpartition is True
 
 
 # ── end-to-end pipeline ───────────────────────────────────────────────────────
@@ -189,8 +189,8 @@ def _probe_q_range(raw_hdf):
     return float(q[probe.mask].min()), float(q[probe.mask].max())
 
 
-def test_pipeline_use_groupindex_for_dq(raw_hdf, tmp_path, monkeypatch):
-    """--use-groupindex-for-dq drives the dynamic q partition from
+def test_pipeline_use_groupindex_for_subpartition(raw_hdf, tmp_path, monkeypatch):
+    """--use-groupindex-for-subpartition drives the dynamic q partition from
     --param-constraint groups instead of a linear rebin."""
     monkeypatch.chdir(tmp_path)
     from pysimplemask.cli import _run_build_qmap, _build_qmap_args
@@ -204,7 +204,8 @@ def test_pipeline_use_groupindex_for_dq(raw_hdf, tmp_path, monkeypatch):
         "--no-find-center",
         "--param-constraint", f"q:AND:{q_min}:{q_mid}",
         "--param-constraint", f"q:OR:{q_mid}:{q_max}",
-        "--use-groupindex-for-dq",
+        "--use-groupindex-for-subpartition",
+        "--dq-num", "1",
         "--sq-num", "8",
         "--dp-num", "1", "--sp-num", "1",
         "--output-qmap", "out.hdf",
@@ -214,7 +215,38 @@ def test_pipeline_use_groupindex_for_dq(raw_hdf, tmp_path, monkeypatch):
 
     with h5py.File("out.hdf") as h:
         assert h["/qmap/dynamic_num_pts"][0] == 2
-        assert h["/qmap/static_num_pts"][0] == 8
+        assert h["/qmap/static_num_pts"][0] == 16  # 2 groups x 8 static bins/group
+
+
+def test_pipeline_use_groupindex_for_subpartition_multi_bin_per_group(
+    raw_hdf, tmp_path, monkeypatch
+):
+    """--dq-num/--sq-num are per-group sub-partition sizes: each group gets its
+    own dq-num dynamic bins, not just one."""
+    monkeypatch.chdir(tmp_path)
+    from pysimplemask.cli import _run_build_qmap, _build_qmap_args
+
+    q_min, q_max = _probe_q_range(raw_hdf)
+    q_mid = (q_min + q_max) / 2.0
+
+    args = _build_qmap_args([
+        raw_hdf,
+        "--num-frames", "0",
+        "--no-find-center",
+        "--param-constraint", f"q:AND:{q_min}:{q_mid}",
+        "--param-constraint", f"q:OR:{q_mid}:{q_max}",
+        "--use-groupindex-for-subpartition",
+        "--dq-num", "2",
+        "--sq-num", "8",
+        "--dp-num", "1", "--sp-num", "1",
+        "--output-qmap", "out.hdf",
+        "--output-mask", "",
+    ])
+    _run_build_qmap(args)
+
+    with h5py.File("out.hdf") as h:
+        assert h["/qmap/dynamic_num_pts"][0] == 4
+        assert h["/qmap/static_num_pts"][0] == 16
 
 
 def test_pipeline_use_groupindex_with_empty_group_raises(raw_hdf, tmp_path, monkeypatch):
@@ -233,7 +265,7 @@ def test_pipeline_use_groupindex_with_empty_group_raises(raw_hdf, tmp_path, monk
         "--param-constraint", f"q:AND:{q_min}:{q_mid}",
         "--param-constraint", f"q:OR:{q_max + 100}:{q_max + 200}",  # empty
         "--param-constraint", f"q:OR:{q_mid}:{q_max}",
-        "--use-groupindex-for-dq",
+        "--use-groupindex-for-subpartition",
         "--sq-num", "9",
         "--output-qmap", "out.hdf",
         "--output-mask", "",
@@ -259,7 +291,7 @@ def test_pipeline_use_groupindex_with_overlapping_constraints_raises(
         "--no-find-center",
         "--param-constraint", f"q:AND:{q_min}:{q_min + 0.6 * span}",
         "--param-constraint", f"q:OR:{q_min + 0.4 * span}:{q_max}",  # overlaps row 1
-        "--use-groupindex-for-dq",
+        "--use-groupindex-for-subpartition",
         "--sq-num", "8",
         "--output-qmap", "out.hdf",
         "--output-mask", "",
@@ -270,7 +302,7 @@ def test_pipeline_use_groupindex_with_overlapping_constraints_raises(
 
 
 def test_pipeline_use_groupindex_without_constraints_raises(raw_hdf, tmp_path, monkeypatch):
-    """--use-groupindex-for-dq with no parametrization groups must fail loudly,
+    """--use-groupindex-for-subpartition with no parametrization groups must fail loudly,
     not silently fall back to a linear rebin or write an empty qmap file."""
     monkeypatch.chdir(tmp_path)
     from pysimplemask.cli import _run_build_qmap, _build_qmap_args
@@ -279,7 +311,7 @@ def test_pipeline_use_groupindex_without_constraints_raises(raw_hdf, tmp_path, m
         raw_hdf,
         "--num-frames", "0",
         "--no-find-center",
-        "--use-groupindex-for-dq",
+        "--use-groupindex-for-subpartition",
         "--output-qmap", "out.hdf",
         "--output-mask", "",
     ])

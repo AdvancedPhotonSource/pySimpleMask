@@ -177,23 +177,42 @@ def generate_groupindex_partitions(
     group_index_map: np.ndarray,
     num_groups: int,
     xmap: np.ndarray,
+    dq_num_per_group: int,
     sq_num_per_group: int,
     style: str = "linear",
+    phi_offset: Union[float, None] = None,
+    symmetry_fold: int = 1,
 ) -> tuple:
     """
     Builds dq/sq-equivalent partition packs from a pre-labeled group-index map
-    instead of a linear/log rebin of the whole ROI.
+    instead of a linear/log rebin of the whole ROI. Used for either axis of a
+    partition (radial or angular) — call it once per axis with that axis's own
+    ``map_name``/``xmap``.
 
-    Each group (a value 1..num_groups in ``group_index_map``, 0 = excluded) becomes
-    exactly one dynamic bin, with its own ``sq_num_per_group`` static sub-bins.
-    Groups are assumed spatially disjoint. Returned packs have the same shape as
-    ``generate_partition``'s output and plug directly into ``combine_partitions``.
+    Each group (a value 1..num_groups in ``group_index_map``, 0 = excluded) is
+    treated as an independent sub-ROI: it gets its own ``dq_num_per_group`` dynamic
+    bins and ``sq_num_per_group`` static bins, computed from that group's own value
+    range, then all groups' sub-partitions are offset and combined into one overall
+    pack. Groups are assumed spatially disjoint. Returned packs have the same shape
+    as ``generate_partition``'s output and plug directly into ``combine_partitions``
+    — including when called once per axis: combining two per-group-offset packs
+    naturally confines each group's combined bins to their own block, since a given
+    pixel's two axis values are both offset by that same pixel's own group.
+
+    ``phi_offset``/``symmetry_fold`` are forwarded to ``generate_partition`` for
+    each group and only take effect when ``map_name == "phi"``.
+
+    As with the plain (non-group) dq/sq path, ``check_consistency`` only holds if
+    each group's local static bin-edges refine its local dynamic bin-edges, which
+    for linear/log binning requires ``sq_num_per_group`` to be a multiple of
+    ``dq_num_per_group``.
 
     Returns
     -------
     tuple[dict, dict]
-        ``(pack_dq, pack_sq)`` — ``pack_dq`` has ``num_pts == num_groups``;
-        ``pack_sq`` has ``num_pts == num_groups * sq_num_per_group``.
+        ``(pack_dq, pack_sq)`` — ``pack_dq`` has ``num_pts == num_groups *
+        dq_num_per_group``; ``pack_sq`` has ``num_pts == num_groups *
+        sq_num_per_group``.
     """
     dq_partition = np.zeros(group_index_map.shape, dtype=np.uint32)
     dq_v_list = []
@@ -203,21 +222,29 @@ def generate_groupindex_partitions(
     for g in range(1, num_groups + 1):
         sub_mask = group_index_map == g
 
-        pack_dq_g = generate_partition(map_name, sub_mask, xmap, 1, style=style)
-        dq_partition[pack_dq_g["partition"] > 0] = g
-        dq_v_list.append(pack_dq_g["v_list"][0])
+        pack_dq_g = generate_partition(
+            map_name, sub_mask, xmap, dq_num_per_group, style=style,
+            phi_offset=phi_offset, symmetry_fold=symmetry_fold,
+        )
+        local_dq = pack_dq_g["partition"]
+        dq_offset = (g - 1) * dq_num_per_group
+        dq_partition[local_dq > 0] = local_dq[local_dq > 0] + dq_offset
+        dq_v_list.append(pack_dq_g["v_list"])
 
-        pack_sq_g = generate_partition(map_name, sub_mask, xmap, sq_num_per_group, style=style)
+        pack_sq_g = generate_partition(
+            map_name, sub_mask, xmap, sq_num_per_group, style=style,
+            phi_offset=phi_offset, symmetry_fold=symmetry_fold,
+        )
         local_sq = pack_sq_g["partition"]
-        offset = (g - 1) * sq_num_per_group
-        sq_partition[local_sq > 0] = local_sq[local_sq > 0] + offset
+        sq_offset = (g - 1) * sq_num_per_group
+        sq_partition[local_sq > 0] = local_sq[local_sq > 0] + sq_offset
         sq_v_list.append(pack_sq_g["v_list"])
 
     pack_dq = {
         "map_name": map_name,
-        "num_pts": num_groups,
+        "num_pts": num_groups * dq_num_per_group,
         "partition": dq_partition,
-        "v_list": np.array(dq_v_list),
+        "v_list": np.concatenate(dq_v_list) if dq_v_list else np.zeros(0),
     }
     pack_sq = {
         "map_name": map_name,

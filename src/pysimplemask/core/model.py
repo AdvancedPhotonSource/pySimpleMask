@@ -27,6 +27,8 @@ from .rasterize import (
     RoiPolygon,
     circle_vertices,
     ellipse_vertices,
+    group_index_map,
+    group_masks,
     line_vertices,
     rasterize,
     rectangle_vertices,
@@ -54,6 +56,11 @@ class SimpleMaskModel(object):
         self.draw_rois = []
         self.bad_pixel_set = set()
         self._partition_kwargs = None
+        # tracks which of mask_parameter/mask_draw most recently produced valid
+        # groups, so use_groupindex_for_subpartition can pick "whichever was
+        # generated later" when both are currently valid (see get_active_group_source)
+        self._group_eval_seq = {}
+        self._group_eval_counter = 0
 
     def is_ready(self):
         return self.dset is not None
@@ -91,6 +98,10 @@ class SimpleMaskModel(object):
 
     def mask_evaluate(self, target, **kwargs):
         msg = self.mask_kernel.evaluate(target, **kwargs)
+        if target in ("mask_parameter", "mask_draw"):
+            if self.mask_kernel.workers[target].num_groups:
+                self._group_eval_counter += 1
+                self._group_eval_seq[target] = self._group_eval_counter
         # preview the mask
         mask = self.mask_kernel.get_one_mask(target)
         self.dset.set_preview(mask)
@@ -114,6 +125,37 @@ class SimpleMaskModel(object):
             return 0
         return self.mask_kernel.workers["mask_parameter"].num_groups
 
+    def get_draw_group_count(self):
+        """Number of tracked inclusive-draw groups from the last-evaluated draw
+        mask (see MaskDraw.group_index_map), or 0 if none is available yet."""
+        if self.mask_kernel is None:
+            return 0
+        return self.mask_kernel.workers["mask_draw"].num_groups
+
+    def get_active_group_source(self):
+        """Which of "mask_parameter"/"mask_draw" use_groupindex_for_subpartition
+        should use: whichever currently has valid groups; if both do, whichever was
+        (re-)evaluated more recently. None if neither has valid groups."""
+        if self.mask_kernel is None:
+            return None
+        candidates = [
+            key
+            for key in ("mask_parameter", "mask_draw")
+            if self.mask_kernel.workers[key].num_groups
+        ]
+        if not candidates:
+            return None
+        if len(candidates) == 1:
+            return candidates[0]
+        return max(candidates, key=lambda key: self._group_eval_seq.get(key, 0))
+
+    def get_active_group_count(self):
+        """num_groups of get_active_group_source()'s worker, or 0 if none."""
+        source = self.get_active_group_source()
+        if source is None:
+            return 0
+        return self.mask_kernel.workers[source].num_groups
+
     def get_pts_with_similar_intensity(self, cen=None, radius=50, variation=50):
         return self.dset.get_pts_with_similar_intensity(cen, radius, variation)
 
@@ -121,8 +163,10 @@ class SimpleMaskModel(object):
     def clear_rois(self):
         self.draw_rois = []
 
-    def add_polygon(self, vertices, mode="exclusive"):
-        self.draw_rois.append(RoiPolygon(np.asarray(vertices, dtype=float), mode))
+    def add_polygon(self, vertices, mode="exclusive", group_index=0):
+        self.draw_rois.append(
+            RoiPolygon(np.asarray(vertices, dtype=float), mode, group_index)
+        )
 
     def add_circle(self, center, radius, mode="exclusive"):
         self.draw_rois.append(RoiPolygon(circle_vertices(center, radius), mode))
@@ -150,10 +194,31 @@ class SimpleMaskModel(object):
             return None
         return rasterize(self.dset.shape, self.draw_rois)
 
+    def evaluate_draw_group_index_map(self):
+        """Label each pixel with the group_index of the tracked inclusive draw
+        ROI that covers it (see rasterize.group_index_map); 0 = untracked."""
+        if self.dset is None:
+            return None
+        return group_index_map(self.dset.shape, self.draw_rois)
+
+    def evaluate_draw_group_masks(self):
+        """Per-group raw filled masks for tracked inclusive draw ROIs, keyed by
+        group_index (see rasterize.group_masks); used by MaskDraw.find_overlaps."""
+        if self.dset is None:
+            return None
+        return group_masks(self.dset.shape, self.draw_rois)
+
     def evaluate_draw(self):
         """Evaluate the 'mask_draw' worker from the current draw ROIs."""
         keep = self.evaluate_draw_mask()
-        return self.mask_evaluate("mask_draw", arr=np.logical_not(keep))
+        gmap = self.evaluate_draw_group_index_map()
+        row_masks = self.evaluate_draw_group_masks()
+        return self.mask_evaluate(
+            "mask_draw",
+            arr=np.logical_not(keep),
+            group_index_map=gmap,
+            row_masks=row_masks,
+        )
 
     # ----------------------------------------------------------------- saving
     def save_mask(self, save_name):
@@ -254,11 +319,20 @@ class SimpleMaskModel(object):
 
     def compute_partition(self, mode="q-phi", **kwargs):
         self._partition_kwargs = {"mode": mode, **kwargs}
-        if mode == "eq-ephi":
+        is_ellipse = mode == "eq-ephi"
+        if is_ellipse:
             ellipse_param = find_ellipse_parameters(self.mask)
             rho, phi = compute_ellipse_gradient(
                 self.qmap["y"], self.qmap["x"], ellipse_param
             )
+            if kwargs.get("use_groupindex_for_subpartition"):
+                # Refit the ellipse independently per pixel-group instead of
+                # reusing this one whole-mask fit for every group — both the
+                # radial (dq/sq) and angular (dp/sp) sub-partitions are built
+                # per group (see compute_partition_general), so both rho and
+                # phi need to come from that same per-group fit to stay
+                # geometrically consistent within a group.
+                rho, phi = self._per_group_ellipse_geometry(rho, phi)
             q_rev = self.qmap["q"].copy()
             phi_rev = self.qmap["phi"].copy()
             self.qmap["q"] = rho
@@ -268,16 +342,46 @@ class SimpleMaskModel(object):
         map_names = mode.split("-")
         logger.info("compute partition with mode %s: map_names %s", mode, map_names)
         t0 = time.perf_counter()
-        flag = self.compute_partition_general(map_names=map_names, **kwargs)
+        try:
+            flag = self.compute_partition_general(map_names=map_names, **kwargs)
+        finally:
+            if is_ellipse:
+                # copy back, even if compute_partition_general raised
+                self.qmap["q"] = q_rev
+                self.qmap["phi"] = phi_rev
         t1 = time.perf_counter()
         logger.info("compute partition finished in %f seconds", t1 - t0)
 
-        if mode == "eq-ephi":
-            # copy back
-            self.qmap["q"] = q_rev
-            self.qmap["phi"] = phi_rev
-
         return flag
+
+    def _per_group_ellipse_geometry(self, fallback_rho, fallback_phi):
+        """For ellipse mode combined with group-index sub-partitioning: fit an
+        independent ellipse to each pixel-group's own footprint, instead of
+        reusing one whole-mask fit for every group, so each group's equivalent-q
+        AND phi values reflect its own local geometry. Groups with no active
+        group source, or whose own fit fails (e.g. too few pixels), fall back to
+        ``fallback_rho``/``fallback_phi``'s whole-mask-fit values for that group.
+        """
+        source = self.get_active_group_source()
+        if source is None:
+            return fallback_rho, fallback_phi
+        worker = self.mask_kernel.workers[source]
+        effective_group_index = worker.group_index_map * self.mask
+        rho = fallback_rho.copy()
+        phi = fallback_phi.copy()
+        for g in range(1, worker.num_groups + 1):
+            sub_mask = effective_group_index == g
+            if not sub_mask.any():
+                continue
+            ellipse_param = find_ellipse_parameters(sub_mask)
+            if ellipse_param is None:
+                continue
+            rho_g, phi_g = compute_ellipse_gradient(
+                self.qmap["y"], self.qmap["x"], ellipse_param
+            )
+            rho[sub_mask] = rho_g[sub_mask]
+            phi[sub_mask] = phi_g[sub_mask]
+        return rho, phi
 
     def compute_partition_general(
         self,
@@ -289,29 +393,31 @@ class SimpleMaskModel(object):
         sp_num=360,
         phi_offset=0.0,
         symmetry_fold=1,
-        use_groupindex_for_dq=False,
+        use_groupindex_for_subpartition=False,
     ):
         if self.dset is None:
             return None
 
         name0, name1 = map_names
 
-        if use_groupindex_for_dq:
-            worker = self.mask_kernel.workers["mask_parameter"]
-            if not worker.num_groups or worker.group_index_map is None:
+        if use_groupindex_for_subpartition:
+            source = self.get_active_group_source()
+            if source is None:
                 raise RuntimeError(
-                    "use_groupindex_for_dq requested but no parametrization "
-                    "constraint groups are available; evaluate/apply the "
-                    "parametrization mask first"
+                    "use_groupindex_for_subpartition requested but no "
+                    "parametrization or draw constraint groups are available; "
+                    "evaluate/apply the parametrization mask or draw inclusive "
+                    "groups first"
                 )
+            worker = self.mask_kernel.workers[source]
             # the true group count comes from the mask engine, not the caller's
             # dq_num, so a stale/mismatched dq_num can't silently corrupt the result
             num_groups = worker.num_groups
             overlaps = worker.find_overlaps(mask=self.mask)
             if overlaps:
                 # group_index_map resolves overlaps via last-write-wins with no
-                # indication anything happened; use_groupindex_for_dq assumes
-                # non-overlapping groups, so surface it instead of silently
+                # indication anything happened; use_groupindex_for_subpartition
+                # assumes non-overlapping groups, so surface it instead of silently
                 # mis-assigning pixels between groups.
                 details = "; ".join(
                     f"{worker.describe_constraint(i)} overlaps "
@@ -319,8 +425,8 @@ class SimpleMaskModel(object):
                     for i, j, count in overlaps
                 )
                 raise RuntimeError(
-                    "use_groupindex_for_dq requires non-overlapping constraint "
-                    f"groups, but found overlap(s): {details}."
+                    "use_groupindex_for_subpartition requires non-overlapping "
+                    f"constraint groups, but found overlap(s): {details}."
                 )
             effective_group_index = worker.group_index_map * self.mask
             present_groups = set(np.unique(effective_group_index).tolist()) - {0}
@@ -330,19 +436,35 @@ class SimpleMaskModel(object):
                 # leaves v_list_dim0 uncompacted, so proceeding would silently
                 # misalign the two in the saved file — fail loudly instead.
                 raise RuntimeError(
-                    "use_groupindex_for_dq: constraint group-index "
+                    "use_groupindex_for_subpartition: constraint group-index "
                     f"{empty_groups} matched 0 pixels (after combining with the "
                     "rest of the mask). Fix or remove the corresponding "
-                    "parametrization row(s) before computing the partition."
+                    "row(s)/ROI(s) before computing the partition."
                 )
-            sq_num_per_group = sq_num // num_groups
+            # both axes are sub-partitioned independently per group, then combined
+            # below exactly like the plain (non-group) path — combine_partitions
+            # naturally confines each group's combined bins to their own block,
+            # since a pixel's two per-group-offset axis values share that same
+            # pixel's group offset.
             pack_dq, pack_sq = generate_groupindex_partitions(
                 name0,
                 effective_group_index,
                 num_groups,
                 self.qmap[name0],
-                sq_num_per_group,
+                dq_num,
+                sq_num,
                 style=style,
+            )
+            pack_dp, pack_sp = generate_groupindex_partitions(
+                name1,
+                effective_group_index,
+                num_groups,
+                self.qmap[name1],
+                dp_num,
+                sp_num,
+                style=style,
+                phi_offset=phi_offset,
+                symmetry_fold=symmetry_fold,
             )
         else:
             #  generate dynamic partition
@@ -353,27 +475,26 @@ class SimpleMaskModel(object):
             pack_sq = generate_partition(
                 name0, self.mask, self.qmap[name0], sq_num, style=style, phi_offset=None
             )
+            pack_dp = generate_partition(
+                name1,
+                self.mask,
+                self.qmap[name1],
+                dp_num,
+                style=style,
+                phi_offset=phi_offset,
+                symmetry_fold=symmetry_fold,
+            )
+            pack_sp = generate_partition(
+                name1,
+                self.mask,
+                self.qmap[name1],
+                sp_num,
+                style=style,
+                phi_offset=phi_offset,
+                symmetry_fold=symmetry_fold,
+            )
 
-        pack_dp = generate_partition(
-            name1,
-            self.mask,
-            self.qmap[name1],
-            dp_num,
-            style=style,
-            phi_offset=phi_offset,
-            symmetry_fold=symmetry_fold,
-        )
         dynamic_map = combine_partitions(pack_dq, pack_dp, prefix="dynamic")
-
-        pack_sp = generate_partition(
-            name1,
-            self.mask,
-            self.qmap[name1],
-            sp_num,
-            style=style,
-            phi_offset=phi_offset,
-            symmetry_fold=symmetry_fold,
-        )
         static_map = combine_partitions(pack_sq, pack_sp, prefix="static")
 
         self.dset.update_partitions(

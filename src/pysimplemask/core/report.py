@@ -239,8 +239,8 @@ def generate_report(model, output_path, crop_half_size=100, params=None):
 
     # Row 4 — Partition
     mode = p.get("mode", partition["map_names"][0] + "-" + partition["map_names"][1] if partition else "n/a")
-    if p.get("use_groupindex_for_dq"):
-        mode = f"{mode} (group-index dq)"
+    if p.get("use_groupindex_for_subpartition"):
+        mode = f"{mode} (group-index sub-partition)"
     if partition:
         dq_n = partition["dynamic_num_pts"]
         sq_n = partition["static_num_pts"]

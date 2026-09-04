@@ -14,10 +14,14 @@ class RoiPolygon:
 
     vertices: (N, 2) array of (row, col) points.
     mode: "inclusive" (region to keep) or "exclusive" (region to remove).
+    group_index: 1-based group label for an inclusive ROI tracked in the GUI's
+        draw-group table; 0 means untracked (the default for every ROI type
+        and for exclusive ROIs, which are never grouped).
     """
 
     vertices: np.ndarray
     mode: str = "exclusive"
+    group_index: int = 0
 
 
 def circle_vertices(center, radius, n=180):
@@ -81,3 +85,37 @@ def rasterize(shape, rois):
 
     keep_inclusive = inclusive if has_inclusive else np.ones(shape, dtype=bool)
     return np.logical_and(~exclusive, keep_inclusive)
+
+
+def group_index_map(shape, rois):
+    """Label each pixel with the group_index of the inclusive ROI covering it.
+
+    Exclusive ROIs and ungrouped inclusive ROIs (group_index == 0) are ignored.
+    On overlap between grouped ROIs, last-write-wins (same convention as
+    MaskParameter.group_index_map in core/mask.py).
+    """
+    gmap = np.zeros(shape, dtype=np.uint32)
+    for roi in rois:
+        if roi.mode != "inclusive" or not roi.group_index:
+            continue
+        filled = polygon2mask(shape, np.asarray(roi.vertices, dtype=float))
+        gmap[filled] = roi.group_index
+    return gmap
+
+
+def group_masks(shape, rois):
+    """Per-group raw filled masks, keyed by group_index, for inclusive ROIs
+    with group_index != 0 — kept separate (unlike group_index_map) so overlap
+    between groups can be detected before last-write-wins collapses them.
+    ROIs sharing the same group_index are OR-ed together.
+    """
+    masks = {}
+    for roi in rois:
+        if roi.mode != "inclusive" or not roi.group_index:
+            continue
+        filled = polygon2mask(shape, np.asarray(roi.vertices, dtype=float))
+        if roi.group_index in masks:
+            masks[roi.group_index] |= filled
+        else:
+            masks[roi.group_index] = filled
+    return masks

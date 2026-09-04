@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLineEdit,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QRadioButton,
     QSpinBox,
@@ -33,7 +34,10 @@ from pysimplemask.core.model import SimpleMaskModel
 from pysimplemask.core.partition import least_multiple
 from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
 from pysimplemask.gui.model.roi_extract import extract_roi_geometry
-from pysimplemask.gui.model.table_model import XmapConstraintsTableModel
+from pysimplemask.gui.model.table_model import (
+    DrawGroupTableModel,
+    XmapConstraintsTableModel,
+)
 from pysimplemask.gui.view.ui_mask import Ui_SimpleMask as Ui
 
 HOME_DIR = Path.home()
@@ -99,6 +103,8 @@ def _find_hdf_datasets_matching_shape(fname, target_shape, max_depth=5):
 
 _APPLY_TIP_READY = "Apply the evaluated mask for the currently active tab into the working mask"
 _APPLY_TIP_DISABLED = "Evaluate a mask first — Apply will become available after Evaluate"
+
+_GROUPINDEX_CHECKBOX_LABEL = "Use group-index for sub-partitions"
 
 _TAB_MASK_TARGETS: list = [
     ("mask_file",),                  # 0: Files (blemish section removed from UI)
@@ -201,7 +207,21 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.btn_select_maskfile.clicked.connect(self.select_maskfile)
 
         # draw method / array
+        self.model_draw = DrawGroupTableModel()
+        self.tableView_draw.setModel(self.model_draw)
+        draw_header = self.tableView_draw.horizontalHeader()
+        draw_header.setSectionResizeMode(QHeaderView.Stretch)
+        draw_header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.tableView_draw.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.tableView_draw.customContextMenuRequested.connect(
+            self._show_draw_table_context_menu
+        )
+        self.mp1.sigRoiRemoved.connect(self.model_draw.removeRoiKey)
         self.btn_mask_draw_add.clicked.connect(self.add_drawing)
+        self.cb_selector_type.currentTextChanged.connect(
+            self._on_selector_type_changed
+        )
+        self._on_selector_type_changed(self.cb_selector_type.currentText())
 
         # binary threshold
         self.checkBox_threshold_low_preset.currentIndexChanged.connect(
@@ -231,8 +251,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.tableView.setModel(self.model)
         self.btn_mask_param_add.clicked.connect(self.add_param_constraint)
         self.btn_mask_param_delete.clicked.connect(self.delete_param_constraint)
-        self.checkBox_use_groupindex_for_dq.toggled.connect(
-            self._on_use_groupindex_for_dq_toggled
+        self.btn_mask_param_save.clicked.connect(self.save_param_constraints)
+        self.btn_mask_param_load.clicked.connect(self.load_param_constraints)
+        self.checkBox_use_groupindex_for_subpartition.toggled.connect(
+            self._on_use_groupindex_for_subpartition_toggled
+        )
+        self.tabWidget.currentChanged.connect(
+            lambda _: self._update_groupindex_checkbox_enabled()
         )
 
         self.btn_mask_evaluate.clicked.connect(self.mask_evaluate_current_tab)
@@ -260,6 +285,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         header.setSectionResizeMode(QHeaderView.Stretch)
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.tabWidget.setCurrentIndex(0)
+        self._update_groupindex_checkbox_enabled()
 
         self.comboBox_partition_mapname0.currentIndexChanged.connect(
             self.update_partition_mapname
@@ -433,6 +459,12 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
         self.btn_mask_param_add.setToolTip("Add a new constraint row to the table")
         self.btn_mask_param_delete.setToolTip("Remove the selected constraint row")
+        self.btn_mask_param_save.setToolTip(
+            "Save the constraint rows to a JSON file"
+        )
+        self.btn_mask_param_load.setToolTip(
+            "Load constraint rows from a JSON file (replaces the current rows)"
+        )
         self.btn_mask_evaluate.setToolTip(
             "Evaluate the mask for the currently active tab (preview without committing)"
         )
@@ -457,10 +489,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # ── Q-phi partition ───────────────────────────────────────────────────
         self.sb_sqnum.setToolTip("Number of q-rings in the static (fine) partition")
         self.sb_dqnum.setToolTip("Number of q-rings in the dynamic (coarse) partition")
-        self.checkBox_use_groupindex_for_dq.setToolTip(
-            "Use the parametrization tab's constraint groups as the dynamic q "
-            "partition directly, instead of a linear/log rebin. Requires "
-            "evaluating and applying a parametrization mask first."
+        self.checkBox_use_groupindex_for_subpartition.setToolTip(
+            "Use the parametrization/draw tab's constraint groups as independent "
+            "pixel groups: each group gets its own dynamic/static sub-partition "
+            "on BOTH axes (for ellipse mode, each group also gets its own ellipse "
+            "fit), combined into the overall dynamic/static partition. Works on "
+            "any partition mode (q-phi, x-y, ellipse, general). Sets all four "
+            "dynamic/static bin counts to 1/9 when first checked; all remain "
+            "editable afterward. "
+            "Requires evaluating and applying a parametrization or draw mask first."
         )
         self.sb_spnum.setToolTip("Number of φ sectors in the static partition")
         self.sb_dpnum.setToolTip("Number of φ sectors in the dynamic partition")
@@ -692,11 +729,26 @@ class SimpleMaskGUI(QMainWindow, Ui):
             xy = np.roll(xy, shift=1, axis=0)
             kwargs = {"zero_loc": xy}
         elif target == "mask_draw":
-            rois = extract_roi_geometry(self.mp1.roi, self.mp1.imageItem)
+            # ROIs are never auto-removed by evaluate/apply — only explicit
+            # user actions (the ROI's own remove handle, right-click > Remove
+            # on the draw table, or a replot) take them off the canvas. Rows
+            # removed that way stay out of the lookup, so a row whose ROI is
+            # gone (e.g. removed after a previous evaluate) doesn't break the
+            # 1..N contiguity that group_index_map/num_groups rely on.
+            # Exclusive rows are tracked in the table too but never grouped.
+            live_inclusive_roi_keys = [
+                key for key in self.model_draw.inclusive_roi_keys() if key in self.mp1.roi
+            ]
+            group_index_lookup = {
+                key: idx + 1 for idx, key in enumerate(live_inclusive_roi_keys)
+            }
+            rois = extract_roi_geometry(
+                self.mp1.roi, self.mp1.imageItem, group_index_lookup=group_index_lookup
+            )
             self.sm.set_draw_rois(rois)
-            self.mp1.remove_rois(filter_str="roi_")
             keep = self.sm.evaluate_draw_mask()
-            kwargs = {"arr": np.logical_not(keep)}
+            group_index_map = self.sm.evaluate_draw_group_index_map()
+            kwargs = {"arr": np.logical_not(keep), "group_index_map": group_index_map}
         elif target == "mask_threshold":
             kwargs = {
                 "low": self.binary_threshold_low.value(),
@@ -792,12 +844,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.mask_evaluate(target=target)
         elif target == "mask_list":
             self.mask_list_clear()
-        elif target == "mask_parameter":
-            self.model.clear()
-            if self.checkBox_use_groupindex_for_dq.isChecked():
-                # the group count may have changed with this new set of
-                # constraints, so re-sync sb_dqnum rather than let it go stale
-                self._on_use_groupindex_for_dq_toggled(True)
+        elif target in ("mask_parameter", "mask_draw"):
+            # Draw ROIs are never auto-removed from the canvas by
+            # evaluate/apply — the user removes them explicitly (the ROI's
+            # own remove handle, or right-click > Remove on the draw table).
+            self._update_groupindex_checkbox_enabled()
 
         self.plot()
         self.plot_index.setCurrentIndex(2)
@@ -1241,6 +1292,28 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 t.addPoints(x=[col], y=[row], symbol="+", size=15)
                 self.mp1.add_item(t, label="center")
 
+    def _on_selector_type_changed(self, sl_type):
+        self.spinBox_num_edges.setEnabled(sl_type == "Polygon")
+
+    def _show_draw_table_context_menu(self, pos):
+        index = self.tableView_draw.indexAt(pos)
+        if not index.isValid():
+            return
+        menu = QMenu(self.tableView_draw)
+        remove_action = menu.addAction("Remove")
+        action = menu.exec(self.tableView_draw.viewport().mapToGlobal(pos))
+        if action == remove_action:
+            self._remove_draw_row(index.row())
+
+    def _remove_draw_row(self, row):
+        """Remove a tracked draw-group row and its ROI from the canvas, if
+        still live there (mirrors the ROI's own remove handle)."""
+        if not (0 <= row < self.model_draw.rowCount()):
+            return
+        roi_key = self.model_draw.roi_keys()[row]
+        self.mp1.remove_item(roi_key)  # also fires sigRoiRemoved -> removes the row
+        self.model_draw.removeRoiKey(roi_key)  # defensive: row survives even if already gone
+
     def add_drawing(self):
         if not self.is_ready():
             return
@@ -1298,6 +1371,17 @@ class SimpleMaskGUI(QMainWindow, Ui):
         new_roi.sl_mode = sl_mode
         roi_key = self.mp1.add_item(new_roi)
         new_roi.sigRemoveRequested.connect(lambda: self.mp1.remove_item(roi_key))
+        center = new_roi.mapToItem(self.mp1.imageItem, new_roi.boundingRect().center())
+        self.model_draw.addRow(roi_key, sl_type, (center.y(), center.x()), sl_mode)
+        new_roi.sigRegionChangeFinished.connect(
+            lambda: self._on_draw_roi_changed(roi_key, new_roi)
+        )
+
+    def _on_draw_roi_changed(self, roi_key, roi):
+        """Keep the draw table's displayed center in sync while the ROI is
+        dragged/resized on the canvas."""
+        center = roi.mapToItem(self.mp1.imageItem, roi.boundingRect().center())
+        self.model_draw.updateCenter(roi_key, (center.y(), center.x()))
 
     def update_xmap_limits(self):
         xmap_name = self.comboBox_param_xmap_name.currentText()
@@ -1308,8 +1392,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         valid = xmap[mask] if mask is not None and mask.any() else xmap
         vmin, vmax = float(valid.min()), float(valid.max())
         unit = self.sm.qmap_unit[xmap_name]
-        self.label_param_minval.setText(f"Min: {vmin:.7f} {unit}")
-        self.label_param_maxval.setText(f"Max: {vmax:.7f} {unit}")
+        self.label_param_info.setText(f"(min, max)=({vmin:.7f}, {vmax:.7f}) {unit}")
         for spinbox in (self.doubleSpinBox_param_vbeg, self.doubleSpinBox_param_vend):
             spinbox.setMinimum(vmin)
             spinbox.setMaximum(vmax)
@@ -1334,21 +1417,99 @@ class SimpleMaskGUI(QMainWindow, Ui):
         idx = self.tableView.currentIndex().row()
         self.model.removeRow(idx)
 
-    def _on_use_groupindex_for_dq_toggled(self, checked):
-        if not checked:
-            self.sb_dqnum.setDisabled(False)
+    def save_param_constraints(self):
+        save_fname = QFileDialog.getSaveFileName(
+            self, caption="Save constraints as", filter="JSON (*.json)"
+        )[0]
+        if not save_fname:
             return
-        num_groups = self.sm.get_parameter_group_count()
+        if not save_fname.endswith(".json"):
+            save_fname += ".json"
+        try:
+            with open(save_fname, "w") as f:
+                json.dump(self.model._data, f, indent=4)
+        except Exception:
+            error_message = traceback.format_exc()
+            traceback.print_exc()
+            error_dialog = QMessageBox(self)
+            error_dialog.setIcon(QMessageBox.Critical)
+            error_dialog.setText("Failed to save constraints to file")
+            error_dialog.setDetailedText(error_message)
+            error_dialog.setWindowTitle("Error")
+            error_dialog.exec()
+        else:
+            self.statusbar.showMessage(f"Saved constraints to {save_fname}", 5000)
+
+    def load_param_constraints(self):
+        fname = QFileDialog.getOpenFileName(
+            self, caption="Load constraints", filter="JSON (*.json)"
+        )[0]
+        if not fname:
+            return
+        try:
+            with open(fname) as f:
+                rows = json.load(f)
+        except Exception:
+            error_message = traceback.format_exc()
+            traceback.print_exc()
+            error_dialog = QMessageBox(self)
+            error_dialog.setIcon(QMessageBox.Critical)
+            error_dialog.setText("Failed to load constraints from file")
+            error_dialog.setDetailedText(error_message)
+            error_dialog.setWindowTitle("Error")
+            error_dialog.exec()
+            return
+        self.model.clear()
+        for row in rows:
+            self.model.addRow(row)
+        self.statusbar.showMessage(f"Loaded constraints from {fname}", 5000)
+
+    def _update_groupindex_checkbox_enabled(self):
+        """use_groupindex_for_subpartition works on any partition mode/tab — it
+        just needs constraint groups to sub-partition both axes by."""
+        num_groups = self.sm.get_active_group_count()
+        self.checkBox_use_groupindex_for_subpartition.setEnabled(num_groups > 0)
+        suffix = "s" if num_groups != 1 else ""
+        self.checkBox_use_groupindex_for_subpartition.setText(
+            f"{_GROUPINDEX_CHECKBOX_LABEL} ({num_groups} group{suffix})"
+        )
+
+    def _on_use_groupindex_for_subpartition_toggled(self, checked):
+        if not checked:
+            return
+        num_groups = self.sm.get_active_group_count()
         if not num_groups:
             self.statusbar.showMessage(
-                "No parametrization constraint groups found — evaluate and apply "
-                "constraints on the parametrization tab first.",
+                "No parametrization or draw constraint groups found — evaluate "
+                "and apply constraints on the parametrization tab, or inclusive "
+                "groups on the draw tab, first.",
                 5000,
             )
-            self.checkBox_use_groupindex_for_dq.setChecked(False)
+            self.checkBox_use_groupindex_for_subpartition.setChecked(False)
             return
-        self.sb_dqnum.setValue(num_groups)
-        self.sb_dqnum.setDisabled(True)
+        # Both axes become per-group sub-partitions, so both pairs of
+        # dynamic/static spinboxes get the same 1/9 default.
+        tab_name = self.tabWidget.tabText(self.tabWidget.currentIndex())
+        if tab_name == "q-phi":
+            self.sb_dqnum.setValue(1)
+            self.sb_sqnum.setValue(9)
+            self.sb_dpnum.setValue(1)
+            self.sb_spnum.setValue(9)
+        elif tab_name == "ellipse":
+            self.sb_dxnum_2.setValue(1)
+            self.sb_sxnum_2.setValue(9)
+            self.sb_dynum_2.setValue(1)
+            self.sb_synum_2.setValue(9)
+        elif tab_name == "xy-mesh":
+            self.sb_dxnum.setValue(1)
+            self.sb_sxnum.setValue(9)
+            self.sb_dynum.setValue(1)
+            self.sb_synum.setValue(9)
+        elif tab_name == "general":
+            self.sb_partition_dn0.setValue(1)
+            self.sb_partition_sn0.setValue(9)
+            self.sb_partition_dn1.setValue(1)
+            self.sb_partition_sn1.setValue(9)
 
     def compute_partition(self):
         if not self.is_ready():
@@ -1367,7 +1528,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 "phi_offset": self.doubleSpinBox_phi_offset.value(),
                 "style": self.partition_style.currentText(),
                 "symmetry_fold": self.spinBox_symmetry_fold.value(),
-                "use_groupindex_for_dq": self.checkBox_use_groupindex_for_dq.isChecked(),
+                "use_groupindex_for_subpartition": self.checkBox_use_groupindex_for_subpartition.isChecked(),
             }
             sq_spinbox, sp_spinbox = self.sb_sqnum, self.sb_spnum
         elif tab_name == "xy-mesh":
@@ -1377,6 +1538,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 "sp_num": self.sb_synum.value(),
                 "dq_num": self.sb_dxnum.value(),
                 "dp_num": self.sb_dynum.value(),
+                "use_groupindex_for_subpartition": self.checkBox_use_groupindex_for_subpartition.isChecked(),
             }
             sq_spinbox, sp_spinbox = self.sb_sxnum, self.sb_synum
         elif tab_name == "ellipse":
@@ -1386,6 +1548,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 "sp_num": self.sb_synum_2.value(),
                 "dq_num": self.sb_dxnum_2.value(),
                 "dp_num": self.sb_dynum_2.value(),
+                "use_groupindex_for_subpartition": self.checkBox_use_groupindex_for_subpartition.isChecked(),
             }
             sq_spinbox, sp_spinbox = self.sb_sxnum_2, self.sb_synum_2
         elif tab_name == "general":
@@ -1397,6 +1560,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 "sp_num": self.sb_partition_sn1.value(),
                 "dq_num": self.sb_partition_dn0.value(),
                 "dp_num": self.sb_partition_dn1.value(),
+                "use_groupindex_for_subpartition": self.checkBox_use_groupindex_for_subpartition.isChecked(),
             }
             sq_spinbox, sp_spinbox = self.sb_partition_sn0, self.sb_partition_sn1
         else:

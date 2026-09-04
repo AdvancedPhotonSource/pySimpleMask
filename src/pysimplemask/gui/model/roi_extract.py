@@ -9,15 +9,18 @@ from PySide6.QtGui import QPainterPath
 from pysimplemask.core.rasterize import RoiPolygon
 
 
-def extract_roi_geometry(roi_dict, image_item):
+def extract_roi_geometry(roi_dict, image_item, group_index_lookup=None):
     """Return a list of RoiPolygon for every 'roi_*' item in ``roi_dict``.
 
     roi_dict: mapping of key -> pyqtgraph ROI (each having a ``.sl_mode`` attribute).
     image_item: the pyqtgraph ImageItem the ROIs are drawn over.
+    group_index_lookup: optional {roi_key: 1-based group_index}, e.g. from the
+        Draw tab's tracked-inclusive-ROI table. Keys not present default to 0.
 
     Each ROI's outline is mapped into image-item coordinates and sampled into a
     polygon of ``(row, col)`` vertices, which the core rasterizer fills.
     """
+    group_index_lookup = group_index_lookup or {}
     rois = []
     for key, roi in roi_dict.items():
         if not key.startswith("roi_"):
@@ -32,8 +35,9 @@ def extract_roi_geometry(roi_dict, image_item):
             path = roi.shape()
         path = roi.mapToItem(image_item, path)
 
+        group_index = group_index_lookup.get(key, 0)
         for polygon in path.toSubpathPolygons():
             verts = np.array([[pt.y(), pt.x()] for pt in polygon], dtype=float)
             if verts.shape[0] >= 3:
-                rois.append(RoiPolygon(verts, roi.sl_mode))
+                rois.append(RoiPolygon(verts, roi.sl_mode, group_index))
     return rois

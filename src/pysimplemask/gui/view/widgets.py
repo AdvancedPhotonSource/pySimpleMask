@@ -2,12 +2,18 @@
 # See LICENSE file for details
 import pyqtgraph as pg
 import numpy as np
+from PySide6 import QtCore
 
 # Images are indexed (row, col); match pyqtgraph's display orientation.
 pg.setConfigOptions(imageAxisOrder="row-major")
 
 
 class ImageViewROI(pg.ImageView):
+    # Emitted from remove_item() for every key actually removed, regardless of
+    # caller (a ROI's own remove handle, remove_rois(), or clear()) — the single
+    # choke point other code can hook to stay in sync with the canvas.
+    sigRoiRemoved = QtCore.Signal(str)
+
     def __init__(self, *arg, **kwargs):
         super(ImageViewROI, self).__init__(*arg, **kwargs)
         self.removeItem(self.roi)
@@ -80,8 +86,14 @@ class ImageViewROI(pg.ImageView):
             self.remove_item(key)
 
     def clear(self):
-        self.remove_rois()
-        self.roi = {}
+        # Keep "roi_*" drawn shapes across a redraw (pg.ImageView.clear() only
+        # resets the displayed image, not added scene items) — only wipe
+        # transient overlays like the center marker. Drawn ROIs are removed
+        # only by explicit user action (their own remove handle, the draw
+        # table's right-click Remove, or remove_rois() with no filter).
+        non_roi_keys = [key for key in self.roi if not key.startswith("roi_")]
+        for key in non_roi_keys:
+            self.remove_item(key)
         super(ImageViewROI, self).clear()
         self.reset_limits()
         # incase the signal isn't connected to anything.
@@ -106,6 +118,7 @@ class ImageViewROI(pg.ImageView):
         t = self.roi.pop(label, None)
         if t is not None:
             self.removeItem(t)
+            self.sigRoiRemoved.emit(label)
 
     def updateImage(self, autoHistogramRange=True):
         # Redraw image on screen
