@@ -37,13 +37,17 @@ and a **headless Python API** that can drive the full pipeline from scripts.
   - X-Y spatial partitions.
   - Ellipse-corrected Q-Phi (eq-ephi).
   - Custom axis pair from any q-map channel.
-  - **Group-index dynamic q** — drive the dynamic-q partition directly from the
-    parametrization tab's constraint groups instead of a linear/log rebin: each
-    constraint row becomes one dynamic bin, subdivided into its own static sub-bins.
-    Requires non-overlapping constraint ranges (validated — overlapping or empty
-    groups raise a descriptive error rather than silently mis-binning). GUI: the
-    "Use group-index for dq" checkbox on the q-phi partition tab. Script/CLI:
-    `use_groupindex_for_dq=True` / `--use-groupindex-for-dq`.
+  - **Group-index sub-partitioning** — treat the parametrization/draw tab's
+    constraint groups as independent pixel groups and compute independent
+    sub-partitions per group on both axes (for ellipse mode, each group also gets
+    its own ellipse fit, so rho and phi stay geometrically consistent within a
+    group), then combine them into one overall dynamic/static partition. Works on
+    any partition mode (q-phi, x-y, ellipse, general). Requires non-overlapping
+    constraint ranges (validated — overlapping or empty groups raise a descriptive
+    error rather than silently mis-binning). GUI: the "Use group-index for
+    sub-partitions" checkbox in the Partition groupbox, showing the current active
+    group count. Script/CLI: `use_groupindex_for_subpartition=True` /
+    `--use-groupindex-for-subpartition`.
 - **Visualization** — real-time display of scattering, mask, preview, and partition
   maps; adjustable colormap, log scale, beam-center marker; raw-frame browser with
   per-frame or averaged display for multi-frame HDF5 files.
@@ -120,10 +124,10 @@ m.save_mask("mask.tif")
 Geometry helpers available on the model: `add_polygon`, `add_circle`, `add_ellipse`,
 `add_rectangle`, `add_line` (all accept `mode="exclusive"` or `"inclusive"`).
 
-To use explicit, non-overlapping q-ranges as the dynamic-q groups directly (instead of
+To treat explicit, non-overlapping q-ranges as independent pixel groups (instead of
 a linear/log rebin), evaluate/apply a parametrization mask, then pass
-`use_groupindex_for_dq=True`; `sq_num` is split evenly across the groups and `dq_num`
-is ignored (the group count is used instead):
+`use_groupindex_for_subpartition=True`; `dq_num`/`sq_num`/`dp_num`/`sp_num` all
+become each group's own dynamic/static bin counts (per axis):
 
 ```python
 m.mask_evaluate("mask_parameter", constraints=[
@@ -131,8 +135,40 @@ m.mask_evaluate("mask_parameter", constraints=[
     ("q", "OR",  "A^-1", 0.05, 0.10),   # group 2
 ])
 m.mask_apply("mask_parameter")
-m.compute_partition(mode="q-phi", use_groupindex_for_dq=True, sq_num=100, dp_num=36, sp_num=360)
+m.compute_partition(mode="q-phi", use_groupindex_for_subpartition=True,
+                     dq_num=1, sq_num=50, dp_num=1, sp_num=9)
 ```
+
+#### How group-index sub-partitioning combines partitions
+
+- **Both axes, independently.** Each group gets its own dynamic/static bins on
+  *both* axis0 (q/x) and axis1 (phi/y) — `dq_num`/`sq_num`/`dp_num`/`sp_num` are all
+  **per-group** bin counts, not global totals. A group's bin edges come from that
+  group's own pixel value range on each axis, not the whole detector.
+- **Ellipse mode fits geometry per group.** For `eq-ephi`, each group also gets its
+  own ellipse fit (instead of reusing one whole-mask fit), so a group's rho and phi
+  values come from that same local fit and stay geometrically consistent with each
+  other. Groups with too few pixels to fit fall back to the whole-mask fit.
+  A group's constraint axis doesn't need to match the partition axis — e.g. groups
+  defined on `q` can drive a sub-partition on an `x-y` or ellipse-mode partition.
+- **How the combine works.** Within each group, bin labels are offset so group 2's
+  labels never collide with group 1's, and so on; the two axes are then merged with
+  the ordinary two-axis `combine_partitions` product — no group-aware logic is
+  needed there, because a pixel's axis0 and axis1 labels are always confined to
+  that same pixel's own group block, so groups can never collide in the combined
+  index.
+- **Keep `sq_num`/`sp_num` a multiple of `dq_num`/`dp_num`** (per axis), so the
+  static partition remains a strict refinement of the dynamic one. The GUI enforces
+  this automatically when computing a partition; script/CLI callers should pick
+  compatible values themselves.
+- **Validation.** Requires at least one non-empty, non-overlapping set of
+  constraint groups (from whichever of Parametrization/Draw was evaluated more
+  recently) — overlapping or empty groups raise a descriptive error instead of
+  silently mis-binning.
+- **GUI.** The checkbox label shows the number of currently active groups (e.g.
+  "Use group-index for sub-partitions (2 groups)") and is only enabled once groups
+  exist; checking it defaults all four bin-count spinboxes to 1/9 (both remain
+  editable afterward).
 
 ## Web Viewer
 
@@ -167,13 +203,14 @@ pysimplemask-build-qmap scan.hdf \
     --output-mask mask.tif \
     --report summary.pdf              # omit to auto-name, pass "" to skip
 
-# Group-index dynamic q: each --param-constraint becomes one non-overlapping
-# dynamic-q bin instead of a linear rebin; --dq-num is ignored.
+# Group-index sub-partitioning: each --param-constraint becomes an independent
+# pixel group; --dq-num/--sq-num/--dp-num/--sp-num all become each group's own
+# dynamic/static bin counts (per axis).
 pysimplemask-build-qmap scan.hdf \
     --param-constraint q:AND:0.01:0.05 \
     --param-constraint q:OR:0.05:0.10 \
-    --use-groupindex-for-dq \
-    --sq-num 100 \
+    --use-groupindex-for-subpartition \
+    --dq-num 1 --sq-num 50 --dp-num 1 --sp-num 9 \
     --output-qmap qmap.hdf
 
 # Merge two existing qmap files
