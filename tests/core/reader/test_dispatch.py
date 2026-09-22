@@ -18,6 +18,7 @@ from pysimplemask.core.reader.formats import (
     ImmDataset,
     Rigaku3MDataset,
     RigakuDataset,
+    RigakuExtendDataset,
     get_format_loader,
 )
 
@@ -62,6 +63,12 @@ def test_get_format_loader_bin000_rigaku_3m(make_rigaku_3m):
     loader = get_format_loader(path)
     # ".bin.000" must dispatch to the 3M loader, taking precedence over ".bin".
     assert isinstance(loader, Rigaku3MDataset)
+
+
+def test_get_format_loader_bix_rigaku_extend(make_rigaku_extend):
+    path = make_rigaku_extend([(0, 0, 0, 1)])
+    loader = get_format_loader(path)
+    assert isinstance(loader, RigakuExtendDataset)
 
 
 def test_get_format_loader_unsupported_extension():
@@ -131,7 +138,8 @@ def test_get_handler_plain_hdf_not_misdetected_as_xpcs(make_hdf):
 
 
 def test_get_reader_native_files(tmp_path):
-    import tifffile, numpy as np
+    import tifffile
+    import numpy as np
     p = tmp_path / "img.tif"
     tifffile.imwrite(str(p), np.ones((8, 8), dtype=np.float32))
     from pysimplemask.core.reader.beamlines.native_files import NativeFilesReader
@@ -141,7 +149,8 @@ def test_get_reader_native_files(tmp_path):
 
 
 def test_native_files_loads_tiff_2d(tmp_path):
-    import tifffile, numpy as np
+    import tifffile
+    import numpy as np
     p = tmp_path / "flat.tif"
     tifffile.imwrite(str(p), np.ones((16, 12), dtype=np.float32) * 7)
     from pysimplemask.core.reader.beamlines.native_files import NativeFilesReader
@@ -153,7 +162,8 @@ def test_native_files_loads_tiff_2d(tmp_path):
 
 
 def test_native_files_averages_3d_tiff(tmp_path):
-    import tifffile, numpy as np
+    import tifffile
+    import numpy as np
     frames = np.array([[[1, 2], [3, 4]], [[3, 4], [5, 6]]], dtype=np.float32)
     p = tmp_path / "stack.tif"
     tifffile.imwrite(str(p), frames)
@@ -166,7 +176,8 @@ def test_native_files_averages_3d_tiff(tmp_path):
 
 
 def test_native_files_metadata_is_fake(tmp_path):
-    import tifffile, numpy as np
+    import tifffile
+    import numpy as np
     p = tmp_path / "img.tif"
     tifffile.imwrite(str(p), np.ones((8, 8), dtype=np.float32))
     from pysimplemask.core.reader.beamlines.native_files import NativeFilesReader

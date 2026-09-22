@@ -50,6 +50,33 @@ def make_rigaku(tmp_path):
     return _make
 
 
+def rigaku_extend_words(events, ncols=448):
+    """Encode ``[(frame, row, col, count), ...]`` into a RigakuExtend uint64 word array.
+
+    Bit layout: count = bits[0:12], pixel index = bits[12:32], frame = bits[32:64].
+    """
+    words = []
+    for frame, row, col, count in events:
+        index = row * ncols + col
+        word = (
+            (np.uint64(int(frame)) << np.uint64(32))
+            | (np.uint64(int(index)) << np.uint64(12))
+            | np.uint64(int(count))
+        )
+        words.append(word)
+    return np.array(words, dtype=np.uint64)
+
+
+@pytest.fixture
+def make_rigaku_extend(tmp_path):
+    def _make(events, name="data.bix", ncols=448):
+        path = tmp_path / name
+        rigaku_extend_words(events, ncols).tofile(path)
+        return str(path)
+
+    return _make
+
+
 @pytest.fixture
 def make_rigaku_3m(tmp_path):
     """Write six Rigaku module files ``<stem>.bin.000`` ... ``.bin.005``.

@@ -8,6 +8,7 @@ from .base import ScatteringDataset
 from .hdf import HdfDataset
 from .imm import ImmDataset
 from .rigaku import Rigaku3MDataset, RigakuDataset
+from .rigaku_extend import RigakuExtendDataset
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ __all__ = [
     "ImmDataset",
     "RigakuDataset",
     "Rigaku3MDataset",
+    "RigakuExtendDataset",
     "get_format_loader",
 ]
 
@@ -39,7 +41,8 @@ def get_format_loader(fname, **kwargs):
     """Return a scattering-format loader appropriate for ``fname``'s extension.
 
     Recognized extensions: ``.bin`` (Rigaku 500k), ``.bin.00N`` (Rigaku 3M),
-    ``.imm``, ``.h5``/``.hdf``, and ``.tpx``/``.tpx.000`` (Timepix).
+    ``.bix`` (RigakuExtend), ``.imm``, ``.h5``/``.hdf``, and ``.tpx``/``.tpx.000``
+    (Timepix).
 
     Raises:
         ValueError: If the extension is not recognized.
@@ -50,6 +53,9 @@ def get_format_loader(fname, **kwargs):
     if fname.endswith(".bin"):
         logger.info("Rigaku 500k dataset")
         return RigakuDataset(fname, **kwargs)
+    if fname.endswith(".bix"):
+        logger.info("RigakuExtend dataset")
+        return RigakuExtendDataset(fname, **kwargs)
     if fname.endswith(".imm"):
         logger.info("IMM dataset")
         return ImmDataset(fname, **kwargs)

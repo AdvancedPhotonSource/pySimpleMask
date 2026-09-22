@@ -300,7 +300,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def _setup_tooltips(self):
         # ── Input file & data loading ─────────────────────────────────────────
         self.btn_select_raw.setToolTip(
-            "Browse for a scattering data file (.h5, .hdf, .tiff, .imm, .bin)"
+            "Browse for a scattering data file (.h5, .hdf, .tiff, .imm, .bin, .bix)"
         )
         self.fname.setToolTip("Path to the scattering data file")
         self.comboBox_beamline.setToolTip(
@@ -1062,7 +1062,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self,
             caption="Select raw file hdf",
             dir=default_dir,  # <-- Fixed!
-            filter="Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.tif *.tiff *.fits *.raw *.bin.* *.tpx *.tpx.*)",
+            filter="Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.bix *.tif *.tiff *.fits *.raw *.bin.* *.tpx *.tpx.*)",
         )[0]
         if fname:
             self.fname.setText(fname)
