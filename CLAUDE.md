@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 pySimpleMask creates **masks** and **Q-partition maps** for X-ray scattering patterns
 (SAXS / WAXS / XPCS data reduction), primarily for APS beamlines 8-ID-I and 9-ID-D. Input
-is raw detector data in many formats (HDF5, IMM, Rigaku 500k/3M binary, TIFF, Timepix);
-output is a TIFF mask and a Nexus/XPCS-compatible HDF5 partition file.
+is raw detector data in many formats (HDF5, IMM, Rigaku 500k/3M binary, RigakuExtend,
+TIFF, Timepix); output is a TIFF mask and a Nexus/XPCS-compatible HDF5 partition file.
 
 It is split into a **Qt-free `core/`** (the masking/partition engine, usable headless from
 Python scripts) and a **PySide6 + pyqtgraph `gui/`** (view/model/control). `import
@@ -36,6 +36,8 @@ Common commands (prefix each with the env's `bin/` or activate the env first):
 pysimplemask                       # launch the GUI (needs an X11/Wayland display)
 pysimplemask --path /data/dir      # launch with a starting directory
 pysimplemask-combine-qmaps a.h5 b.h5 out.h5   # merge two qmap HDF5 files
+pysimplemask report qmap.h5 -o report.png     # generate PDF/PNG report from qmap
+
 
 make test                          # pytest tests   (or: pytest tests)
 make lint                          # ruff check src tests
@@ -104,13 +106,18 @@ geometry directly. `core/` imports no Qt and is fully scriptable.
   and `outlier_removal_adjacent_boxes` (fixed-size spatial tiles, sorted brightest-first).
   Both share `compute_outlier_percentile` / `compute_outlier_mad` helpers.
 - `ellipse_util.py` — ellipse-fit q-correction for the eq-ephi partition mode.
+- `report.py` — `generate_report(model, output_path)` and `generate_report_from_qmap(qmap_file, ...)`:
+  generates a 2×3 PDF/PNG summary report (blemish, masked scattering, mask, beam-center crop with
+  intertwined black/white crosshair, static/dynamic maps, and processing parameters footer). Supports
+  `begin_idx`, `num_frames`, and landscape/portrait orientation.
+
 
 **Readers** (`src/pysimplemask/core/reader/`)
 - `get_reader(beamline, fname)` (re-exported via `core/file_handler.get_handler`) →
   `beamlines/aps_8idi.APS8IDIReader` or `beamlines/aps_9idd.APS9IDDReader`.
 - Readers subclass `reader/base_reader.FileReader` (owns `metadata`, `scat`, the
   `data_display` channel stack, mask state, centers, `compute_qmap()`) and pick a format
-  loader from `reader/formats/` (`get_format_loader` by extension: hdf/imm/rigaku). `stype`
+  loader from `reader/formats/` (`get_format_loader` by extension: hdf/imm/rigaku/rigaku_extend). `stype`
   selects the qmap geometry. All loaders return the per-pixel **mean** over the frame range.
 
 **`gui/` — Qt only** (`src/pysimplemask/gui/`)

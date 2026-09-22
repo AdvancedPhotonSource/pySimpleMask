@@ -200,3 +200,122 @@ def test_build_subcommand_metadata_fname_passes_through(monkeypatch, tmp_path):
     mock_run.assert_called_once()
     call_args = mock_run.call_args[0][0]
     assert call_args.metadata_fname == meta
+
+
+def test_main_report_subcommand_calls_generate_report_from_qmap(monkeypatch, tmp_path):
+    """pysimplemask report qmap.hdf with options calls generate_report_from_qmap."""
+    qmap = str(tmp_path / "qmap.hdf")
+    out = str(tmp_path / "report.png")
+    data = str(tmp_path / "scan.h5")
+    monkeypatch.setattr(
+        sys, "argv",
+        [
+            "pysimplemask", "report", qmap,
+            "-o", out,
+            "-d", data,
+            "--beamline", "APS_8IDI",
+            "--crop-half-size", "150",
+            "--orientation", "portrait",
+        ],
+    )
+    mock_gen = MagicMock()
+    with patch("pysimplemask.core.report.generate_report_from_qmap", mock_gen):
+        from pysimplemask import cli
+        cli.main()
+    mock_gen.assert_called_once_with(
+        qmap,
+        output_path=out,
+        raw_data=data,
+        crop_half_size=150,
+        beamline="APS_8IDI",
+        begin_idx=0,
+        num_frames=-1,
+        orientation="portrait",
+    )
+
+
+def test_main_report_subcommand_default_args(monkeypatch, tmp_path):
+    """pysimplemask report qmap.hdf uses default options."""
+    qmap = str(tmp_path / "qmap.hdf")
+    monkeypatch.setattr(sys, "argv", ["pysimplemask", "report", qmap])
+    mock_gen = MagicMock()
+    with patch("pysimplemask.core.report.generate_report_from_qmap", mock_gen):
+        from pysimplemask import cli
+        cli.main()
+    mock_gen.assert_called_once_with(
+        qmap,
+        output_path=None,
+        raw_data=None,
+        crop_half_size=100,
+        beamline="APS_8IDI",
+        begin_idx=0,
+        num_frames=-1,
+        orientation="landscape",
+    )
+
+
+def test_main_report_subcommand_with_num_frames(monkeypatch, tmp_path):
+    """pysimplemask report forwards --num-frames and --begin-idx."""
+    qmap = str(tmp_path / "qmap.hdf")
+    monkeypatch.setattr(
+        sys, "argv",
+        ["pysimplemask", "report", qmap, "--begin-idx", "50", "--num-frames", "200"],
+    )
+    mock_gen = MagicMock()
+    with patch("pysimplemask.core.report.generate_report_from_qmap", mock_gen):
+        from pysimplemask import cli
+        cli.main()
+    mock_gen.assert_called_once_with(
+        qmap,
+        output_path=None,
+        raw_data=None,
+        crop_half_size=100,
+        beamline="APS_8IDI",
+        begin_idx=50,
+        num_frames=200,
+        orientation="landscape",
+    )
+
+
+def test_main_report_subcommand_exits_nonzero_on_error(monkeypatch, tmp_path):
+    """pysimplemask report exits 1 when report generation fails."""
+    qmap = str(tmp_path / "qmap.hdf")
+    monkeypatch.setattr(sys, "argv", ["pysimplemask", "report", qmap])
+    mock_gen = MagicMock(side_effect=FileNotFoundError("file not found"))
+    with patch("pysimplemask.core.report.generate_report_from_qmap", mock_gen):
+        from pysimplemask import cli
+        with pytest.raises(SystemExit) as exc_info:
+            cli.main()
+    assert exc_info.value.code == 1
+
+
+def test_report_cli_standalone(tmp_path):
+    """pysimplemask-report standalone CLI calls generate_report_from_qmap."""
+    qmap = str(tmp_path / "qmap.hdf")
+    out = str(tmp_path / "report.pdf")
+    mock_gen = MagicMock()
+    with patch("pysimplemask.core.report.generate_report_from_qmap", mock_gen):
+        from pysimplemask import cli
+        cli.report_cli([qmap, "-o", out, "--begin-idx", "10", "--num-frames", "500"])
+    mock_gen.assert_called_once_with(
+        qmap,
+        output_path=out,
+        raw_data=None,
+        crop_half_size=100,
+        beamline="APS_8IDI",
+        begin_idx=10,
+        num_frames=500,
+        orientation="landscape",
+    )
+
+
+def test_report_cli_standalone_exits_nonzero_on_error(tmp_path):
+    """pysimplemask-report exits 1 on exception."""
+    qmap = str(tmp_path / "qmap.hdf")
+    mock_gen = MagicMock(side_effect=ValueError("bad qmap"))
+    with patch("pysimplemask.core.report.generate_report_from_qmap", mock_gen):
+        from pysimplemask import cli
+        with pytest.raises(SystemExit) as exc_info:
+            cli.report_cli([qmap])
+    assert exc_info.value.code == 1
+

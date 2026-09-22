@@ -54,7 +54,7 @@ and a **headless Python API** that can drive the full pipeline from scripts.
 - **Web viewer** — browser-based interface (Dash/Plotly) exposing the full mask and
   partition workflow; launch with `pysimplemask web`.
 - **Output** — TIFF mask, Nexus-compatible HDF5 partition (hash + version stamped),
-  one-page PDF pipeline summary, `pysimplemask-combine-qmaps` CLI to merge two partition files.
+  one-page PDF/PNG summary report (`pysimplemask report`), `pysimplemask-combine-qmaps` CLI to merge two partition files.
 
 ## Installation
 
@@ -215,6 +215,11 @@ pysimplemask-build-qmap scan.hdf \
 
 # Merge two existing qmap files
 pysimplemask-combine-qmaps file1.hdf file2.hdf output.hdf
+
+# Generate a PDF or PNG summary report from an existing qmap file
+pysimplemask report qmap.hdf -o report.png
+# or via standalone script (specify raw dataset, frame range, orientation):
+pysimplemask-report qmap.hdf -o report.pdf --dataset scan.hdf --begin-idx 0 --num-frames 500 --orientation landscape
 ```
 
 ## Development

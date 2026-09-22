@@ -22,7 +22,7 @@ def _add_build_args(parser: argparse.ArgumentParser) -> None:
     # positional
     parser.add_argument(
         "dataset",
-        help="Path to the raw scattering file (.hdf, .h5, .imm, .bin, …)",
+        help="Path to the raw scattering file (.hdf, .h5, .imm, .bin, .bix, …)",
     )
 
     # data loading
@@ -154,7 +154,7 @@ def _add_build_args(parser: argparse.ArgumentParser) -> None:
 def main() -> None:
     """Unified pysimplemask entry point.
 
-    Subcommands: gui (default), web, build, combine.
+    Subcommands: gui (default), web, build, combine, report.
     Running ``pysimplemask`` with no subcommand launches the GUI.
     ``pysimplemask --path DIR`` is a backward-compatible shortcut for
     ``pysimplemask gui --path DIR``.
@@ -218,6 +218,51 @@ def main() -> None:
     p_combine.add_argument("-v", "--verbose", action="store_true",
                            help="Enable DEBUG-level logging.")
 
+    # ── report ────────────────────────────────────────────────────────────────
+    p_report = subparsers.add_parser(
+        "report",
+        help="Generate a PDF or PNG summary report from a qmap HDF5 file.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    p_report.add_argument(
+        "qmap_file",
+        help="Path to the qmap HDF5 file (.hdf, .h5).",
+    )
+    p_report.add_argument(
+        "-o", "--output", default=None, metavar="FILE",
+        dest="output_path",
+        help="Output report path (.pdf or .png). Default: same stem as qmap_file with .pdf extension.",
+    )
+    p_report.add_argument(
+        "-d", "--dataset", default=None, metavar="FILE",
+        dest="raw_data",
+        help="Path to raw scattering dataset. If omitted, reads from the source_file referenced in qmap.",
+    )
+    p_report.add_argument(
+        "--beamline", default="APS_8IDI", choices=["APS_8IDI", "APS_9IDD"],
+        help="Beamline reader for raw dataset.",
+    )
+    p_report.add_argument(
+        "--begin-idx", type=int, default=0, metavar="N",
+        help="First frame index to include when loading raw scattering data.",
+    )
+    p_report.add_argument(
+        "--num-frames", type=int, default=-1, metavar="N",
+        help="Frames to average when loading raw scattering data: 0=all, >0=exact count, -1=representative subset.",
+    )
+    p_report.add_argument(
+        "--crop-half-size", type=int, default=100, metavar="N",
+        help="Half-size in pixels of the beam-center crop panel.",
+    )
+    p_report.add_argument(
+        "--orientation", default="landscape", choices=["landscape", "portrait"],
+        help="Page orientation.",
+    )
+    p_report.add_argument(
+        "-v", "--verbose", action="store_true",
+        help="Enable DEBUG-level logging.",
+    )
+
     args = parser.parse_args()
 
     # ── dispatch ──────────────────────────────────────────────────────────────
@@ -255,10 +300,101 @@ def main() -> None:
             logging.error("%s", exc)
             sys.exit(1)
 
+    elif args.subcommand == "report":
+        logging.basicConfig(
+            level=logging.DEBUG if args.verbose else logging.INFO,
+            format="%(asctime)s [%(levelname)s] %(message)s",
+            datefmt="%H:%M:%S",
+        )
+        from pysimplemask.core.report import generate_report_from_qmap
+        try:
+            generate_report_from_qmap(
+                args.qmap_file,
+                output_path=args.output_path,
+                raw_data=args.raw_data,
+                crop_half_size=args.crop_half_size,
+                beamline=args.beamline,
+                begin_idx=args.begin_idx,
+                num_frames=args.num_frames,
+                orientation=args.orientation,
+            )
+        except Exception as exc:
+            logging.error("%s", exc)
+            sys.exit(1)
+
 
 # ---------------------------------------------------------------------------
 # Standalone entry points (pysimplemask-* scripts — backward compat)
 # ---------------------------------------------------------------------------
+
+
+def report_cli(argv=None) -> None:
+    """CLI entry point: generate a PDF or PNG summary report from a qmap file."""
+    parser = argparse.ArgumentParser(
+        prog="pysimplemask-report",
+        description="Generate a PDF or PNG summary report from a pySimpleMask qmap HDF5 file.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "qmap_file",
+        help="Path to the qmap HDF5 file (.hdf, .h5).",
+    )
+    parser.add_argument(
+        "-o", "--output", default=None, metavar="FILE",
+        dest="output_path",
+        help="Output report path (.pdf or .png). Default: same stem as qmap_file with .pdf extension.",
+    )
+    parser.add_argument(
+        "-d", "--dataset", default=None, metavar="FILE",
+        dest="raw_data",
+        help="Path to raw scattering dataset. If omitted, reads from the source_file referenced in qmap.",
+    )
+    parser.add_argument(
+        "--beamline", default="APS_8IDI", choices=["APS_8IDI", "APS_9IDD"],
+        help="Beamline reader for raw dataset.",
+    )
+    parser.add_argument(
+        "--begin-idx", type=int, default=0, metavar="N",
+        help="First frame index to include when loading raw scattering data.",
+    )
+    parser.add_argument(
+        "--num-frames", type=int, default=-1, metavar="N",
+        help="Frames to average when loading raw scattering data: 0=all, >0=exact count, -1=representative subset.",
+    )
+    parser.add_argument(
+        "--crop-half-size", type=int, default=100, metavar="N",
+        help="Half-size in pixels of the beam-center crop panel.",
+    )
+    parser.add_argument(
+        "--orientation", default="landscape", choices=["landscape", "portrait"],
+        help="Page orientation.",
+    )
+    parser.add_argument(
+        "-v", "--verbose", action="store_true",
+        help="Enable DEBUG-level logging.",
+    )
+    args = parser.parse_args(argv)
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(message)s",
+        datefmt="%H:%M:%S",
+    )
+    from pysimplemask.core.report import generate_report_from_qmap
+    try:
+        generate_report_from_qmap(
+            args.qmap_file,
+            output_path=args.output_path,
+            raw_data=args.raw_data,
+            crop_half_size=args.crop_half_size,
+            beamline=args.beamline,
+            begin_idx=args.begin_idx,
+            num_frames=args.num_frames,
+            orientation=args.orientation,
+        )
+    except Exception as exc:
+        logging.error("%s", exc)
+        sys.exit(1)
+
 
 
 def combine_qmaps() -> None:
