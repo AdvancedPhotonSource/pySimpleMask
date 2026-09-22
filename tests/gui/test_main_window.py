@@ -146,11 +146,11 @@ def test_rawdata_item_disabled_by_default(qapp, tmp_path):
 
 
 def test_frame_controls_hidden_by_default(qapp, tmp_path):
-    """Frame controls are invisible on startup."""
+    """Frame controls are disabled on startup."""
     gui = SimpleMaskGUI()
-    assert not gui.label_frame.isVisible()
-    assert not gui.horizontalSlider_frame.isVisible()
-    assert not gui.spinBox_current_frame.isVisible()
+    assert not gui.label_frame.isEnabled()
+    assert not gui.horizontalSlider_frame.isEnabled()
+    assert not gui.spinBox_current_frame.isEnabled()
 
 
 def test_non_rawdata_channel_uses_correct_data_display_slice(qapp, tmp_path):
