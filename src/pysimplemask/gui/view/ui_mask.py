@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 
 ################################################################################
 ## Form generated from reading UI file 'mask.ui'
@@ -1617,10 +1619,10 @@ class Ui_SimpleMask(object):
         self.label_37.setText(QCoreApplication.translate("SimpleMask", u"dynamic x:", None))
         self.label_36.setText(QCoreApplication.translate("SimpleMask", u"dynamic y:", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_10), QCoreApplication.translate("SimpleMask", u"xy-mesh", None))
-        self.label_51.setText(QCoreApplication.translate("SimpleMask", u"dynamic y:", None))
-        self.label_35.setText(QCoreApplication.translate("SimpleMask", u"static x:", None))
-        self.label_40.setText(QCoreApplication.translate("SimpleMask", u"static y:", None))
-        self.label_49.setText(QCoreApplication.translate("SimpleMask", u"dynamic x:", None))
+        self.label_51.setText(QCoreApplication.translate("SimpleMask", u"dynamic azimuthal num:", None))
+        self.label_35.setText(QCoreApplication.translate("SimpleMask", u"static radial num:", None))
+        self.label_40.setText(QCoreApplication.translate("SimpleMask", u"static azimuthal num:", None))
+        self.label_49.setText(QCoreApplication.translate("SimpleMask", u"dynamic radial num:", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("SimpleMask", u"ellipse", None))
         self.comboBox_partition_style0.setItemText(0, QCoreApplication.translate("SimpleMask", u"Linear", None))
         self.comboBox_partition_style0.setItemText(1, QCoreApplication.translate("SimpleMask", u"Logarithmic", None))
