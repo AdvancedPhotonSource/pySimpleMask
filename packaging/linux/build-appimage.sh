@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
+
 # packaging/linux/build-appimage.sh
 # Build a Linux AppImage for pySimpleMask.
 #

@@ -1,5 +1,8 @@
 # pysimplemask.spec
 # -*- mode: python ; coding: utf-8 -*-
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
+
 # PyInstaller spec for the pySimpleMask GUI (.exe / one-dir bundle)
 #
 # Usage:

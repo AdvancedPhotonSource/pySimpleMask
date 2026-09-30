@@ -1,3 +1,6 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
+
 """Structural checks for .github/workflows/build-releases.yml.
 
 These don't run the workflow itself (that needs GitHub Actions plus real

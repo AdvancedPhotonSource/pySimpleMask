@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
+
 # Generates packaging/macos/icon.icns from packaging/icon.png.
 #
 # Uses sips/iconutil, which only exist on macOS, so this runs in CI

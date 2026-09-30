@@ -1,3 +1,6 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
+
 """Exercises pysimplemask.spec's per-platform branches without needing a real
 PyInstaller install or a macOS/Windows machine.
 

@@ -1,3 +1,6 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
+
 """Static checks for the macOS packaging assets.
 
 Neither `sips`/`iconutil` (used by make_icns.sh) nor real icon generation can

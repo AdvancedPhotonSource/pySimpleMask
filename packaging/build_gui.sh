@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
+
 # packaging/build_gui.sh
 # Local build script for Linux — produces a PyInstaller one-dir bundle.
 #

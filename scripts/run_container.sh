@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
 
 # Define image name
 IMAGE_NAME="pysimplemask"

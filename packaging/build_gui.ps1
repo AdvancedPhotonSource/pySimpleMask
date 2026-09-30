@@ -1,3 +1,6 @@
+# Copyright © UChicago Argonne LLC
+# See LICENSE file for details
+
 # packaging/build_gui.ps1
 # Local build script for Windows — produces a PyInstaller one-file .exe.
 #
