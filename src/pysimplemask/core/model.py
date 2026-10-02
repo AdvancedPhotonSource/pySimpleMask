@@ -279,6 +279,9 @@ class SimpleMaskModel(object):
         self.mask_apply(target="default_blemish")
         self.mask_kernel.update_qmap(self.qmap)
 
+        # a partition (and its settings) belongs to the previous dataset
+        self.new_partition = None
+        self._partition_kwargs = None
         if getattr(self.dset, "saved_partition", None) is not None:
             p = self.dset.saved_partition
             self.dset.update_partitions(p["dynamic_roi_map"], p["static_roi_map"])
@@ -318,7 +321,7 @@ class SimpleMaskModel(object):
         return saxs1d, zero_loc
 
     def compute_partition(self, mode="q-phi", **kwargs):
-        self._partition_kwargs = {"mode": mode, **kwargs}
+        partition_kwargs = {"mode": mode, **kwargs}
         is_ellipse = mode == "eq-ephi"
         if is_ellipse:
             ellipse_param = find_ellipse_parameters(self.mask)
@@ -351,7 +354,9 @@ class SimpleMaskModel(object):
                 self.qmap["phi"] = phi_rev
         t1 = time.perf_counter()
         logger.info("compute partition finished in %f seconds", t1 - t0)
-
+        # recorded only on success, so update_parameters refreshes the
+        # partition that is actually displayed
+        self._partition_kwargs = partition_kwargs
         return flag
 
     def _per_group_ellipse_geometry(self, fallback_rho, fallback_phi):

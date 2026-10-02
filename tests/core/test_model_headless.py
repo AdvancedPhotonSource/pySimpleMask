@@ -79,6 +79,40 @@ def test_update_parameters_does_not_compute_partition_when_none_exists(tmp_path,
     spy.assert_not_called()
 
 
+def test_update_parameters_does_not_reuse_previous_datasets_partition(tmp_path, make_hdf):
+    """Loading a new file must forget the previous file's partition settings,
+    or a center change on the new file recomputes with the old file's bins
+    (and its group-index setting, which raises on a file without groups)."""
+    path = make_hdf(_frames(), name="scan.h5")
+    m = SimpleMaskModel()
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+    m.compute_partition(mode="q-phi", dq_num=2, sq_num=4, dp_num=4, sp_num=8)
+
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+    assert m.new_partition is None
+    with patch.object(m, "compute_partition", wraps=m.compute_partition) as spy:
+        m.update_parameters(new_metadata={"beam_center_x": 500.0})
+
+    spy.assert_not_called()
+
+
+def test_failed_compute_partition_keeps_last_successful_settings(tmp_path, make_hdf):
+    """A compute that raises must not overwrite the settings update_parameters
+    uses to refresh the partition that is still displayed."""
+    path = make_hdf(_frames(), name="scan.h5")
+    m = SimpleMaskModel()
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+    good = dict(mode="q-phi", dq_num=2, sq_num=4, dp_num=4, sp_num=8)
+    m.compute_partition(**good)
+    with pytest.raises(RuntimeError):
+        m.compute_partition(**good, use_groupindex_for_subpartition=True)
+
+    with patch.object(m, "compute_partition", wraps=m.compute_partition) as spy:
+        m.update_parameters(new_metadata={"beam_center_x": 500.0})
+
+    spy.assert_called_once_with(**good)
+
+
 def test_compute_partition_with_groupindex_for_subpartition(tmp_path, make_hdf):
     """Constraint groups from the parametrization mask can drive dq directly,
     instead of a linear rebin of the q-range."""
