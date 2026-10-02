@@ -85,8 +85,8 @@ class SimpleMaskModel(object):
             cy, cx = center[0], center[1]
             yy, xx = np.indices(self.shape)
             beamstop = np.hypot(yy - cy, xx - cx) < (beamstop_diameter / 2.0)
-            self.mask_evaluate("mask_draw", arr=beamstop)
-            self.mask_apply("mask_draw")
+            self.mask_evaluate("mask_beamstop", arr=beamstop)
+            self.mask_apply("mask_beamstop")
             n_masked = int(beamstop.sum())
             logger.info(
                 "beamstop mask applied: diameter=%d px, %d pixels masked",
