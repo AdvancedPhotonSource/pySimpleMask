@@ -279,7 +279,9 @@ class SimpleMaskModel(object):
         self.mask_apply(target="default_blemish")
         self.mask_kernel.update_qmap(self.qmap)
 
-        # a partition (and its settings) belongs to the previous dataset
+        # draw ROIs and a partition (with its settings) belong to the
+        # previous dataset
+        self.draw_rois = []
         self.new_partition = None
         self._partition_kwargs = None
         if getattr(self.dset, "saved_partition", None) is not None:

@@ -1149,6 +1149,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.btn_load.setText("Load")
             self.statusbar.showMessage(f"Failed to load: {fname}", 8000)
             return
+        # drawn ROIs belong to the previous dataset (fires sigRoiRemoved, which
+        # also drops their draw-table rows)
+        self.mp1.remove_rois("roi_")
         # else:
         #     stype = self.sm.dset.stype
 

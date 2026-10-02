@@ -96,6 +96,17 @@ def test_update_parameters_does_not_reuse_previous_datasets_partition(tmp_path, 
     spy.assert_not_called()
 
 
+def test_read_data_clears_previous_draw_rois(tmp_path, make_hdf):
+    path = make_hdf(_frames(), name="scan.h5")
+    m = SimpleMaskModel()
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+    m.add_polygon([(0, 0), (0, 4), (4, 4)], mode="exclusive")
+
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+
+    assert m.draw_rois == []
+
+
 def test_failed_compute_partition_keeps_last_successful_settings(tmp_path, make_hdf):
     """A compute that raises must not overwrite the settings update_parameters
     uses to refresh the partition that is still displayed."""

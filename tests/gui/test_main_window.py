@@ -726,6 +726,7 @@ def draw_gui(qapp, tmp_path):
 
     gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
     yield gui
+    gui.mp1.remove_rois()
     gui.mp1.clear()
     gui.close()
     del gui
@@ -753,6 +754,26 @@ def test_inclusive_draw_adds_row_to_draw_group_table(draw_gui):
     assert gui.model_draw.rowCount() == 1
     assert gui.model_draw.data(gui.model_draw.index(0, 0), Qt.DisplayRole) == "1"
     assert gui.model_draw.data(gui.model_draw.index(0, 1), Qt.DisplayRole) == "Circle"
+
+
+def test_loading_a_new_file_removes_drawn_rois(draw_gui, tmp_path):
+    """Drawn ROIs belong to the dataset they were drawn on: they must not
+    survive load(), or the next Draw evaluate rasterizes them against the
+    new dataset's geometry."""
+    gui = draw_gui
+    _select_draw(gui, "Circle", "inclusive")
+    gui.add_drawing()
+    assert gui.model_draw.rowCount() == 1
+
+    path = tmp_path / "other.h5"
+    with h5py.File(path, "w") as h:
+        h["/entry/data/data"] = np.ones((3, 20, 24), dtype=np.uint16)
+    gui.fname.setText(str(path))
+    gui.load()
+
+    assert not [key for key in gui.mp1.roi if key.startswith("roi_")]
+    assert gui.model_draw.rowCount() == 0
+    assert gui.sm.draw_rois == []
 
 
 def test_moving_roi_updates_table_center(draw_gui):
