@@ -157,12 +157,19 @@ def generate_partition(
         partition[leftover] = 1
 
     if map_name == "phi" and symmetry_fold > 1:
-        # get the average phi value for each partition, at the first fold
-        idx_map = unit_xmap * partition
-        sum_value = np.bincount(idx_map.flatten(), weights=xmap_phi.flatten())
-        norm_factor = np.bincount(idx_map.flatten())
-        v_list = sum_value / np.clip(norm_factor, 1, None)
-        v_list = v_list[1:]
+        # get the average phi value for each partition, at the first fold;
+        # bins with no pixels in the first fold (e.g. a phi wedge elsewhere)
+        # fall back to their average over all folds. minlength keeps
+        # len(v_list) == num_pts either way.
+        def _bin_mean(idx):
+            idx = idx.ravel()
+            sums = np.bincount(idx, weights=xmap_phi.ravel(), minlength=num_pts + 1)
+            counts = np.bincount(idx, minlength=num_pts + 1)
+            return (sums / np.clip(counts, 1, None))[1:], counts[1:]
+
+        v_list, unit_counts = _bin_mean(unit_xmap * partition)
+        v_all, _ = _bin_mean(partition)
+        v_list = np.where(unit_counts > 0, v_list, v_all)
 
     return {
         "map_name": map_name,
