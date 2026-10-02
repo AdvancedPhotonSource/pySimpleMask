@@ -510,3 +510,25 @@ def test_importing_core_does_not_import_qt():
     code = "import pysimplemask, sys; print('PySide6' in sys.modules)"
     out = subprocess.check_output([sys.executable, "-c", code], text=True).strip()
     assert out == "False"
+
+
+def test_importing_pysimplemask_does_not_load_matplotlib_report():
+    """`import pysimplemask` must not pull in report.py (matplotlib) eagerly."""
+    code = (
+        "import pysimplemask.core, sys; "
+        "print('pysimplemask.core.report' in sys.modules, 'matplotlib' in sys.modules)"
+    )
+    out = subprocess.check_output([sys.executable, "-c", code], text=True).strip()
+    assert out == "False False"
+
+
+def test_report_module_leaves_pyplot_and_backend_alone():
+    """Using the report must not switch the caller's matplotlib backend or
+    load pyplot (which would break Jupyter/interactive sessions)."""
+    code = (
+        "import matplotlib, sys; matplotlib.use('svg'); "
+        "from pysimplemask.core import generate_report_from_qmap; "
+        "print(matplotlib.get_backend(), 'matplotlib.pyplot' in sys.modules)"
+    )
+    out = subprocess.check_output([sys.executable, "-c", code], text=True).strip()
+    assert out == "svg False"
