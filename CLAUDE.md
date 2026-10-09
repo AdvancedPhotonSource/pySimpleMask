@@ -87,7 +87,8 @@ geometry directly. `core/` imports no Qt and is fully scriptable.
 - `file_handler.get_handler(beamline, fname)` / `reader/` — see Readers below.
 - `qmap.py` — pure, `lru_cache`d geometry. `compute_qmap(stype, metadata)` →
   `compute_transmission_qmap` / `compute_reflection_qmap`, per-pixel `q/phi/x/y` maps via
-  3D rotation matrices (swing angles; reflection incident angle + orientation).
+  3D rotation matrices (swing angles). Reflection: the beam-center→specular line is the
+  projected sample normal (sets the detector rotation); exact alpha_f/tth (no small-angle form).
 - `mask.py` — `MaskAssemble` composes independent mask `workers` keyed by type
   (`mask_blemish`, `mask_file`, `mask_threshold`, `mask_list`, `mask_draw`, `mask_outlier`,
   `mask_parameter`). Each `.evaluate()` proposes a candidate; `.apply(target)` ANDs it into
