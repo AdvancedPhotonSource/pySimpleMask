@@ -59,14 +59,18 @@ def get_nexus_metadata(fname, metadata_fname=None):
     )
 
     pixel_size = meta["pixel_size"]
+    orientation = int(meta["orientation"])
+    assert orientation in [0, -180, 180], "orientation must be 0, -180, or 180"
+    sign = 1 if orientation == 0 else -1
+
     beam_center_x = (
-        meta["_bcx"] + (meta["detector_x"] - meta["_bc_det_x0"]) / pixel_size
+        meta["_bcx"] + sign * (meta["detector_x"] - meta["_bc_det_x0"]) / pixel_size
     )
     beam_center_y = (
-        meta["_bcy"] + (meta["detector_y"] - meta["_bc_det_y0"]) / pixel_size
+        meta["_bcy"] + sign * (meta["detector_y"] - meta["_bc_det_y0"]) / pixel_size
     )
-    specular_x = meta["_spx"] + (meta["detector_x"] - meta["_sp_det_x0"]) / pixel_size
-    specular_y = meta["_spy"] + (meta["detector_y"] - meta["_sp_det_y0"]) / pixel_size
+    specular_x = meta["_spx"] + sign * (meta["detector_x"] - meta["_sp_det_x0"]) / pixel_size
+    specular_y = meta["_spy"] + sign * (meta["detector_y"] - meta["_sp_det_y0"]) / pixel_size
 
     for key in [k for k in meta if k.startswith("_")]:
         meta.pop(key)
