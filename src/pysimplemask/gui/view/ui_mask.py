@@ -387,6 +387,24 @@ class Ui_SimpleMask(object):
 
         self.btn_mask_draw_add = QPushButton(self.tab_2)
         self.btn_mask_draw_add.setObjectName(u"btn_mask_draw_add")
+        self.btn_mask_draw_add.setStyleSheet(u"QPushButton {\n"
+"  background-color: #000080;\n"
+"  color: white;\n"
+"  border: 1px solid #000060;\n"
+"  border-radius: 3px;\n"
+"  padding: 3px 10px;\n"
+"}\n"
+"QPushButton:hover {\n"
+"  background-color: #1a1a9e;\n"
+"}\n"
+"QPushButton:pressed {\n"
+"  background-color: #00004d;\n"
+"}\n"
+"QPushButton:disabled {\n"
+"  background-color: #9a9ab8;\n"
+"  color: #e8e8e8;\n"
+"  border-color: #8a8aa8;\n"
+"}")
 
         self.gridLayout_8.addWidget(self.btn_mask_draw_add, 2, 3, 2, 1)
 
