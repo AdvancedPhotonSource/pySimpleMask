@@ -3,6 +3,7 @@
 """GUI controller regression tests (run headless via the offscreen Qt platform)."""
 
 import os
+from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -1186,3 +1187,48 @@ def test_compute_partition_uses_draw_groupindex_for_subpartition_end_to_end(draw
 
     assert gui.sm.new_partition is not None
     assert gui.sm.new_partition["dynamic_num_pts"][0] == 1
+
+
+def test_file_dialogs_always_open_in_launch_dir(qapp, tmp_path):
+    """Every browse dialog starts in the launch directory, even after the user
+    picked a file from somewhere else in an earlier browse."""
+    launch_dir = tmp_path / "launch"
+    other_dir = tmp_path / "elsewhere"
+    launch_dir.mkdir()
+    other_dir.mkdir()
+    # A valid (empty) constraints file so load_param_constraints succeeds.
+    chosen = other_dir / "constraints.json"
+    chosen.write_text("[]")
+
+    gui = SimpleMaskGUI(path=str(launch_dir))
+    assert gui.work_dir == str(launch_dir)
+
+    seen_dirs = []
+
+    def fake_open(parent, caption="", dir="", filter="", *args, **kwargs):
+        seen_dirs.append(dir)
+        return (str(chosen), "")
+
+    def fake_save(parent, caption="", dir="", filter="", *args, **kwargs):
+        seen_dirs.append(dir)
+        return ("", "")
+
+    with patch.object(QFileDialog, "getOpenFileName", side_effect=fake_open), \
+         patch.object(QFileDialog, "getSaveFileName", side_effect=fake_save):
+        gui.select_raw()
+        assert gui.fname.text() == str(chosen)
+        # Browsing to another folder must not move the remembered directory.
+        assert gui.work_dir == str(launch_dir)
+        gui.select_raw()
+        gui.save_param_constraints()
+        gui.load_param_constraints()
+
+    assert seen_dirs, "no dialog was invoked"
+    assert all(d == str(launch_dir) for d in seen_dirs), seen_dirs
+
+
+def test_work_dir_defaults_to_cwd_when_no_path(qapp, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    gui = SimpleMaskGUI()
+    assert gui.work_dir == str(tmp_path)
+    assert gui._dialog_dir() == str(tmp_path)

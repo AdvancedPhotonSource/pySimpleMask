@@ -269,7 +269,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self._frame_timer.timeout.connect(self._read_and_show_frame)
         self._pending_frame_idx = 0
 
-        self.work_dir = None
+        # Directory every file dialog opens in. It is fixed at launch (the
+        # --path argument, or the cwd pysimplemask was started from) and is
+        # deliberately never updated when the user browses elsewhere, so each
+        # new browse starts back at the original folder.
+        self.work_dir = os.getcwd()
         if path is not None:
             path = os.path.abspath(path)
             if os.path.isfile(path):
@@ -277,8 +281,6 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 self.work_dir = os.path.dirname(path)
             elif os.path.isdir(path):
                 self.work_dir = path
-        else:
-            self.work_dir = os.path.expanduser("~")
 
         self.MaskWidget.setCurrentIndex(0)
         header = self.tableView.horizontalHeader()
@@ -710,12 +712,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if target is None or not self.is_ready():
             return
 
-        if target == "mask_blemish":
-            kwargs = {
-                "fname": self.blemish_fname.text(),
-                "key": self.blemish_path.text(),
-            }
-        elif target == "mask_file":
+        if target == "mask_file":
             kwargs = {
                 "fname": self.maskfile_fname.text(),
                 "key": self.comboBox_hdffile_path.currentText(),
@@ -1055,34 +1052,21 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.display_metadata()
         self.plot()
 
-    def select_raw(self):
-        default_dir = self.work_dir if self.work_dir else os.getcwd()
+    def _dialog_dir(self) -> str:
+        """Start directory for every file dialog: the launch directory."""
+        if self.work_dir and os.path.isdir(self.work_dir):
+            return self.work_dir
+        return os.getcwd()
 
+    def select_raw(self):
         fname = QFileDialog.getOpenFileName(
             self,
             caption="Select raw file hdf",
-            dir=default_dir,  # <-- Fixed!
+            dir=self._dialog_dir(),
             filter="Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.bix *.tif *.tiff *.fits *.raw *.bin.* *.tpx *.tpx.*)",
         )[0]
         if fname:
             self.fname.setText(fname)
-            self.work_dir = os.path.dirname(fname)
-        return
-
-    def select_blemish(self):
-        fname = QFileDialog.getOpenFileName(
-            self,
-            "Select blemish file",
-            filter="Supported Formats(*.tiff *.tif *.h5 *.hdf *.hdf5)",
-        )[0]
-        if fname not in [None, ""]:
-            self.blemish_fname.setText(fname)
-
-        if fname.endswith(".tif") or fname.endswith(".tiff"):
-            self.blemish_path.setDisabled(True)
-        else:
-            self.blemish_path.setEnabled(True)
-
         return
 
     def select_maskfile(self):
@@ -1094,6 +1078,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         fname = QFileDialog.getOpenFileName(
             self,
             "Select mask file",
+            dir=self._dialog_dir(),
             filter="Supported Formats(*.tiff *.tif *.h5 *.hdf *.hdf5)",
         )[0]
         if not fname:
@@ -1422,7 +1407,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     def save_param_constraints(self):
         save_fname = QFileDialog.getSaveFileName(
-            self, caption="Save constraints as", filter="JSON (*.json)"
+            self,
+            caption="Save constraints as",
+            dir=self._dialog_dir(),
+            filter="JSON (*.json)",
         )[0]
         if not save_fname:
             return
@@ -1445,7 +1433,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     def load_param_constraints(self):
         fname = QFileDialog.getOpenFileName(
-            self, caption="Load constraints", filter="JSON (*.json)"
+            self,
+            caption="Load constraints",
+            dir=self._dialog_dir(),
+            filter="JSON (*.json)",
         )[0]
         if not fname:
             return
@@ -1619,7 +1610,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         save_type = self.comboBox_output_type.currentText()
         if save_type == "Nexus-XPCS":
             save_fname = QFileDialog.getSaveFileName(
-                self, caption="Save mask/qmap as", filter="HDF (*.hdf)"
+                self,
+                caption="Save mask/qmap as",
+                dir=self._dialog_dir(),
+                filter="HDF (*.hdf)",
             )[0]
             if save_fname == "":
                 logger.warning("received empty filename; exit without saving")
@@ -1633,7 +1627,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
             target_function = self.sm.save_partition
         elif save_type == "Mask-Only":
             save_fname = QFileDialog.getSaveFileName(
-                self, caption="Save mask as tif", filter="TIF (*.tif)"
+                self,
+                caption="Save mask as tif",
+                dir=self._dialog_dir(),
+                filter="TIF (*.tif)",
             )[0]
             if not save_fname.endswith(".tif") and not save_fname.endswith(".tiff"):
                 save_fname += ".tif"
@@ -1669,6 +1666,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         fname = QFileDialog.getOpenFileName(
             self,
             "Select mask file",
+            dir=self._dialog_dir(),
             filter="Text/Json (*.txt *.csv *.json);;All files(*.*)",
         )[0]
         if fname in ["", None]:
