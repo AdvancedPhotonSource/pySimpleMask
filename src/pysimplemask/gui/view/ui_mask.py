@@ -157,7 +157,7 @@ class Ui_SimpleMask(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 718, 68))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 710, 68))
         self.gridLayout_9 = QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_9.setObjectName(u"gridLayout_9")
         self.gridLayout_9.setContentsMargins(0, 0, 0, 0)
@@ -387,6 +387,24 @@ class Ui_SimpleMask(object):
 
         self.btn_mask_draw_add = QPushButton(self.tab_2)
         self.btn_mask_draw_add.setObjectName(u"btn_mask_draw_add")
+        self.btn_mask_draw_add.setStyleSheet(u"QPushButton {\n"
+"  background-color: #000080;\n"
+"  color: white;\n"
+"  border: 1px solid #000060;\n"
+"  border-radius: 3px;\n"
+"  padding: 3px 10px;\n"
+"}\n"
+"QPushButton:hover {\n"
+"  background-color: #1a1a9e;\n"
+"}\n"
+"QPushButton:pressed {\n"
+"  background-color: #00004d;\n"
+"}\n"
+"QPushButton:disabled {\n"
+"  background-color: #9a9ab8;\n"
+"  color: #e8e8e8;\n"
+"  border-color: #8a8aa8;\n"
+"}")
 
         self.gridLayout_8.addWidget(self.btn_mask_draw_add, 2, 3, 2, 1)
 
@@ -1468,7 +1486,7 @@ class Ui_SimpleMask(object):
         self.mask_list_include.toggled.connect(self.mask_list_variation.setEnabled)
 
         self.MaskWidget.setCurrentIndex(1)
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(3)
 
 
         QMetaObject.connectSlotsByName(SimpleMask)
@@ -1636,7 +1654,7 @@ class Ui_SimpleMask(object):
         self.label_54.setText(QCoreApplication.translate("SimpleMask", u"map2", None))
         self.label_52.setText(QCoreApplication.translate("SimpleMask", u"Static num", None))
         self.label_5.setText(QCoreApplication.translate("SimpleMask", u"Dynamic num", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_8), QCoreApplication.translate("SimpleMask", u"general", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_8), QCoreApplication.translate("SimpleMask", u"general (GIXS)", None))
         self.groupBox_6.setTitle(QCoreApplication.translate("SimpleMask", u"Output", None))
         self.pushButton.setText(QCoreApplication.translate("SimpleMask", u"Save", None))
         self.label_47.setText(QCoreApplication.translate("SimpleMask", u"Format", None))

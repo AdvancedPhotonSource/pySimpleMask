@@ -89,8 +89,8 @@ class ImageViewROI(pg.ImageView):
         # Keep "roi_*" drawn shapes across a redraw (pg.ImageView.clear() only
         # resets the displayed image, not added scene items) — only wipe
         # transient overlays like the center marker. Drawn ROIs are removed
-        # only by explicit user action (their own remove handle, the draw
-        # table's right-click Remove, or remove_rois() with no filter).
+        # by explicit user action (their own remove handle, the draw table's
+        # right-click Remove) or remove_rois() (e.g. on loading a new file).
         non_roi_keys = [key for key in self.roi if not key.startswith("roi_")]
         for key in non_roi_keys:
             self.remove_item(key)

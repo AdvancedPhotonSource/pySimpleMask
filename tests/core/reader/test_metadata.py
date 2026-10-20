@@ -12,6 +12,7 @@ import pytest
 import numpy as np
 
 from pysimplemask.core.reader.metadata import (
+    InvalidMetadataError,
     _normalize,
     has_nexus_fields,
     read_keymap,
@@ -25,7 +26,9 @@ from pysimplemask.core.reader.beamlines.aps_8idi import (
     DEFAULT_METADATA as DEFAULT_8IDI,
 )
 from pysimplemask.core.reader.beamlines.aps_9idd import (
+    APS9IDDReader,
     get_nexus_metadata as nexus_9idd,
+    get_metadata as meta_9idd,
 )
 
 OPTIONAL_8IDI = ["swing_angle_horizontal", "swing_angle_vertical"]
@@ -198,6 +201,51 @@ def test_get_nexus_metadata_9idd(make_nexus_9idd):
     assert np.isclose(meta["specular_x"], expected_spx)
 
     assert not any(key.startswith("_") for key in meta)
+
+
+@pytest.mark.parametrize("orientation", [180.0, -180.0, 179.9998, -180.0003])
+def test_get_nexus_metadata_9idd_rotated_detector_flips_stage_offsets(
+    make_nexus_9idd, orientation
+):
+    # a 1.72 mm stage move is 10 px; rotated 180 deg it moves the image back
+    path, raw = make_nexus_9idd(
+        orientation=orientation, detector_x=0.00172, detector_y=-0.00344
+    )
+    meta = nexus_9idd(path)
+    assert np.isclose(meta["beam_center_x"], raw["_bcx"] - 10)
+    assert np.isclose(meta["beam_center_y"], raw["_bcy"] + 20)
+    assert np.isclose(meta["specular_x"], raw["_spx"] - 10)
+    assert np.isclose(meta["specular_y"], raw["_spy"] + 20)
+
+
+def test_get_nexus_metadata_9idd_tolerates_orientation_readback_noise(make_nexus_9idd):
+    path, raw = make_nexus_9idd(orientation=-0.0004, detector_x=0.00172)
+    assert np.isclose(nexus_9idd(path)["beam_center_x"], raw["_bcx"] + 10)
+
+
+@pytest.mark.parametrize("orientation", [90.0, -90.0, 45.0, 178.0])
+def test_get_metadata_9idd_unsupported_orientation_raises(make_nexus_9idd, orientation):
+    # defaults would give a silently wrong beam center, so don't fall back
+    path, _raw = make_nexus_9idd(orientation=orientation)
+    with pytest.raises(InvalidMetadataError, match="orientation"):
+        meta_9idd(path)
+
+
+def test_9idd_reader_does_not_swallow_unsupported_orientation(
+    make_nexus_9idd, make_hdf
+):
+    # FileReader.get_metadata must not replace it with get_fake_metadata(),
+    # which has no specular position for the reflection qmap
+    meta_path, _raw = make_nexus_9idd(orientation=90.0)
+    reader = APS9IDDReader(make_hdf(np.zeros((2, 4, 5))))
+    with pytest.raises(InvalidMetadataError, match="orientation"):
+        reader.get_metadata(metadata_fname=meta_path)
+
+
+def test_get_metadata_9idd_unreadable_falls_back_to_defaults(tmp_path):
+    bad = tmp_path / "bad.hdf"
+    bad.write_text("garbage")
+    assert meta_9idd(str(bad))["meta_fname"] == "default_metadata"
 
 
 # ---------------------------------------------------------------------------

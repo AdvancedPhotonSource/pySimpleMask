@@ -12,6 +12,14 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
+class InvalidMetadataError(ValueError):
+    """Metadata was read but cannot be used (e.g. an unsupported geometry).
+
+    Readers re-raise it instead of falling back to default metadata, which
+    would be silently wrong for the file.
+    """
+
+
 def _normalize(value):
     """Turn a raw HDF5 value into a plain Python/NumPy scalar where possible.
 

@@ -251,6 +251,8 @@ class MaskDraw(MaskArray):
 
 
 class MaskAssemble:
+    REPLACEABLE_TARGETS = ("mask_draw", "mask_parameter", "mask_beamstop")
+
     def __init__(self, shape=(128, 128), saxs_lin=None, qmap=None) -> None:
         self.workers = {
             "mask_blemish": MaskFile(shape),
@@ -260,6 +262,7 @@ class MaskAssemble:
             "mask_draw": MaskDraw(shape),
             "mask_outlier": MaskList(shape),
             "mask_parameter": MaskParameter(shape),
+            "mask_beamstop": MaskArray(shape),
         }
         self.shape = shape
         self.saxs_lin = saxs_lin
@@ -271,14 +274,13 @@ class MaskAssemble:
         # 0: no mask; 1: apply the default mask
         self.mask_ptr_min = 0
         # Parallel to mask_record (same indices, kept in lockstep by apply()
-        # and redo_undo()): the combined mask from every applied target
-        # EXCEPT mask_draw. mask_draw is re-evaluated from scratch from
-        # whatever ROIs are currently live (see SimpleMaskModel.evaluate_draw),
-        # so re-applying it must combine against this baseline instead of the
-        # previous mask_record entry — that entry may already include an
-        # earlier, narrower mask_draw contribution, and AND can never recover
-        # a pixel a previous apply already excluded.
-        self.non_draw_baseline_record = list(self.mask_record)
+        # and redo_undo()): the (target, worker_mask) contributions whose AND
+        # is that mask_record entry. Targets in REPLACEABLE_TARGETS are
+        # re-evaluated from live state (draw ROIs, the constraint table, the
+        # current beam center), so re-applying one replaces its previous
+        # contribution instead of ANDing on top of it — AND can never recover
+        # a pixel an earlier, narrower apply already excluded.
+        self.contribution_record = [(), (("mask_blemish", self.blemish),)]
 
     def update_qmap(self, qmap_all):
         self.qmap = qmap_all
@@ -306,26 +308,21 @@ class MaskAssemble:
             return self.get_mask()
 
         worker_mask = self.get_one_mask(target)
-        if target == "mask_draw":
-            baseline = self.non_draw_baseline_record[self.mask_ptr]
-            mask = np.logical_and(baseline, worker_mask)
-        else:
-            mask = np.logical_and(self.get_mask(), worker_mask)
+        contributions = self.contribution_record[self.mask_ptr]
+        if target in self.REPLACEABLE_TARGETS:
+            contributions = tuple(c for c in contributions if c[0] != target)
+        contributions = contributions + ((target, worker_mask),)
+        mask = np.ones(self.shape, dtype=bool)
+        for _, contribution in contributions:
+            mask = np.logical_and(mask, contribution)
 
-        if not np.allclose(self.mask_record[-1], mask):
-            while len(self.mask_record) > self.mask_ptr + 1:
-                self.mask_record.pop()
-                self.non_draw_baseline_record.pop()
-            # len(self.mask_record) == self.mask_ptr + 1
+        if not np.array_equal(self.get_mask(), mask):
+            del self.mask_record[self.mask_ptr + 1 :]
+            del self.contribution_record[self.mask_ptr + 1 :]
             self.mask_record.append(mask)
-            next_baseline = (
-                self.non_draw_baseline_record[-1]
-                if target == "mask_draw"
-                else np.logical_and(self.non_draw_baseline_record[-1], worker_mask)
-            )
-            self.non_draw_baseline_record.append(next_baseline)
+            self.contribution_record.append(contributions)
             self.mask_ptr += 1
-        return mask
+        return self.get_mask()
 
     def evaluate(self, target, **kwargs):
         if target == "mask_threshold":
@@ -349,7 +346,7 @@ class MaskAssemble:
             # if 1 + mask_ptr_min = 1: no default mask
             while len(self.mask_record) > 1 + self.mask_ptr_min:
                 self.mask_record.pop()
-                self.non_draw_baseline_record.pop()
+                self.contribution_record.pop()
             self.mask_ptr = self.mask_ptr_min
 
     def get_one_mask(self, target):

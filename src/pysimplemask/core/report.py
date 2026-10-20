@@ -8,12 +8,10 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 import h5py
 import matplotlib
-
-matplotlib.use("Agg")  # no display needed
-import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.colors import ListedColormap
+from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
 
 logger = logging.getLogger(__name__)
@@ -65,7 +63,6 @@ def _save_figure(fig, output_path: Union[str, os.PathLike], dpi: int = 150) -> s
             pdf.savefig(fig, dpi=dpi)
     else:
         fig.savefig(abs_path, dpi=dpi, bbox_inches="tight")
-    plt.close(fig)
     logger.info("Report saved: %s", abs_path)
     return abs_path
 
@@ -93,16 +90,16 @@ def _render_report_figure(
     crop_half_size: int = 100,
     params: Optional[Dict[str, Any]] = None,
     orientation: str = "landscape",
-) -> plt.Figure:
+) -> Figure:
     """Construct the 6-panel summary figure with header and footer parameter box."""
     if scat is not None and scat.ndim == 3:
         scat = scat[0]
 
     is_landscape = orientation.lower() == "landscape"
     if is_landscape:
-        fig = plt.figure(figsize=(11, 8.5))
+        fig = Figure(figsize=(11, 8.5))
     else:
-        fig = plt.figure(figsize=(8.5, 11))
+        fig = Figure(figsize=(8.5, 11))
 
     # ── Title / metadata header ───────────────────────────────────────────────
     cx, cy = center_xy
@@ -167,7 +164,7 @@ def _render_report_figure(
 
 
     def _colorbar(im, ax):
-        plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04).ax.tick_params(labelsize=6)
+        fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04).ax.tick_params(labelsize=6)
 
     # ── Row 1, panel 1: scattering + blemish (log) ───────────────────────────
     ax1 = fig.add_subplot(gs[0, 0])

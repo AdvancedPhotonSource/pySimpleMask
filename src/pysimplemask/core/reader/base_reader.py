@@ -15,6 +15,7 @@ import numpy as np
 from scipy.ndimage import gaussian_filter, median_filter
 
 from ..qmap import compute_display_center, compute_qmap
+from .metadata import InvalidMetadataError
 
 logger = logging.getLogger(__name__)
 
@@ -169,6 +170,8 @@ class FileReader(object):
     def get_metadata(self, *args, **kwargs):
         try:
             metadata = self._get_metadata(*args, **kwargs)
+        except InvalidMetadataError:
+            raise
         except Exception:
             logger.warning(
                 "failed to get the real metadata, using default values instead",

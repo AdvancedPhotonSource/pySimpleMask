@@ -79,6 +79,51 @@ def test_update_parameters_does_not_compute_partition_when_none_exists(tmp_path,
     spy.assert_not_called()
 
 
+def test_update_parameters_does_not_reuse_previous_datasets_partition(tmp_path, make_hdf):
+    """Loading a new file must forget the previous file's partition settings,
+    or a center change on the new file recomputes with the old file's bins
+    (and its group-index setting, which raises on a file without groups)."""
+    path = make_hdf(_frames(), name="scan.h5")
+    m = SimpleMaskModel()
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+    m.compute_partition(mode="q-phi", dq_num=2, sq_num=4, dp_num=4, sp_num=8)
+
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+    assert m.new_partition is None
+    with patch.object(m, "compute_partition", wraps=m.compute_partition) as spy:
+        m.update_parameters(new_metadata={"beam_center_x": 500.0})
+
+    spy.assert_not_called()
+
+
+def test_read_data_clears_previous_draw_rois(tmp_path, make_hdf):
+    path = make_hdf(_frames(), name="scan.h5")
+    m = SimpleMaskModel()
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+    m.add_polygon([(0, 0), (0, 4), (4, 4)], mode="exclusive")
+
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+
+    assert m.draw_rois == []
+
+
+def test_failed_compute_partition_keeps_last_successful_settings(tmp_path, make_hdf):
+    """A compute that raises must not overwrite the settings update_parameters
+    uses to refresh the partition that is still displayed."""
+    path = make_hdf(_frames(), name="scan.h5")
+    m = SimpleMaskModel()
+    assert m.read_data(path, beamline="APS_8IDI", num_frames=0) is True
+    good = dict(mode="q-phi", dq_num=2, sq_num=4, dp_num=4, sp_num=8)
+    m.compute_partition(**good)
+    with pytest.raises(RuntimeError):
+        m.compute_partition(**good, use_groupindex_for_subpartition=True)
+
+    with patch.object(m, "compute_partition", wraps=m.compute_partition) as spy:
+        m.update_parameters(new_metadata={"beam_center_x": 500.0})
+
+    spy.assert_called_once_with(**good)
+
+
 def test_compute_partition_with_groupindex_for_subpartition(tmp_path, make_hdf):
     """Constraint groups from the parametrization mask can drive dq directly,
     instead of a linear rebin of the q-range."""
@@ -510,3 +555,25 @@ def test_importing_core_does_not_import_qt():
     code = "import pysimplemask, sys; print('PySide6' in sys.modules)"
     out = subprocess.check_output([sys.executable, "-c", code], text=True).strip()
     assert out == "False"
+
+
+def test_importing_pysimplemask_does_not_load_matplotlib_report():
+    """`import pysimplemask` must not pull in report.py (matplotlib) eagerly."""
+    code = (
+        "import pysimplemask.core, sys; "
+        "print('pysimplemask.core.report' in sys.modules, 'matplotlib' in sys.modules)"
+    )
+    out = subprocess.check_output([sys.executable, "-c", code], text=True).strip()
+    assert out == "False False"
+
+
+def test_report_module_leaves_pyplot_and_backend_alone():
+    """Using the report must not switch the caller's matplotlib backend or
+    load pyplot (which would break Jupyter/interactive sessions)."""
+    code = (
+        "import matplotlib, sys; matplotlib.use('svg'); "
+        "from pysimplemask.core import generate_report_from_qmap; "
+        "print(matplotlib.get_backend(), 'matplotlib.pyplot' in sys.modules)"
+    )
+    out = subprocess.check_output([sys.executable, "-c", code], text=True).strip()
+    assert out == "svg False"

@@ -1,7 +1,6 @@
 # Copyright © UChicago Argonne LLC
 # See LICENSE file for details
 import logging
-import math
 from functools import lru_cache
 
 import numpy as np
@@ -25,11 +24,11 @@ def compute_qmap(stype, metadata):
         return compute_reflection_qmap(
             metadata["energy"],
             (metadata["beam_center_y"], metadata["beam_center_x"]),
+            (metadata["specular_y"], metadata["specular_x"]),
             (metadata["detector_shape_y"], metadata["detector_shape_x"]),
             metadata["pixel_size"],
             metadata["detector_distance"],
             alpha_i_deg=metadata["incident_angle"],
-            orientation=metadata["orientation"],
         )
 
 
@@ -164,44 +163,58 @@ def compute_transmission_qmap(
 def compute_reflection_qmap(
     energy,
     center,
+    specular,
     shape,
     pixel_size,
     detector_distance,
     alpha_i_deg=0.14,
-    orientation=0.0,
 ):
+    """Per-pixel q-map for grazing-incidence (reflection) geometry.
+
+    ``center`` (direct beam) and ``specular`` (reflected beam) are (row, col)
+    in pixels. The line joining them is the sample-surface normal projected on
+    the detector, so it fixes the detector rotation about the beam; alpha_f is
+    measured along that line and tth along the horizon perpendicular to it.
+    """
     k0 = 2 * np.pi / (E2KCONST / energy)
 
-    v = np.arange(shape[0], dtype=np.int32) - center[0]
-    h = np.arange(shape[1], dtype=np.int32) - center[1]
-    vg, hg = np.meshgrid(v, h, indexing="ij")
-    vg *= -1
+    # unit vectors in (row, col): normal points from the specular spot to the
+    # beam center; parallel is the normal rotated by 90 deg (the horizon).
+    normal = np.array(center, dtype=np.float64) - np.array(specular, dtype=np.float64)
+    norm = np.linalg.norm(normal)
+    if norm < 1e-6:
+        raise ValueError(
+            f"specular {specular} coincides with the beam center {center}; "
+            "the sample normal is undefined"
+        )
+    normal /= norm
+    parallel = np.array([normal[1], -normal[0]])
 
-    assert isinstance(orientation, (float, int)), "Orientation must be a float or int"
-    while orientation < 0:
-        orientation += 360.0
+    v = center[0] - np.arange(shape[0], dtype=np.float64)
+    h = center[1] - np.arange(shape[1], dtype=np.float64)
+    dv, dh = np.meshgrid(v, h, indexing="ij")
+    # pixel offset from the beam center in the sample frame, in meters:
+    # v_off along the surface normal (up), h_off along the horizon.
+    v_off = (dv * normal[0] + dh * normal[1]) * pixel_size
+    h_off = (dv * parallel[0] + dh * parallel[1]) * pixel_size
 
-    if math.isclose(orientation, 0.0, abs_tol=1e-3) or math.isclose(
-        orientation, 360.0, abs_tol=1e-3
-    ):
-        pass
-    elif math.isclose(orientation, 90.00, abs_tol=1e-3):
-        vg, hg = -hg, vg
-    elif math.isclose(orientation, 180.0, abs_tol=1e-3):
-        vg, hg = -vg, -hg
-    elif math.isclose(orientation, 270.0, abs_tol=1e-3):
-        vg, hg = hg, -vg
-    else:
-        logger.warning("Unknown orientation: {orientation}. using default north")
-
-    r = np.hypot(vg, hg) * pixel_size
-    phi = np.arctan2(vg, hg)
-    TTH = np.arctan(r / detector_distance)
+    phi = np.arctan2(v_off, h_off)
+    TTH = np.arctan2(np.hypot(v_off, h_off), detector_distance)
 
     alpha_i = np.deg2rad(alpha_i_deg)
-    # vg = 0 yields (-alpha_i)
-    alpha_f = np.arctan(vg * pixel_size / detector_distance) - alpha_i
-    tth = np.arctan(hg * pixel_size / detector_distance)
+    # Exact exit angles. Lab frame: x along the incident beam, z along v_off,
+    # y along h_off; the ray to a pixel is s = (D, h_off, v_off) / |s|. The
+    # surface is tilted by alpha_i about y, with normal n = (-sin ai, 0, cos ai)
+    # and in-plane beam axis e1 = (cos ai, 0, sin ai):
+    #   sin(alpha_f) = s.n,   tan(tth) = s.y / s.e1
+    # The small-angle form alpha_f = atan(v_off / D) - alpha_i ignores h_off and
+    # overestimates |q| by several percent at wide angles.
+    dist = np.sqrt(v_off**2 + h_off**2 + detector_distance**2)
+    sin_af = (v_off * np.cos(alpha_i) - detector_distance * np.sin(alpha_i)) / dist
+    alpha_f = np.arcsin(np.clip(sin_af, -1.0, 1.0))
+    tth = np.arctan2(
+        h_off, detector_distance * np.cos(alpha_i) + v_off * np.sin(alpha_i)
+    )
 
     qx = k0 * (np.cos(alpha_f) * np.cos(tth) - np.cos(alpha_i))
     qy = k0 * (np.cos(alpha_f) * np.sin(tth))
@@ -219,8 +232,8 @@ def compute_reflection_qmap(
         "qz": qz,
         "qr": qr,
         "q": q,
-        "x": hg,
-        "y": vg * (-1),
+        "x": h_off / pixel_size,
+        "y": -v_off / pixel_size,
     }
 
     for key in ["phi", "TTH", "tth", "alpha_f"]:

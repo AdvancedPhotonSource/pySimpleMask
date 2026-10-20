@@ -6,7 +6,7 @@ import logging
 
 from ..base_reader import FileReader
 from ..formats.hdf import HdfDataset
-from ..metadata import read_nexus_metadata
+from ..metadata import InvalidMetadataError, read_nexus_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +52,23 @@ METADATA_KEYMAPS = {
 }
 
 
+# rotation_z within this many degrees of 0 or +-180 counts as that orientation
+ORIENTATION_TOL_DEG = 0.1
+
+
+def get_stage_sign(orientation):
+    """Image shift per stage shift: +1 upright (0 deg), -1 rotated 180 deg."""
+    angle = (float(orientation) + 180.0) % 360.0 - 180.0  # wrap into [-180, 180)
+    if abs(angle) <= ORIENTATION_TOL_DEG:
+        return 1
+    if 180.0 - abs(angle) <= ORIENTATION_TOL_DEG:
+        return -1
+    raise InvalidMetadataError(
+        f"detector orientation {orientation} deg is not supported; "
+        "expected 0 or +-180 deg"
+    )
+
+
 def get_nexus_metadata(fname, metadata_fname=None):
     """Read 9-ID-D NeXus metadata and derive beam-center / specular positions."""
     meta, _meta_fname = read_nexus_metadata(
@@ -59,14 +76,16 @@ def get_nexus_metadata(fname, metadata_fname=None):
     )
 
     pixel_size = meta["pixel_size"]
+    sign = get_stage_sign(meta["orientation"])
+
     beam_center_x = (
-        meta["_bcx"] + (meta["detector_x"] - meta["_bc_det_x0"]) / pixel_size
+        meta["_bcx"] + sign * (meta["detector_x"] - meta["_bc_det_x0"]) / pixel_size
     )
     beam_center_y = (
-        meta["_bcy"] + (meta["detector_y"] - meta["_bc_det_y0"]) / pixel_size
+        meta["_bcy"] + sign * (meta["detector_y"] - meta["_bc_det_y0"]) / pixel_size
     )
-    specular_x = meta["_spx"] + (meta["detector_x"] - meta["_sp_det_x0"]) / pixel_size
-    specular_y = meta["_spy"] + (meta["detector_y"] - meta["_sp_det_y0"]) / pixel_size
+    specular_x = meta["_spx"] + sign * (meta["detector_x"] - meta["_sp_det_x0"]) / pixel_size
+    specular_y = meta["_spy"] + sign * (meta["detector_y"] - meta["_sp_det_y0"]) / pixel_size
 
     for key in [k for k in meta if k.startswith("_")]:
         meta.pop(key)
@@ -79,9 +98,15 @@ def get_nexus_metadata(fname, metadata_fname=None):
 
 
 def get_metadata(fname, metadata_fname=None):
-    """Return 9-ID-D metadata, falling back to defaults on any failure."""
+    """Return 9-ID-D metadata, falling back to defaults on any read failure.
+
+    An unsupported detector orientation raises instead: the defaults would
+    give a silently wrong beam center and specular position.
+    """
     try:
         return get_nexus_metadata(fname, metadata_fname=metadata_fname)
+    except InvalidMetadataError:
+        raise
     except Exception:
         logger.info(
             "Failed to read metadata from %s; using defaults.", fname, exc_info=True
