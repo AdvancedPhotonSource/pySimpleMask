@@ -1492,7 +1492,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
         # Both axes become per-group sub-partitions, so both pairs of
         # dynamic/static spinboxes get the same 1/9 default.
-        tab_name = self.tabWidget.tabText(self.tabWidget.currentIndex())
+        tab_name = self._current_partition_tab()
         if tab_name == "q-phi":
             self.sb_dqnum.setValue(1)
             self.sb_sqnum.setValue(9)
@@ -1514,13 +1514,30 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.sb_partition_dn1.setValue(1)
             self.sb_partition_sn1.setValue(9)
 
+    # Partition tabs keyed by widget rather than by their Designer label, so
+    # renaming a tab in mask.ui (e.g. "general" -> "general (GIXS)") cannot
+    # silently break the dispatch in the methods below.
+    _PARTITION_TABS = (
+        ("tab_9", "q-phi"),
+        ("tab_10", "xy-mesh"),
+        ("tab", "ellipse"),
+        ("tab_8", "general"),
+    )
+
+    def _current_partition_tab(self) -> str | None:
+        current = self.tabWidget.currentWidget()
+        for attr, key in self._PARTITION_TABS:
+            if current is getattr(self, attr):
+                return key
+        return None
+
     def compute_partition(self):
         if not self.is_ready():
             return
         if not self._maybe_prompt_unapplied_mask():
             return
 
-        tab_name = self.tabWidget.tabText(self.tabWidget.currentIndex())
+        tab_name = self._current_partition_tab()
         if tab_name == "q-phi":
             kwargs = {
                 "mode": "q-phi",
