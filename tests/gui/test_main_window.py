@@ -63,13 +63,14 @@ def test_find_center_button_no_crash(qapp, tmp_path):
 def test_update_xmap_limits_excludes_masked_pixels(qapp, tmp_path):
     """The min/max shown and the spinbox range must ignore masked-out pixels."""
     gui = _load_gui(tmp_path, np.ones((2, 8, 8), dtype=np.uint16))
-    xmap_name = next(iter(gui.sm.qmap))
+    # a non-angular, integer-valued map: its spin boxes are clamped to the
+    # data, and its values survive the spin boxes' decimal rounding exactly
+    xmap_name = "x"
     gui.comboBox_param_xmap_name.addItem(xmap_name)
     gui.comboBox_param_xmap_name.setCurrentText(xmap_name)
 
     xmap = gui.sm.qmap[xmap_name]
-    max_idx = np.unravel_index(np.argmax(xmap), xmap.shape)
-    gui.sm.mask[max_idx] = False
+    gui.sm.mask[:, -1] = False  # drop the whole last column (x == max)
     unmasked_max = xmap[gui.sm.mask].max()
     assert unmasked_max < xmap.max()  # sanity: the mask actually excludes the peak
 
@@ -80,6 +81,41 @@ def test_update_xmap_limits_excludes_masked_pixels(qapp, tmp_path):
     assert gui.doubleSpinBox_param_vbeg.minimum() == pytest.approx(
         xmap[gui.sm.mask].min()
     )
+
+
+def test_update_xmap_limits_allows_phi_range_across_seam(qapp, tmp_path):
+    """phi (deg) spin boxes must not be clamped to the map's min/max, so a
+    pie that crosses ±180° (e.g. [170, 190]) can be entered; the default
+    values and the info label still reflect the map's actual range."""
+    gui = _load_gui(tmp_path, np.ones((2, 8, 8), dtype=np.uint16))
+    # the default 8-ID-I center lies far outside this tiny frame; put the beam
+    # in the middle so phi covers the full circle, including the ±180° seam
+    gui.update_parameters(new_center_vh=np.array([3.5, 3.5]))
+    gui.comboBox_param_xmap_name.addItem("phi")
+    gui.comboBox_param_xmap_name.setCurrentText("phi")
+    gui.update_xmap_limits()
+
+    phi = gui.sm.qmap["phi"]
+    assert gui.sm.qmap_unit["phi"] == "deg"
+    assert gui.doubleSpinBox_param_vbeg.minimum() == pytest.approx(-360.0)
+    assert gui.doubleSpinBox_param_vend.maximum() == pytest.approx(360.0)
+    assert gui.doubleSpinBox_param_vbeg.value() == pytest.approx(phi.min())
+    assert gui.doubleSpinBox_param_vend.value() == pytest.approx(phi.max())
+    assert f"{phi.max():.7f}" in gui.label_param_info.text()
+
+    # 190 used to be silently clamped to phi.max(); now the row keeps it, and
+    # the core wraps it into a single 20° pie around ±180°.
+    gui.doubleSpinBox_param_vbeg.setValue(170.0)
+    gui.doubleSpinBox_param_vend.setValue(190.0)
+    gui.add_param_constraint()
+    assert gui.model._data[-1] == ["phi", gui.comboBox_param_logic.currentText(),
+                                   "deg", 170.0, 190.0]
+
+    gui.sm.mask_evaluate("mask_parameter", constraints=gui.model._data)
+    got = gui.sm.mask_kernel.workers["mask_parameter"].get_mask().astype(bool)
+    expected = (phi >= 170.0) | (phi <= -170.0)
+    assert expected.any() and not expected.all()  # sanity: a real pie
+    assert np.array_equal(got, expected)
 
 
 def test_log_scale_checkbox_switches_display_mode(qapp, tmp_path):

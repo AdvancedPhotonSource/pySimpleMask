@@ -11,6 +11,17 @@ import skimage.io as skio
 
 logger = logging.getLogger(__name__)
 
+# Angular maps whose constraint ranges are treated as periodic (period 360°)
+# by MaskParameter. The GUI uses the same predicate to decide which spin boxes
+# may be set beyond the map's own min/max.
+PERIODIC_ANGLE_MAPS = ("phi", "chi", "alpha")
+
+
+def is_periodic_angle_map(xmap_name, unit):
+    """True when a constraint on ``xmap_name`` is an angle in degrees whose
+    range may cross the ±180° seam (e.g. ``[170, 190]`` or ``[-190, -170]``)."""
+    return xmap_name in PERIODIC_ANGLE_MAPS and unit == "deg"
+
 
 # unused (no references):
 # def create_qring(qmin, qmax, pmin, pmax, qnum=1, flag_const_width=True):
@@ -152,9 +163,11 @@ class MaskParameter(MaskBase):
         row_masks = []
         for i, (xmap_name, logic, unit, vbeg, vend) in enumerate(constraints):
             xmap = qmap[xmap_name]
-            if xmap_name in ["phi", "chi", "alpha"] and unit == "deg":
+            if is_periodic_angle_map(xmap_name, unit):
                 # deal with the periodicity of the angle,
                 # vbeg, vend = 160, 200 or vbeg, vend = -200, -160
+                # (exactly one bound may lie beyond ±180; the other must be
+                # inside [-180, 180] for the wrap to apply)
                 xmap = np.copy(xmap)
                 if vbeg <= -180 and -180 <= vend <= 180:
                     xmap[xmap > vend] -= 360.0

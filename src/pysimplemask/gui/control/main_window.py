@@ -30,6 +30,7 @@ from pyqtgraph.Qt import QtCore
 
 from pysimplemask import __version__
 from pysimplemask.core.io import load_pixel_list, text_to_array
+from pysimplemask.core.mask import is_periodic_angle_map
 from pysimplemask.core.model import SimpleMaskModel
 from pysimplemask.core.partition import least_multiple
 from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
@@ -451,10 +452,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
             "Select a geometry map (q, phi, x, y, chi…) to constrain"
         )
         self.doubleSpinBox_param_vbeg.setToolTip(
-            "Minimum value of the selected map to keep unmasked"
+            "Minimum value of the selected map to keep unmasked.\n"
+            "For phi/chi/alpha in degrees the range may cross the ±180° seam,\n"
+            "e.g. 170 to 190 (or -190 to -170) keeps a 20° pie around 180°;\n"
+            "one of the two bounds must stay within [-180, 180]."
         )
         self.doubleSpinBox_param_vend.setToolTip(
-            "Maximum value of the selected map to keep unmasked"
+            "Maximum value of the selected map to keep unmasked.\n"
+            "For phi/chi/alpha in degrees the range may cross the ±180° seam,\n"
+            "e.g. 170 to 190 (or -190 to -170) keeps a 20° pie around 180°;\n"
+            "one of the two bounds must stay within [-180, 180]."
         )
         self.comboBox_param_logic.setToolTip(
             "Logical operator combining multiple constraint rows: AND / OR / NOT"
@@ -1381,9 +1388,18 @@ class SimpleMaskGUI(QMainWindow, Ui):
         vmin, vmax = float(valid.min()), float(valid.max())
         unit = self.sm.qmap_unit[xmap_name]
         self.label_param_info.setText(f"(min, max)=({vmin:.7f}, {vmax:.7f}) {unit}")
+        if is_periodic_angle_map(xmap_name, unit):
+            # MaskParameter wraps an angular range that crosses the ±180° seam
+            # (e.g. [170, 190] or [-190, -170]) as long as one bound stays
+            # within [-180, 180]. Clamping the spin boxes to the map's own
+            # min/max would make such a pie impossible to type in, so allow a
+            # full extra turn on either side instead.
+            lo, hi = -360.0, 360.0
+        else:
+            lo, hi = vmin, vmax
         for spinbox in (self.doubleSpinBox_param_vbeg, self.doubleSpinBox_param_vend):
-            spinbox.setMinimum(vmin)
-            spinbox.setMaximum(vmax)
+            spinbox.setMinimum(lo)
+            spinbox.setMaximum(hi)
         self.doubleSpinBox_param_vbeg.setValue(vmin)
         self.doubleSpinBox_param_vend.setValue(vmax)
 
