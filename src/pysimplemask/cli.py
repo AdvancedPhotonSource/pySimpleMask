@@ -268,7 +268,12 @@ def main() -> None:
     # ── dispatch ──────────────────────────────────────────────────────────────
     if args.subcommand is None or args.subcommand == "gui":
         path = getattr(args, "path", None) or os.getcwd()
-        from pysimplemask.gui.app import main_gui
+        try:
+            from pysimplemask.gui.app import main_gui
+        except ModuleNotFoundError as exc:
+            if exc.name and exc.name.split(".")[0] in ("PySide6", "shiboken6", "pyqtgraph"):
+                parser.error(f"the desktop app needs the gui extra ({exc.name} is missing): pip install 'pysimplemask[gui]'")
+            raise
         sys.exit(main_gui(path))
 
     elif args.subcommand == "web":

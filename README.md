@@ -60,14 +60,15 @@ and a **headless Python API** that can drive the full pipeline from scripts.
 
 ### From PyPI
 ```bash
-pip install pysimplemask
+pip install "pysimplemask[gui]"   # the desktop app (PySide6, pyqtgraph)
+pip install pysimplemask          # the library and command-line tools only, no Qt
 ```
 
 ### From Source
 ```bash
 git clone https://github.com/AdvancedPhotonSource/pySimpleMask.git
 cd pySimpleMask
-pip install .
+pip install ".[gui]"
 ```
 
 ## GUI Usage
@@ -225,7 +226,7 @@ pysimplemask-report qmap.hdf -o report.pdf --dataset scan.hdf --begin-idx 0 --nu
 ## Development
 
 ```bash
-pip install -e ".[dev]"   # install with ruff, pytest, mypy
+pip install -e ".[dev,gui]"   # ruff, pytest, mypy, and the Qt of the desktop app
 
 make test                 # run tests
 make lint                 # ruff check

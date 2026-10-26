@@ -54,6 +54,7 @@ def test_add_build_args_produces_same_defaults_as_build_qmap_args():
 
 def test_main_no_subcommand_launches_gui(monkeypatch):
     """pysimplemask with no subcommand calls main_gui."""
+    pytest.importorskip("PySide6")  # the patched module imports Qt
     monkeypatch.setattr(sys, "argv", ["pysimplemask"])
     mock_gui = MagicMock(return_value=0)
     with patch("pysimplemask.gui.app.main_gui", mock_gui):
@@ -67,6 +68,7 @@ def test_main_no_subcommand_launches_gui(monkeypatch):
 
 def test_main_gui_subcommand_passes_path(monkeypatch, tmp_path):
     """pysimplemask gui --path /tmp calls main_gui with that path."""
+    pytest.importorskip("PySide6")  # the patched module imports Qt
     monkeypatch.setattr(sys, "argv", ["pysimplemask", "gui", "--path", str(tmp_path)])
     mock_gui = MagicMock(return_value=0)
     with patch("pysimplemask.gui.app.main_gui", mock_gui):
@@ -171,6 +173,7 @@ def test_build_qmap_args_still_works_directly():
 
 def test_main_toplevel_path_launches_gui(monkeypatch, tmp_path):
     """pysimplemask --path DIR (no subcommand) calls main_gui with DIR."""
+    pytest.importorskip("PySide6")  # the patched module imports Qt
     monkeypatch.setattr(sys, "argv", ["pysimplemask", "--path", str(tmp_path)])
     mock_gui = MagicMock(return_value=0)
     with patch("pysimplemask.gui.app.main_gui", mock_gui):

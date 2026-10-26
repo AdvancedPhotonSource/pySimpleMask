@@ -27,7 +27,7 @@ bound to *this* checkout. If `import pysimplemask` ever resolves elsewhere (the 
 `.pth` once pointed at a sibling `pySimpleMask-refactor` path), reinstall from the repo root:
 
 ```bash
-/local/MQICHU/envs/l2606_simplemask_refact/bin/pip install -e ".[dev]"
+/local/MQICHU/envs/l2606_simplemask_refact/bin/pip install -e ".[dev,gui]"   # gui: PySide6 and pyqtgraph (the base package has no Qt)
 ```
 
 Common commands (prefix each with the env's `bin/` or activate the env first):
