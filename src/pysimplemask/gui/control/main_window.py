@@ -45,6 +45,7 @@ HOME_DIR = Path.home()
 CONFIG_FILE = HOME_DIR / ".pysimplemask" / "config.json"
 
 _RAWDATA_IDX = 0   # "rawdata" is always at plot_index position 0
+_XY_LABEL_OFFSET_PX = 12   # screen pixels between the cursor and the floating (x, y) label
 CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
@@ -1211,10 +1212,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.mp1.scene.itemsBoundingRect().contains(pos):
             self._remove_xy_label()
             return
-        mouse_point = self.mp1.getView().mapSceneToView(pos)
+        vb = self.mp1.getView()
+        mouse_point = vb.mapSceneToView(pos)
         idx = self.plot_index.currentIndex()
-        col = int(mouse_point.x())
-        row = int(mouse_point.y())
+        col = int(np.floor(mouse_point.x()))
+        row = int(np.floor(mouse_point.y()))
         if idx == _RAWDATA_IDX:
             channel = 0   # use scattering channel for coordinates when rawdata active
         else:
@@ -1236,9 +1238,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 )
                 self.mp1.getView().addItem(self._xy_text_item)
             self._xy_text_item.setText(f"({col}, {row})")
-            # Offset slightly so the label doesn't sit on top of the cursor pixel
-            offset = max(w, h) * 0.01
-            self._xy_text_item.setPos(col + offset, row + offset)
+            # Anchor the label a fixed number of *screen* pixels to the
+            # lower-right of the cursor.  Offsetting in scene (screen) space and
+            # then mapping into view coordinates keeps the gap constant at every
+            # zoom level; an offset in image-pixel units would scale with the
+            # zoom and push the label far away from the cursor when zoomed in.
+            label_pt = vb.mapSceneToView(
+                pos + QtCore.QPointF(_XY_LABEL_OFFSET_PX, _XY_LABEL_OFFSET_PX)
+            )
+            self._xy_text_item.setPos(label_pt.x(), label_pt.y())
             self.statusbar.showMessage("Shift + double click to set the new beam center")
         else:
             self._remove_xy_label()

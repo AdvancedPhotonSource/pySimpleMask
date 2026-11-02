@@ -190,6 +190,40 @@ def test_frame_controls_hidden_by_default(qapp, tmp_path):
     assert not gui.spinBox_current_frame.isEnabled()
 
 
+def test_xy_label_keeps_fixed_screen_offset_from_cursor_at_any_zoom(qapp, tmp_path):
+    """The floating (x, y) hover label sits a fixed number of *screen* pixels
+    from the cursor whether the view is zoomed out or zoomed far in.
+    Regression: the offset used to be in image-pixel units, so at high zoom
+    the label drifted a large fraction of the viewport away from the cursor."""
+    from pyqtgraph.Qt import QtCore
+
+    from pysimplemask.gui.control.main_window import _XY_LABEL_OFFSET_PX
+
+    gui = _load_gui(tmp_path, np.ones((3, 200, 300), dtype=np.uint16) * 5)
+    gui.plot(reset_view=True)
+    gui.resize(1000, 800)
+    gui.show()
+    qapp.processEvents()
+    gui.checkBox_showxy.setChecked(True)
+    vb = gui.mp1.getView()
+
+    # Whole image, then a ~50x zoom onto a handful of pixels.
+    for xr, yr in [((0, 300), (0, 200)), ((100, 106), (50, 54))]:
+        vb.setRange(xRange=xr, yRange=yr, padding=0)
+        qapp.processEvents()
+        cursor_view = QtCore.QPointF(sum(xr) / 2 + 0.3, sum(yr) / 2 + 0.7)
+        cursor_scene = vb.mapViewToScene(cursor_view)
+        gui.show_location(cursor_scene)
+
+        label = gui._xy_text_item
+        assert label is not None, f"label missing at range {xr}, {yr}"
+        delta = vb.mapViewToScene(label.pos()) - cursor_scene
+        assert abs(delta.x() - _XY_LABEL_OFFSET_PX) < 1e-6, (xr, yr, delta)
+        assert abs(delta.y() - _XY_LABEL_OFFSET_PX) < 1e-6, (xr, yr, delta)
+        col, row = int(cursor_view.x()), int(cursor_view.y())
+        assert label.textItem.toPlainText() == f"({col}, {row})"
+
+
 def test_manual_include_similar_intensity_unchecked_by_default(qapp):
     """Manual tab: 'Include points with similar intensity' starts unchecked, and
     its Radius / Variation controls start disabled and follow the checkbox."""
