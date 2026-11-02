@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.parametertree import Parameter
-from PySide6.QtCore import QByteArray, QTimer
+from PySide6.QtCore import QByteArray, QSortFilterProxyModel, QTimer
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -46,6 +46,10 @@ CONFIG_FILE = HOME_DIR / ".pysimplemask" / "config.json"
 
 _RAWDATA_IDX = 0   # "rawdata" is always at plot_index position 0
 _XY_LABEL_OFFSET_PX = 12   # screen pixels between the cursor and the floating (x, y) label
+_METADATA_SUFFIX = "_metadata.hdf"   # companion metadata sidecar, never the data file to load
+_RAW_FILE_FILTER = (
+    "Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.bix *.tif *.tiff *.fits *.raw *.bin.* *.tpx *.tpx.*)"
+)
 CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
@@ -75,6 +79,27 @@ PVMAP = {
 
 # Maps MaskWidget tab index → mask target(s) applied by btn_mask_apply.
 # Tab 0 (Blemish/Files) applies both; an unevaluated worker is a safe no-op.
+class _HideMetadataFilesProxyModel(QSortFilterProxyModel):
+    """File-dialog proxy that hides ``*_metadata.hdf`` companion files.
+
+    A raw data folder holds the data file(s) plus a ``<prefix>_metadata.hdf``
+    sidecar. The sidecar is picked up automatically by the reader
+    (``find_metadata_file``) and is never the file to load, so keep it out of
+    the "Select raw file" list. Directories always pass so the user can still
+    navigate into a folder whose name happens to end with the suffix.
+
+    Only effective with the non-native Qt dialog: native dialogs ignore
+    :meth:`QFileDialog.setProxyModel`.
+    """
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        model = self.sourceModel()
+        index = model.index(source_row, 0, source_parent)
+        if model.isDir(index):
+            return True
+        return not model.fileName(index).endswith(_METADATA_SUFFIX)
+
+
 def _find_hdf_datasets_matching_shape(fname, target_shape, max_depth=5):
     """Return HDF5 dataset paths whose shape matches target_shape (H, W).
 
@@ -1066,16 +1091,32 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return self.work_dir
         return os.getcwd()
 
+    def _raw_file_dialog(self) -> QFileDialog:
+        """Build the "Select raw file" dialog (not shown yet).
+
+        A QFileDialog instance rather than the static ``getOpenFileName`` so
+        a proxy model can hide the ``*_metadata.hdf`` sidecars: Qt name
+        filters can only include patterns, never exclude them. The proxy only
+        works with Qt's own (non-native) dialog.
+        """
+        dlg = QFileDialog(self)
+        # Qt docs: set DontUseNativeDialog before any other property or the
+        # widgets may be (re)built against a native helper.
+        dlg.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+        dlg.setWindowTitle("Select raw file hdf")
+        dlg.setDirectory(self._dialog_dir())
+        dlg.setNameFilter(_RAW_FILE_FILTER)
+        dlg.setFileMode(QFileDialog.FileMode.ExistingFile)
+        dlg.setProxyModel(_HideMetadataFilesProxyModel(dlg))
+        return dlg
+
     def select_raw(self):
-        fname = QFileDialog.getOpenFileName(
-            self,
-            caption="Select raw file hdf",
-            dir=self._dialog_dir(),
-            filter="Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.bix *.tif *.tiff *.fits *.raw *.bin.* *.tpx *.tpx.*)",
-        )[0]
-        if fname:
-            self.fname.setText(fname)
-        return
+        dlg = self._raw_file_dialog()
+        try:
+            if dlg.exec() and dlg.selectedFiles():
+                self.fname.setText(dlg.selectedFiles()[0])
+        finally:
+            dlg.deleteLater()
 
     def select_maskfile(self):
         if not self.is_ready():

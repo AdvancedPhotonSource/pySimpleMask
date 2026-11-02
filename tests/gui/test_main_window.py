@@ -224,6 +224,58 @@ def test_xy_label_keeps_fixed_screen_offset_from_cursor_at_any_zoom(qapp, tmp_pa
         assert label.textItem.toPlainText() == f"({col}, {row})"
 
 
+def test_raw_file_dialog_hides_metadata_sidecars(qapp, tmp_path):
+    """The "Select raw file" proxy hides *_metadata.hdf files (they are the
+    metadata sidecar, auto-discovered by the reader, never the data to load)
+    but keeps every other file and every directory, even one whose name ends
+    with the suffix, so the user can still navigate."""
+    import time
+
+    from PySide6.QtCore import QDir
+    from PySide6.QtWidgets import QFileSystemModel
+
+    from pysimplemask.gui.control.main_window import _HideMetadataFilesProxyModel
+
+    (tmp_path / "scan_0001.hdf").write_bytes(b"")
+    (tmp_path / "scan_metadata.hdf").write_bytes(b"")
+    (tmp_path / "other.h5").write_bytes(b"")
+    (tmp_path / "sub_metadata.hdf").mkdir()
+
+    src = QFileSystemModel()
+    src.setFilter(QDir.Filter.AllEntries | QDir.Filter.NoDotAndDotDot)
+    proxy = _HideMetadataFilesProxyModel()
+    proxy.setSourceModel(src)
+    root = src.setRootPath(str(tmp_path))
+    if src.canFetchMore(root):
+        src.fetchMore(root)
+    # QFileSystemModel populates from a worker thread; pump events until all 4 entries land.
+    deadline = time.monotonic() + 15
+    while src.rowCount(root) < 4 and time.monotonic() < deadline:
+        qapp.processEvents()
+        time.sleep(0.02)
+    assert src.rowCount(root) == 4, "QFileSystemModel did not populate"
+
+    proot = proxy.mapFromSource(root)
+    visible = sorted(proxy.data(proxy.index(r, 0, proot)) for r in range(proxy.rowCount(proot)))
+    assert visible == ["other.h5", "scan_0001.hdf", "sub_metadata.hdf"]
+
+
+def test_raw_file_dialog_is_configured_with_metadata_filter(qapp):
+    """select_raw() uses Qt's own dialog (native ones ignore proxy models)
+    with the metadata-hiding proxy, picking a single existing file."""
+    from PySide6.QtWidgets import QFileDialog
+
+    from pysimplemask.gui.control.main_window import _HideMetadataFilesProxyModel
+
+    gui = SimpleMaskGUI()
+    dlg = gui._raw_file_dialog()
+    assert dlg.testOption(QFileDialog.Option.DontUseNativeDialog)
+    assert dlg.fileMode() == QFileDialog.FileMode.ExistingFile
+    assert isinstance(dlg.proxyModel(), _HideMetadataFilesProxyModel)
+    assert dlg.nameFilters() and "*.hdf" in dlg.nameFilters()[0]
+    dlg.deleteLater()
+
+
 def test_manual_include_similar_intensity_unchecked_by_default(qapp):
     """Manual tab: 'Include points with similar intensity' starts unchecked, and
     its Radius / Variation controls start disabled and follow the checkbox."""
@@ -1295,8 +1347,17 @@ def test_file_dialogs_always_open_in_launch_dir(qapp, tmp_path):
         seen_dirs.append(dir)
         return ("", "")
 
+    # select_raw() builds a QFileDialog instance (so it can hide *_metadata.hdf
+    # via a proxy model) instead of the static getOpenFileName: stand in for
+    # its modal exec() and record where that dialog starts.
+    def fake_exec(dlg):
+        seen_dirs.append(dlg.directory().absolutePath())
+        return 1   # QDialog.DialogCode.Accepted
+
     with patch.object(QFileDialog, "getOpenFileName", side_effect=fake_open), \
-         patch.object(QFileDialog, "getSaveFileName", side_effect=fake_save):
+         patch.object(QFileDialog, "getSaveFileName", side_effect=fake_save), \
+         patch.object(QFileDialog, "exec", fake_exec), \
+         patch.object(QFileDialog, "selectedFiles", lambda dlg: [str(chosen)]):
         gui.select_raw()
         assert gui.fname.text() == str(chosen)
         # Browsing to another folder must not move the remembered directory.
