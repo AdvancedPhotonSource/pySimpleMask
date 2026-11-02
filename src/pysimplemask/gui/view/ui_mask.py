@@ -623,6 +623,7 @@ class Ui_SimpleMask(object):
         self.gridLayout_27.setContentsMargins(2, 2, 2, 2)
         self.mask_list_variation = QDoubleSpinBox(self.groupBox_14)
         self.mask_list_variation.setObjectName(u"mask_list_variation")
+        self.mask_list_variation.setEnabled(False)
         self.mask_list_variation.setMinimum(1.000000000000000)
         self.mask_list_variation.setValue(80.000000000000000)
 
@@ -630,12 +631,13 @@ class Ui_SimpleMask(object):
 
         self.mask_list_include = QCheckBox(self.groupBox_14)
         self.mask_list_include.setObjectName(u"mask_list_include")
-        self.mask_list_include.setChecked(True)
+        self.mask_list_include.setChecked(False)
 
         self.gridLayout_27.addWidget(self.mask_list_include, 0, 1, 1, 2)
 
         self.mask_list_radius = QDoubleSpinBox(self.groupBox_14)
         self.mask_list_radius.setObjectName(u"mask_list_radius")
+        self.mask_list_radius.setEnabled(False)
         self.mask_list_radius.setMinimum(10.000000000000000)
         self.mask_list_radius.setMaximum(1000.000000000000000)
         self.mask_list_radius.setValue(50.000000000000000)
@@ -1585,7 +1587,7 @@ class Ui_SimpleMask(object):
         self.mask_list_input.setText("")
         self.mask_list_input.setPlaceholderText(QCoreApplication.translate("SimpleMask", u"(x1, y1), (x2, y2), ...", None))
         self.groupBox_14.setTitle(QCoreApplication.translate("SimpleMask", u"Select with double-click", None))
-        self.mask_list_include.setText(QCoreApplication.translate("SimpleMask", u"Include points with simiar intensity", None))
+        self.mask_list_include.setText(QCoreApplication.translate("SimpleMask", u"Include points with similar intensity", None))
         self.label_19.setText(QCoreApplication.translate("SimpleMask", u"Radius:", None))
         self.label_24.setText(QCoreApplication.translate("SimpleMask", u"Intensity Variation (%):", None))
         self.groupBox_11.setTitle(QCoreApplication.translate("SimpleMask", u"xy list", None))

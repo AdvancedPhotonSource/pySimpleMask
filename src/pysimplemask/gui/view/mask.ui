@@ -1145,6 +1145,9 @@ QPushButton:disabled {
                 </property>
                 <item row="2" column="2">
                  <widget class="QDoubleSpinBox" name="mask_list_variation">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
                   <property name="minimum">
                    <double>1.000000000000000</double>
                   </property>
@@ -1156,15 +1159,18 @@ QPushButton:disabled {
                 <item row="0" column="1" colspan="2">
                  <widget class="QCheckBox" name="mask_list_include">
                   <property name="text">
-                   <string>Include points with simiar intensity</string>
+                   <string>Include points with similar intensity</string>
                   </property>
                   <property name="checked">
-                   <bool>true</bool>
+                   <bool>false</bool>
                   </property>
                  </widget>
                 </item>
                 <item row="1" column="2">
                  <widget class="QDoubleSpinBox" name="mask_list_radius">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
                   <property name="minimum">
                    <double>10.000000000000000</double>
                   </property>

@@ -190,6 +190,18 @@ def test_frame_controls_hidden_by_default(qapp, tmp_path):
     assert not gui.spinBox_current_frame.isEnabled()
 
 
+def test_manual_include_similar_intensity_unchecked_by_default(qapp):
+    """Manual tab: 'Include points with similar intensity' starts unchecked, and
+    its Radius / Variation controls start disabled and follow the checkbox."""
+    gui = SimpleMaskGUI()
+    assert not gui.mask_list_include.isChecked()
+    assert not gui.mask_list_radius.isEnabled()
+    assert not gui.mask_list_variation.isEnabled()
+    gui.mask_list_include.setChecked(True)
+    assert gui.mask_list_radius.isEnabled()
+    assert gui.mask_list_variation.isEnabled()
+
+
 def test_non_rawdata_channel_uses_correct_data_display_slice(qapp, tmp_path):
     """plot_index=1 (scattering) shows data_display[0], not data_display[1]."""
     gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16) * 5)
