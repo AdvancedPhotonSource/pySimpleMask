@@ -276,6 +276,107 @@ def test_raw_file_dialog_is_configured_with_metadata_filter(qapp):
     dlg.deleteLater()
 
 
+def _hot_pixel_frames(shape=(3, 24, 32), base=10.0, hot=((4, 4), (16, 24))):
+    """Flat frames with hot pixels at the given (row, col) spots."""
+    frames = np.full(shape, base, dtype=np.float32)
+    for r, c in hot:
+        frames[:, r, c] = 10000.0
+    return frames
+
+
+def test_outlier_roi_button_follows_target(qapp, tmp_path):
+    """The Outlier tab's Draw ROI button is only live for AdjacentPixels."""
+    gui = _load_gui(tmp_path, _hot_pixel_frames())
+    gui.comboBox_outlier_target.setCurrentText("CircularRings")
+    assert not gui.btn_outlier_roi.isEnabled()
+    gui.comboBox_outlier_target.setCurrentText("AdjacentPixels")
+    assert gui.btn_outlier_roi.isEnabled()
+    assert gui.btn_outlier_roi.text() == "Draw ROI"
+
+
+def test_outlier_roi_restricts_adjacent_removal_and_is_consumed_by_apply(qapp, tmp_path):
+    """AdjacentPixels + a drawn rectangle: only outliers inside the rectangle
+    are flagged; the rectangle survives the evaluate redraw and is removed by
+    Apply (with the button text following)."""
+    from pysimplemask.gui.view.widgets import OUTLIER_ROI_KEY
+
+    gui = _load_gui(tmp_path, _hot_pixel_frames())
+    gui.plot()
+    gui.comboBox_outlier_target.setCurrentText("AdjacentPixels")
+    gui.comboBox_outlier_method.setCurrentText("percentile")
+    gui.outlier_num_roi.setValue(8)
+    gui.outlier_cutoff.setValue(3.0)
+
+    gui.toggle_outlier_roi()
+    roi = gui.mp1.roi[OUTLIER_ROI_KEY]
+    assert gui.btn_outlier_roi.text() == "Remove ROI"
+    # Cover the lower-right quadrant: x (col) 16..32, y (row) 12..24.
+    roi.setPos((16, 12))
+    roi.setSize((16, 12))
+    region = gui._outlier_roi_region()
+    assert region.shape == (24, 32)
+    assert region[16, 24] and not region[4, 4]
+
+    gui.mask_evaluate("mask_outlier")
+    zero_loc = gui.sm.mask_kernel.workers["mask_outlier"].zero_loc
+    locs = set(zip(zero_loc[0].tolist(), zero_loc[1].tolist()))
+    assert (16, 24) in locs
+    assert (4, 4) not in locs
+    # evaluate switches to the preview channel (a redraw): the rectangle stays.
+    assert OUTLIER_ROI_KEY in gui.mp1.roi
+
+    gui.mask_apply("mask_outlier")
+    assert OUTLIER_ROI_KEY not in gui.mp1.roi
+    assert gui.btn_outlier_roi.text() == "Draw ROI"
+    # Only the hot pixel inside the rectangle was masked.
+    assert not gui.sm.mask[16, 24]
+    assert gui.sm.mask[4, 4]
+
+
+def test_outlier_without_roi_still_scans_whole_image(qapp, tmp_path):
+    gui = _load_gui(tmp_path, _hot_pixel_frames())
+    gui.comboBox_outlier_target.setCurrentText("AdjacentPixels")
+    gui.comboBox_outlier_method.setCurrentText("percentile")
+    gui.outlier_num_roi.setValue(8)
+    gui.outlier_cutoff.setValue(3.0)
+    assert gui._outlier_roi_region() is None
+    gui.mask_evaluate("mask_outlier")
+    zero_loc = gui.sm.mask_kernel.workers["mask_outlier"].zero_loc
+    locs = set(zip(zero_loc[0].tolist(), zero_loc[1].tolist()))
+    assert {(4, 4), (16, 24)} <= locs
+
+
+def test_outlier_roi_removed_when_target_switches_to_rings(qapp, tmp_path):
+    from pysimplemask.gui.view.widgets import OUTLIER_ROI_KEY
+
+    gui = _load_gui(tmp_path, _hot_pixel_frames())
+    gui.plot()
+    gui.comboBox_outlier_target.setCurrentText("AdjacentPixels")
+    gui.toggle_outlier_roi()
+    assert OUTLIER_ROI_KEY in gui.mp1.roi
+    # Toggling again removes it; drawing once more brings it back.
+    gui.toggle_outlier_roi()
+    assert OUTLIER_ROI_KEY not in gui.mp1.roi
+    gui.toggle_outlier_roi()
+    assert OUTLIER_ROI_KEY in gui.mp1.roi
+    gui.comboBox_outlier_target.setCurrentText("CircularRings")
+    assert OUTLIER_ROI_KEY not in gui.mp1.roi
+    assert not gui.btn_outlier_roi.isEnabled()
+
+
+def test_outlier_roi_is_not_a_draw_roi(qapp, tmp_path):
+    """The Outlier rectangle must not leak into the Draw tab's mask."""
+    from pysimplemask.gui.model.roi_extract import extract_roi_geometry
+    from pysimplemask.gui.view.widgets import OUTLIER_ROI_KEY
+
+    gui = _load_gui(tmp_path, _hot_pixel_frames())
+    gui.plot()
+    gui.comboBox_outlier_target.setCurrentText("AdjacentPixels")
+    gui.toggle_outlier_roi()
+    assert OUTLIER_ROI_KEY in gui.mp1.roi
+    assert extract_roi_geometry(gui.mp1.roi, gui.mp1.imageItem) == []
+
+
 def test_manual_include_similar_intensity_unchecked_by_default(qapp):
     """Manual tab: 'Include points with similar intensity' starts unchecked, and
     its Radius / Variation controls start disabled and follow the checkbox."""

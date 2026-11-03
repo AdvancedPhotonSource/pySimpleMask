@@ -106,6 +106,10 @@ geometry directly. `core/` imports no Qt and is fully scriptable.
 - `outlier_removal.py` — two strategies: `outlier_removal_with_saxs` (circular q-rings)
   and `outlier_removal_adjacent_boxes` (fixed-size spatial tiles, sorted brightest-first).
   Both share `compute_outlier_percentile` / `compute_outlier_mad` helpers.
+  `outlier_removal_adjacent_boxes` takes an optional boolean `region` (the GUI's
+  Outlier-tab rectangle ROI, `OUTLIER_ROI_KEY` on the canvas) that restricts the
+  removal to part of the image; the tile grid is then anchored at the region's
+  bounding box with clipped edge tiles.
 - `ellipse_util.py` — ellipse-fit q-correction for the eq-ephi partition mode.
 - `report.py` — `generate_report(model, output_path)` and `generate_report_from_qmap(qmap_file, ...)`:
   generates a 2×3 PDF/PNG summary report (blemish, masked scattering, mask, beam-center crop with

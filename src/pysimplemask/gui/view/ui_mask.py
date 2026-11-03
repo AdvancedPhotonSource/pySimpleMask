@@ -747,6 +747,22 @@ class Ui_SimpleMask(object):
 
         self.gridLayout_13.addWidget(self.comboBox_outlier_method, 1, 1, 2, 2)
 
+        self.label_outlier_roi = QLabel(self.tab_5)
+        self.label_outlier_roi.setObjectName(u"label_outlier_roi")
+
+        self.gridLayout_13.addWidget(self.label_outlier_roi, 3, 0, 1, 1)
+
+        self.btn_outlier_roi = QPushButton(self.tab_5)
+        self.btn_outlier_roi.setObjectName(u"btn_outlier_roi")
+        self.btn_outlier_roi.setEnabled(False)
+
+        self.gridLayout_13.addWidget(self.btn_outlier_roi, 3, 1, 1, 2)
+
+        self.label_outlier_roi_hint = QLabel(self.tab_5)
+        self.label_outlier_roi_hint.setObjectName(u"label_outlier_roi_hint")
+
+        self.gridLayout_13.addWidget(self.label_outlier_roi_hint, 3, 3, 1, 2)
+
 
         self.gridLayout_14.addLayout(self.gridLayout_13, 0, 0, 1, 1)
 
@@ -1603,6 +1619,9 @@ class Ui_SimpleMask(object):
         self.comboBox_outlier_method.setItemText(0, QCoreApplication.translate("SimpleMask", u"median_absolute_deviation", None))
         self.comboBox_outlier_method.setItemText(1, QCoreApplication.translate("SimpleMask", u"percentile", None))
 
+        self.label_outlier_roi.setText(QCoreApplication.translate("SimpleMask", u"Region", None))
+        self.btn_outlier_roi.setText(QCoreApplication.translate("SimpleMask", u"Draw ROI", None))
+        self.label_outlier_roi_hint.setText(QCoreApplication.translate("SimpleMask", u"(AdjacentPixels only)", None))
         self.MaskWidget.setTabText(self.MaskWidget.indexOf(self.tab_5), QCoreApplication.translate("SimpleMask", u"Outlier", None))
         self.label_2.setText(QCoreApplication.translate("SimpleMask", u"Logic:", None))
         self.btn_mask_param_delete.setText(QCoreApplication.translate("SimpleMask", u"Delete", None))

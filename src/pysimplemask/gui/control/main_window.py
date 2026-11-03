@@ -34,12 +34,13 @@ from pysimplemask.core.mask import is_periodic_angle_map
 from pysimplemask.core.model import SimpleMaskModel
 from pysimplemask.core.partition import least_multiple
 from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
-from pysimplemask.gui.model.roi_extract import extract_roi_geometry
+from pysimplemask.gui.model.roi_extract import extract_roi_geometry, roi_region
 from pysimplemask.gui.model.table_model import (
     DrawGroupTableModel,
     XmapConstraintsTableModel,
 )
 from pysimplemask.gui.view.ui_mask import Ui_SimpleMask as Ui
+from pysimplemask.gui.view.widgets import OUTLIER_ROI_KEY
 
 HOME_DIR = Path.home()
 CONFIG_FILE = HOME_DIR / ".pysimplemask" / "config.json"
@@ -261,6 +262,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # outlier
 
         self.mask_outlier_hdl.setBackground((255, 255, 255))
+        self.btn_outlier_roi.clicked.connect(self.toggle_outlier_roi)
+        self.mp1.sigRoiRemoved.connect(self._on_canvas_roi_removed)
         self.comboBox_outlier_target.currentIndexChanged.connect(
             self._on_outlier_target_changed
         )
@@ -472,6 +475,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
         self.outlier_cutoff.setToolTip(
             "Threshold in σ (MAD mode) or percentile above which pixels are flagged"
+        )
+        self.btn_outlier_roi.setToolTip(
+            "AdjacentPixels only: draw a rectangle on the image to restrict the\n"
+            "outlier removal to that region. Move/resize it, then Evaluate.\n"
+            "Apply removes the rectangle once the mask is applied."
         )
         # ── Parametrization tab ───────────────────────────────────────────────
         self.comboBox_param_xmap_name.setToolTip(
@@ -715,12 +723,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
             "then flags pixels more than cutoff × std from the clipped mean."
         ),
         ("AdjacentPixels", "median_absolute_deviation"): (
-            "Divides the image into fixed-size square boxes (brightest first). "
+            "Divides the image, or the drawn rectangle ROI, into fixed-size "
+            "square boxes (brightest first). "
             "Within each box, flags pixels whose intensity deviates from the "
             "median by more than cutoff × MAD."
         ),
         ("AdjacentPixels", "percentile"): (
-            "Divides the image into fixed-size square boxes (brightest first). "
+            "Divides the image, or the drawn rectangle ROI, into fixed-size "
+            "square boxes (brightest first). "
             "Within each box, clips extremes to the 5–95th percentile range, "
             "then flags pixels more than cutoff × std from the clipped mean."
         ),
@@ -731,9 +741,75 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if target == "CircularRings":
             self.label_outlier_target_info.setText("num. circular ROI:")
             self.outlier_num_roi.setValue(180)
+            # The region rectangle only applies to AdjacentPixels; drop a stale one.
+            self._remove_outlier_roi()
         elif target == "AdjacentPixels":
             self.label_outlier_target_info.setText("adjacent box size (pixel):")
             self.outlier_num_roi.setValue(32)
+        self._sync_outlier_roi_button()
+
+    # ── Outlier tab: region rectangle ──────────────────────────────────────
+    # One rectangle ROI (OUTLIER_ROI_KEY) that restricts AdjacentPixels outlier
+    # removal to its interior. It is not a draw ROI: extract_roi_geometry()
+    # ignores it, and ImageViewROI.clear() keeps it across preview redraws.
+    # It is a one-shot selection — Apply consumes it.
+    def _outlier_roi(self):
+        return self.mp1.roi.get(OUTLIER_ROI_KEY)
+
+    def toggle_outlier_roi(self):
+        """Draw the Outlier tab's rectangle, or remove it if one is on the canvas."""
+        if self._outlier_roi() is not None:
+            self._remove_outlier_roi()
+            return
+        if not self.is_ready():
+            self.statusbar.showMessage("Load a scattering image first.", 3000)
+            return
+        h, w = self.sm.shape
+        # Start as a third of the current view, centered in it, so the
+        # rectangle is in sight even when zoomed in; clamped to the image.
+        (x0, x1), (y0, y1) = self.mp1.getView().viewRange()
+        size_x = float(np.clip((x1 - x0) / 3, 8, w))
+        size_y = float(np.clip((y1 - y0) / 3, 8, h))
+        cx = float(np.clip((x0 + x1) / 2, size_x / 2, w - size_x / 2))
+        cy = float(np.clip((y0 + y1) / 2, size_y / 2, h - size_y / 2))
+        pen = pg.mkPen(color="m", width=2, style=QtCore.Qt.DashLine)
+        roi = pg.RectROI(
+            (cx - size_x / 2, cy - size_y / 2),
+            (size_x, size_y),
+            pen=pen, hoverPen=pen, handlePen=pen, removable=True, movable=True,
+        )
+        for hdl in ([0, 0], [0, 0.5], [0, 1], [0.5, 0],
+                    [0.5, 1], [1, 0], [1, 0.5], [1, 1]):
+            roi.addScaleHandle(hdl, [1 - hdl[0], 1 - hdl[1]])
+        self.mp1.add_item(roi, label=OUTLIER_ROI_KEY)
+        roi.sigRemoveRequested.connect(lambda: self.mp1.remove_item(OUTLIER_ROI_KEY))
+        self._sync_outlier_roi_button()
+        self.statusbar.showMessage(
+            "Move/resize the rectangle, then Evaluate. Apply removes it.", 5000
+        )
+
+    def _remove_outlier_roi(self):
+        # No-op when absent; otherwise fires sigRoiRemoved -> button resync.
+        self.mp1.remove_item(OUTLIER_ROI_KEY)
+
+    def _on_canvas_roi_removed(self, key):
+        if key == OUTLIER_ROI_KEY:
+            self._sync_outlier_roi_button()
+
+    def _sync_outlier_roi_button(self):
+        adjacent = self.comboBox_outlier_target.currentText() == "AdjacentPixels"
+        self.btn_outlier_roi.setEnabled(adjacent)
+        self.btn_outlier_roi.setText(
+            "Remove ROI" if self._outlier_roi() is not None else "Draw ROI"
+        )
+
+    def _outlier_roi_region(self):
+        """Boolean image-shaped array that is True inside the Outlier tab's
+        rectangle, or None when none is drawn (process the whole image)."""
+        roi = self._outlier_roi()
+        if roi is None or self.sm.shape is None:
+            return None
+        return roi_region(roi, self.mp1.imageItem, self.sm.shape)
 
     def _update_outlier_info(self):
         target = self.comboBox_outlier_target.currentText()
@@ -802,10 +878,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 )
                 x_label = "q (Å⁻¹)"
             else:  # AdjacentPixels
+                region = self._outlier_roi_region()
                 saxs1d, zero_loc = self.sm.compute_adjacent_saxs1d(
-                    box_size=num, cutoff=cutoff, method=method
+                    box_size=num, cutoff=cutoff, method=method, region=region
                 )
                 x_label = "box index (sorted by mean)"
+                if region is not None:
+                    x_label += " — inside ROI"
+                    if not region.any():
+                        logger.warning("the outlier ROI lies outside the image")
 
             self.mask_outlier_hdl.clear()
             p = self.mask_outlier_hdl
@@ -872,6 +953,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # perform evaluate again so the saxs1d shows the new results;
         if target == "mask_outlier":
             self.mask_evaluate(target=target)
+            # The region rectangle is a one-shot selection, consumed by Apply.
+            self._remove_outlier_roi()
         elif target == "mask_list":
             self.mask_list_clear()
         elif target in ("mask_parameter", "mask_draw"):
@@ -1186,6 +1269,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # drawn ROIs belong to the previous dataset (fires sigRoiRemoved, which
         # also drops their draw-table rows)
         self.mp1.remove_rois("roi_")
+        self._remove_outlier_roi()
         # else:
         #     stype = self.sm.dset.stype
 

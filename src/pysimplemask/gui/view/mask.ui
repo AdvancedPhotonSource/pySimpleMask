@@ -1373,6 +1373,30 @@ QPushButton:disabled {
                  </item>
                 </widget>
                </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="label_outlier_roi">
+                 <property name="text">
+                  <string>Region</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1" colspan="2">
+                <widget class="QPushButton" name="btn_outlier_roi">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
+                 <property name="text">
+                  <string>Draw ROI</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="3" colspan="2">
+                <widget class="QLabel" name="label_outlier_roi_hint">
+                 <property name="text">
+                  <string>(AdjacentPixels only)</string>
+                 </property>
+                </widget>
+               </item>
               </layout>
              </item>
              <item row="2" column="0">
