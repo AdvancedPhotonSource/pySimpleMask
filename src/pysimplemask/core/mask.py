@@ -98,8 +98,10 @@ class MaskFile(MaskBase):
     def __init__(self, shape=(512, 1024), fname=None, **kwargs) -> None:
         super().__init__(shape=shape)
         self.mtype = "file"
+        self.fname = None  # path of the last successfully loaded mask file
 
     def evaluate(self, fname=None, key=None):
+        self.fname = None
         if not os.path.isfile(fname):
             return
 
@@ -126,6 +128,7 @@ class MaskFile(MaskBase):
         assert mask.shape == self.shape
         mask = mask <= 0
         self.zero_loc = np.array(np.nonzero(mask))
+        self.fname = fname
 
 
 class MaskThreshold(MaskBase):
@@ -293,6 +296,11 @@ class MaskAssemble:
         self.saxs_lin = saxs_lin
         self.qmap = qmap
 
+        # Human-readable account of what self.blemish is made of: the detector
+        # default (if ADHelper has one for this shape) and any blemish file
+        # applied through the "mask_blemish" target. Empty means self.blemish
+        # is the all-ones fallback, i.e. no blemish at all.
+        self.blemish_sources = []
         self.blemish = self.get_default_blemish()
         self.mask_record = [np.ones_like(self.saxs_lin, dtype=bool), self.blemish]
         self.mask_ptr = 1
@@ -320,6 +328,7 @@ class MaskAssemble:
                 # (e.g. uint8); this mask feeds self.mask directly, and a non-bool
                 # mask silently turns boolean masking (xmap[mask]) into advanced
                 # integer indexing elsewhere.
+                self.blemish_sources.append("detector default")
                 return blemish.astype(bool)
         except ImportError:
             pass  # ADHelper not installed — fall back
@@ -333,6 +342,16 @@ class MaskAssemble:
             return self.get_mask()
 
         worker_mask = self.get_one_mask(target)
+        if target == "mask_blemish":
+            # A blemish file applied on top of the detector default is part of
+            # the blemish itself, not just another mask step: the saved
+            # /qmap/blemish, the report's blemish panel and "reset to blemish"
+            # must all see default AND file.
+            self.blemish = np.logical_and(self.blemish, worker_mask)
+            fname = getattr(self.workers[target], "fname", None)
+            source = os.path.basename(fname) if fname else "file"
+            if source not in self.blemish_sources:
+                self.blemish_sources.append(source)
         contributions = self.contribution_record[self.mask_ptr]
         if target in self.REPLACEABLE_TARGETS:
             contributions = tuple(c for c in contributions if c[0] != target)

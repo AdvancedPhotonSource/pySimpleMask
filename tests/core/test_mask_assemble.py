@@ -149,3 +149,36 @@ def test_reapply_after_undo_keeps_pointer_and_mask_in_sync():
 
     np.testing.assert_array_equal(ma.get_mask(), mask)
     assert not mask[2, 2]
+
+
+def test_blemish_file_becomes_part_of_kernel_blemish(tmp_path):
+    """Applying a blemish file through the mask_blemish target folds it into
+    the kernel's blemish (what the report panel and /qmap/blemish use), and
+    records the file as a blemish source."""
+    import h5py
+
+    shape = (8, 6)
+    user = np.ones(shape, dtype=np.uint8)
+    user[0:3, 0:3] = 0  # a hole at the top-left
+    fpath = tmp_path / "beamstop.hdf"
+    with h5py.File(fpath, "w") as h:
+        h["/qmap/mask"] = user
+
+    ma = MaskAssemble(shape=shape, saxs_lin=np.zeros(shape))
+    # no ADHelper default exists for a tiny synthetic shape
+    assert ma.blemish_sources == []
+    assert ma.blemish.all()
+
+    ma.evaluate("mask_blemish", fname=str(fpath), key="/qmap/mask")
+    ma.apply("mask_blemish")
+
+    np.testing.assert_array_equal(ma.blemish, user.astype(bool))
+    assert ma.blemish_sources == ["beamstop.hdf"]
+    # the running mask carries the hole too
+    assert not ma.get_mask()[0:3, 0:3].any()
+    assert ma.get_mask()[4:, :].all()
+
+    # re-applying the same file is idempotent
+    ma.apply("mask_blemish")
+    assert ma.blemish_sources == ["beamstop.hdf"]
+    np.testing.assert_array_equal(ma.blemish, user.astype(bool))

@@ -36,6 +36,16 @@ def _qmap_cmap(n_bins):
     return ListedColormap(colors)
 
 
+def _describe_blemish(p: dict[str, Any], blemish: np.ndarray | None) -> str:
+    """Footer text for the blemish entry: what the blemish panel is made of."""
+    sources = p.get("blemish_sources")
+    if sources:
+        return " + ".join(str(s) for s in sources)
+    if p.get("blemish"):
+        return os.path.basename(str(p["blemish"]))
+    return "stored" if blemish is not None else "none"
+
+
 def _log_image(scat, mask=None):
     """Return a log10 image of ``scat`` with optional ``mask`` applied.
 
@@ -319,7 +329,7 @@ def _render_report_figure(
     # Row 3 — Mask
     thr = p.get("threshold_high")
     thr_str = f"{thr:.4g}" if thr is not None else "none"
-    blemish_str = os.path.basename(str(p["blemish"])) if p.get("blemish") else ("stored" if blemish is not None else "none")
+    blemish_str = _describe_blemish(p, blemish)
     mask_line = (
         f"Mask:      blemish={blemish_str}"
         f"   |   threshold_high={thr_str}"
@@ -405,12 +415,19 @@ def generate_report(
     center_vh = model.get_center(mode="vh")
     shape = model.shape
     mask = model.mask
-    blemish = model.mask_kernel.blemish if (model.mask_kernel and hasattr(model.mask_kernel, "blemish")) else None
+    kernel = model.mask_kernel
+    blemish = getattr(kernel, "blemish", None) if kernel else None
+    blemish_sources = getattr(kernel, "blemish_sources", None) if kernel else None
+    if blemish_sources is not None and not blemish_sources:
+        # nothing was loaded: the kernel's all-ones fallback is not a blemish
+        blemish = None
     scat = model.dset.scat if model.dset else None
     partition = model.new_partition
 
     # Default beamline into params if not present
     p = dict(params) if params else {}
+    if blemish_sources:
+        p.setdefault("blemish_sources", list(blemish_sources))
     if "beamline" not in p and model.dset and hasattr(model.dset, "ftype"):
         p["beamline"] = model.dset.ftype
 

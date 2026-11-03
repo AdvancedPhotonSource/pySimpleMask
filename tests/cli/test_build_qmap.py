@@ -318,3 +318,35 @@ def test_pipeline_use_groupindex_without_constraints_raises(raw_hdf, tmp_path, m
     with pytest.raises(RuntimeError):
         _run_build_qmap(args)
     assert not Path("out.hdf").exists()
+
+
+def test_pipeline_blemish_file_is_saved_as_blemish(raw_hdf, tmp_path, monkeypatch):
+    """--blemish must end up in the output's /qmap/blemish (and thus in the
+    report's blemish panel), not only ANDed into /qmap/mask."""
+    monkeypatch.chdir(tmp_path)
+    from pysimplemask.cli import _build_qmap_args, _run_build_qmap
+
+    user = np.ones((32, 30), dtype=np.uint8)
+    user[0:4, 0:4] = 0
+    with h5py.File("beamstop.hdf", "w") as h:
+        h["/qmap/mask"] = user
+
+    args = _build_qmap_args([
+        raw_hdf,
+        "--num-frames", "0",
+        "--no-find-center",
+        "--blemish", "beamstop.hdf",
+        "--blemish-key", "/qmap/mask",
+        "--dq-num", "2", "--sq-num", "4",
+        "--output-qmap", "out.hdf",
+        "--output-mask", "",
+        "--report", "report.png",
+    ])
+    _run_build_qmap(args)
+
+    with h5py.File("out.hdf") as h:
+        blemish = h["/qmap/blemish"][()]
+        mask = h["/qmap/mask"][()]
+    np.testing.assert_array_equal(blemish.astype(bool), user.astype(bool))
+    assert not mask[0:4, 0:4].any()
+    assert Path("report.png").exists()
