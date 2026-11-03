@@ -174,6 +174,13 @@ class MaskParameter(MaskBase):
                 if vend > 180 and -180 <= vbeg <= 180:
                     xmap[xmap < vbeg] += 360.0
             mask_t = (xmap >= vbeg) * (xmap <= vend)
+            if not mask_t.any():
+                logger.warning(
+                    "mask_parameter row %d (%s %s [%g, %g] %s) matches no pixels; "
+                    "%s spans [%g, %g] on this detector",
+                    i + 1, xmap_name, logic, vbeg, vend, unit,
+                    xmap_name, np.nanmin(qmap[xmap_name]), np.nanmax(qmap[xmap_name]),
+                )
             if logic == "AND":
                 mask = np.logical_and(mask, mask_t)
             elif logic == "OR":
@@ -184,6 +191,11 @@ class MaskParameter(MaskBase):
             # from several AND-ed rows simply ends up labeled by the last one.
             group_index_map[mask_t] = i + 1
             row_masks.append(mask_t)
+        if constraints and not mask.any():
+            logger.warning(
+                "mask_parameter: the combined %d constraint row(s) leave no valid pixels",
+                len(constraints),
+            )
         group_index_map[~mask] = 0
         self.zero_loc = np.array(np.nonzero(~mask))
         self.group_index_map = group_index_map

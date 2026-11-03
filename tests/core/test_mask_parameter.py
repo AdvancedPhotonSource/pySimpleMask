@@ -105,3 +105,53 @@ def test_describe_constraint():
     assert "q" in desc
     assert "AND" in desc
     assert "0" in desc and "5" in desc
+
+
+def test_warns_when_row_matches_no_pixels(caplog):
+    """A row whose range lies outside the map (e.g. phi 230..236 on a
+    -180..180 map) should warn and name the map's actual span."""
+    phi = np.linspace(-180.0, 180.0, 361).reshape(1, 361)  # 1 deg steps
+    mp = MaskParameter(shape=(1, 361))
+    constraints = [
+        ("phi", "AND", "deg", 50, 56),
+        ("phi", "OR", "deg", 230, 236),
+    ]
+    with caplog.at_level("WARNING", logger="pysimplemask.core.mask"):
+        mp.evaluate(qmap={"phi": phi}, constraints=constraints)
+
+    warnings = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warnings) == 1
+    assert "row 2" in warnings[0]
+    assert "matches no pixels" in warnings[0]
+    assert "[-180, 180]" in warnings[0]
+    # the empty row contributes nothing, row 1 still defines the mask
+    assert mp.num_groups == 2
+    assert not mp.get_mask().all()
+
+
+def test_warns_when_combined_constraints_leave_no_pixels(caplog):
+    """Two disjoint AND rows each match pixels but their intersection is empty."""
+    mp = MaskParameter(shape=(1, 10))
+    constraints = [
+        ("q", "AND", "A^-1", 0, 2),
+        ("q", "AND", "A^-1", 5, 7),
+    ]
+    with caplog.at_level("WARNING", logger="pysimplemask.core.mask"):
+        mp.evaluate(qmap=_qmap_1x10(), constraints=constraints)
+
+    warnings = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warnings) == 1
+    assert "leave no valid pixels" in warnings[0]
+    assert not mp.get_mask().any()
+
+
+def test_no_warning_when_every_row_matches(caplog):
+    mp = MaskParameter(shape=(1, 6))
+    constraints = [
+        ("q", "AND", "A^-1", 0, 1),
+        ("q", "OR", "A^-1", 4, 5),
+    ]
+    with caplog.at_level("WARNING", logger="pysimplemask.core.mask"):
+        mp.evaluate(qmap=_qmap_1x6(), constraints=constraints)
+
+    assert not [r for r in caplog.records if r.levelname == "WARNING"]
