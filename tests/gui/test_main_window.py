@@ -14,7 +14,8 @@ import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
-from pysimplemask.gui.control.main_window import SimpleMaskGUI
+from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
+from pysimplemask.gui.control.main_window import SimpleMaskGUI, _MaskTab, _plot_index
 
 
 @pytest.fixture(scope="module")
@@ -148,22 +149,20 @@ def test_mask_apply_current_tab_dispatches_correctly(qapp, tmp_path):
     calls = []
 
     with patch.object(gui, "mask_apply", side_effect=lambda t: calls.append(t)):
-        # Tab 0: Files (blemish section removed from UI) → mask_file only
-        gui.MaskWidget.setCurrentIndex(0)
+        # Files (blemish section removed from UI) → mask_file only
+        gui.MaskWidget.setCurrentIndex(_MaskTab.FILES)
         gui.mask_apply_current_tab()
-        assert calls == ["mask_file"], f"Tab 0: got {calls}"
+        assert calls == ["mask_file"], f"Files: got {calls}"
         calls.clear()
 
-        # Tab 2: Binary → mask_threshold
-        gui.MaskWidget.setCurrentIndex(2)
+        gui.MaskWidget.setCurrentIndex(_MaskTab.BINARY)
         gui.mask_apply_current_tab()
-        assert calls == ["mask_threshold"], f"Tab 2: got {calls}"
+        assert calls == ["mask_threshold"], f"Binary: got {calls}"
         calls.clear()
 
-        # Tab 5: Parametrization → mask_parameter
-        gui.MaskWidget.setCurrentIndex(5)
+        gui.MaskWidget.setCurrentIndex(_MaskTab.PARAMETER)
         gui.mask_apply_current_tab()
-        assert calls == ["mask_parameter"], f"Tab 5: got {calls}"
+        assert calls == ["mask_parameter"], f"Parametrization: got {calls}"
 
 
 def test_tab_mask_targets_constant(qapp, tmp_path):
@@ -171,6 +170,37 @@ def test_tab_mask_targets_constant(qapp, tmp_path):
     from pysimplemask.gui.control.main_window import _TAB_MASK_TARGETS
     gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
     assert len(_TAB_MASK_TARGETS) == gui.MaskWidget.count()
+
+
+def test_named_indices_match_ui_order(qapp):
+    """_MaskTab and _plot_index name the widgets' items as laid out in
+    mask.ui, so reordering the .ui without updating them fails here."""
+    gui = SimpleMaskGUI()
+    tab_labels = {
+        _MaskTab.FILES: "Blemish/Files",
+        _MaskTab.DRAW: "Draw",
+        _MaskTab.BINARY: "Binary",
+        _MaskTab.MANUAL: "Manual",
+        _MaskTab.OUTLIER: "Outlier",
+        _MaskTab.PARAMETER: "Parametrization",
+    }
+    assert gui.MaskWidget.count() == len(_MaskTab)
+    for tab, label in tab_labels.items():
+        assert gui.MaskWidget.tabText(tab) == label
+
+    # DISPLAY_FIELD name → plot_index label (the .ui spells partitions out).
+    channel_labels = {
+        "scattering": "scattering",
+        "scattering * mask": "scattering * mask",
+        "mask": "mask",
+        "dqmap_partition": "dynamic_q_partition",
+        "sqmap_partition": "static_q_partition",
+        "preview": "preview",
+    }
+    assert set(channel_labels) == set(DISPLAY_FIELD)
+    assert gui.plot_index.count() == 1 + len(DISPLAY_FIELD)   # plus rawdata
+    for field, label in channel_labels.items():
+        assert gui.plot_index.itemText(_plot_index(field)) == label
 
 
 def test_rawdata_item_disabled_by_default(qapp, tmp_path):
@@ -357,14 +387,14 @@ def test_reevaluate_redraws_preview_when_already_selected(qapp, tmp_path):
     gui.outlier_num_roi.setValue(8)
     gui.outlier_cutoff.setValue(3.0)
     gui.mask_evaluate("mask_outlier")
-    assert gui.plot_index.currentIndex() == 6
+    assert gui.plot_index.currentIndex() == _plot_index("preview")
 
     gui.outlier_cutoff.setValue(5.0)
     with patch.object(gui.mp1, "setImage", wraps=gui.mp1.setImage) as spy:
         gui.mask_evaluate("mask_outlier")
     spy.assert_called_once()
     shown = spy.call_args.args[0]
-    assert np.array_equal(shown, gui.sm.dset.data_display[6 - 1])
+    assert np.array_equal(shown, gui.sm.dset.data_display[DISPLAY_FIELD.index("preview")])
 
 
 def test_outlier_roi_removed_when_target_switches_to_rings(qapp, tmp_path):
@@ -413,9 +443,10 @@ def test_manual_include_similar_intensity_unchecked_by_default(qapp):
 def test_non_rawdata_channel_uses_correct_data_display_slice(qapp, tmp_path):
     """plot_index=1 (scattering) shows data_display[0], not data_display[1]."""
     gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16) * 5)
-    # Navigate away then back to 1 to ensure the signal fires (combobox skips no-op setCurrentIndex)
-    gui.plot_index.setCurrentIndex(2)
-    gui.plot_index.setCurrentIndex(1)
+    # Navigate away then back to scattering to ensure the signal fires
+    # (combobox skips no-op setCurrentIndex)
+    gui.plot_index.setCurrentIndex(_plot_index("scattering * mask"))
+    gui.plot_index.setCurrentIndex(_plot_index("scattering"))
     # mp1.image should be data_display[0] (the scattering channel)
     assert gui.mp1.image is not None
     expected = gui.sm.dset.data_display[0]
@@ -486,7 +517,7 @@ def test_set_update_parameters_state_toggles_bold_with_enabled(qapp, tmp_path):
 def test_apply_button_bold_after_evaluate_and_apply(qapp, tmp_path):
     """mask_evaluate_current_tab / mask_apply_current_tab drive bold via _set_apply_state."""
     gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
-    gui.MaskWidget.setCurrentIndex(2)  # Binary tab -> mask_threshold
+    gui.MaskWidget.setCurrentIndex(_MaskTab.BINARY)  # -> mask_threshold
     gui.mask_evaluate_current_tab()
     assert gui.btn_mask_apply.isEnabled()
     assert gui.btn_mask_apply.font().bold()
@@ -569,7 +600,7 @@ def test_mask_evaluate_current_tab_checks_metadata_staleness(qapp, tmp_path):
     from unittest.mock import patch
 
     gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
-    gui.MaskWidget.setCurrentIndex(2)
+    gui.MaskWidget.setCurrentIndex(_MaskTab.BINARY)
     with patch.object(gui, "_maybe_prompt_metadata_update") as mock_prompt:
         gui.mask_evaluate_current_tab()
     mock_prompt.assert_called_once()
@@ -580,7 +611,7 @@ def test_mask_apply_current_tab_checks_metadata_staleness(qapp, tmp_path):
     from unittest.mock import patch
 
     gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
-    gui.MaskWidget.setCurrentIndex(2)
+    gui.MaskWidget.setCurrentIndex(_MaskTab.BINARY)
     with patch.object(gui, "_maybe_prompt_metadata_update") as mock_prompt:
         gui.mask_apply_current_tab()
     mock_prompt.assert_called_once()
@@ -615,7 +646,7 @@ def test_maybe_prompt_unapplied_mask_apply_and_continue_skips_metadata_prompt(qa
     from unittest.mock import patch
 
     gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
-    gui.MaskWidget.setCurrentIndex(2)  # Binary tab -> mask_threshold
+    gui.MaskWidget.setCurrentIndex(_MaskTab.BINARY)  # -> mask_threshold
     gui._set_apply_state(True)
     gui._set_update_parameters_state(True)  # metadata still stale
     _click_message_box(monkeypatch, "Apply && Continue")
@@ -677,13 +708,15 @@ def test_compute_partition_proceeds_when_unapplied_mask_confirmed(qapp, tmp_path
 def test_compute_partition_refreshes_already_selected_dynamic_map(qapp, tmp_path):
     """Recomputing refreshes the image when the dynamic map is already selected."""
     gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
-    gui.plot_index.setCurrentIndex(4)
+    gui.plot_index.setCurrentIndex(_plot_index("dqmap_partition"))
     image_before = gui.mp1.image
 
     gui.compute_partition()
 
     assert gui.mp1.image is not image_before
-    np.testing.assert_array_equal(gui.mp1.image, gui.sm.dset.data_display[3])
+    np.testing.assert_array_equal(
+        gui.mp1.image, gui.sm.dset.data_display[DISPLAY_FIELD.index("dqmap_partition")]
+    )
 
 
 def test_update_parameters_refreshes_stale_dynamic_partition_display(qapp, tmp_path):
@@ -695,7 +728,7 @@ def test_update_parameters_refreshes_stale_dynamic_partition_display(qapp, tmp_p
 
     gui = _load_gui(tmp_path, np.ones((3, 20, 24), dtype=np.uint16))
     gui.compute_partition()
-    gui.plot_index.setCurrentIndex(4)  # dynamic_q_partition
+    gui.plot_index.setCurrentIndex(_plot_index("dqmap_partition"))
 
     with patch.object(
         gui.sm, "compute_partition", wraps=gui.sm.compute_partition
@@ -703,7 +736,9 @@ def test_update_parameters_refreshes_stale_dynamic_partition_display(qapp, tmp_p
         gui.update_parameters(new_center_vh=(8.0, 6.0))
 
     spy.assert_called_once()
-    np.testing.assert_array_equal(gui.mp1.image, gui.sm.dset.data_display[3])
+    np.testing.assert_array_equal(
+        gui.mp1.image, gui.sm.dset.data_display[DISPLAY_FIELD.index("dqmap_partition")]
+    )
 
 
 def test_save_mask_does_not_report_success_when_partition_cancelled(qapp, tmp_path):
@@ -964,7 +999,7 @@ def test_compute_partition_with_empty_group_does_not_report_false_success(qapp, 
 
 
 def _select_draw(gui, sl_type="Circle", sl_mode="exclusive"):
-    gui.MaskWidget.setCurrentIndex(1)  # Draw tab
+    gui.MaskWidget.setCurrentIndex(_MaskTab.DRAW)
     gui.cb_selector_type.setCurrentText(sl_type)
     gui.cb_selector_mode.setCurrentText(sl_mode)
 
@@ -1379,7 +1414,7 @@ def test_compute_partition_uses_groupindex_for_subpartition_on_xy_mesh_tab_end_t
 
 
 def _draw_two_inclusive_groups(gui):
-    gui.MaskWidget.setCurrentIndex(1)  # Draw tab
+    gui.MaskWidget.setCurrentIndex(_MaskTab.DRAW)
     gui.cb_selector_type.setCurrentText("Circle")
     gui.cb_selector_mode.setCurrentText("inclusive")
     gui.add_drawing()
@@ -1411,7 +1446,7 @@ def test_groupindex_checkbox_does_not_clobber_manual_dqnum_after_draw_apply(draw
 
     gui.sb_dqnum.setValue(7)
 
-    gui.MaskWidget.setCurrentIndex(1)  # Draw tab
+    gui.MaskWidget.setCurrentIndex(_MaskTab.DRAW)
     gui.cb_selector_type.setCurrentText("Circle")
     gui.cb_selector_mode.setCurrentText("inclusive")
     gui.add_drawing()
@@ -1430,7 +1465,7 @@ def test_compute_partition_uses_draw_groupindex_for_subpartition_end_to_end(draw
     multi-group math is already covered at the model level (test_model_headless).
     """
     gui = draw_gui
-    gui.MaskWidget.setCurrentIndex(1)  # Draw tab
+    gui.MaskWidget.setCurrentIndex(_MaskTab.DRAW)
     gui.cb_selector_type.setCurrentText("Circle")
     gui.cb_selector_mode.setCurrentText("inclusive")
     gui.add_drawing()

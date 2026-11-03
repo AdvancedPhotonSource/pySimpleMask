@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 import traceback
+from enum import IntEnum
 from pathlib import Path
 
 import numpy as np
@@ -45,7 +46,32 @@ from pysimplemask.gui.view.widgets import OUTLIER_ROI_KEY
 HOME_DIR = Path.home()
 CONFIG_FILE = HOME_DIR / ".pysimplemask" / "config.json"
 
-_RAWDATA_IDX = 0   # "rawdata" is always at plot_index position 0
+# plot_index lists "rawdata" first, then data_display's channels in order:
+# DISPLAY_FIELD, then the qmap keys appended at load.
+_RAWDATA_IDX = 0
+_CHANNEL_OFFSET = _RAWDATA_IDX + 1   # plot_index position of data_display[0]
+_QMAP_START_IDX = _CHANNEL_OFFSET + len(DISPLAY_FIELD)
+
+
+def _plot_index(field):
+    """plot_index position of the DISPLAY_FIELD channel named `field`."""
+    return _CHANNEL_OFFSET + DISPLAY_FIELD.index(field)
+
+
+_BINARY_PLOT_INDICES = (_plot_index("mask"), _plot_index("preview"))   # shown on fixed 0/1 levels
+
+
+class _MaskTab(IntEnum):
+    """MaskWidget tab positions, in mask.ui order."""
+
+    FILES = 0
+    DRAW = 1
+    BINARY = 2
+    MANUAL = 3
+    OUTLIER = 4
+    PARAMETER = 5
+
+
 _XY_LABEL_OFFSET_PX = 12   # screen pixels between the cursor and the floating (x, y) label
 _METADATA_SUFFIX = "_metadata.hdf"   # companion metadata sidecar, never the data file to load
 _RAW_FILE_FILTER = (
@@ -134,24 +160,24 @@ _APPLY_TIP_DISABLED = "Evaluate a mask first — Apply will become available aft
 
 _GROUPINDEX_CHECKBOX_LABEL = "Use group-index for sub-partitions"
 
-_TAB_MASK_TARGETS: list = [
-    ("mask_file",),                  # 0: Files (blemish section removed from UI)
-    ("mask_draw",),                  # 1: Draw
-    ("mask_threshold",),             # 2: Binary
-    ("mask_list",),                  # 3: Manual
-    ("mask_outlier",),               # 4: Outlier
-    ("mask_parameter",),             # 5: Parametrization
-]
+_TAB_MASK_TARGETS: dict = {
+    _MaskTab.FILES: ("mask_file",),  # blemish section removed from UI
+    _MaskTab.DRAW: ("mask_draw",),
+    _MaskTab.BINARY: ("mask_threshold",),
+    _MaskTab.MANUAL: ("mask_list",),
+    _MaskTab.OUTLIER: ("mask_outlier",),
+    _MaskTab.PARAMETER: ("mask_parameter",),
+}
 
-# Maps MaskWidget tab index → mask target(s) evaluated by btn_mask_evaluate.
-_TAB_MASK_EVALUATE_TARGETS: list = [
-    ("mask_file",),                  # 0: Files (blemish section removed from UI)
-    ("mask_draw",),                  # 1: Draw
-    ("mask_threshold",),             # 2: Binary
-    ("mask_list",),                  # 3: Manual
-    ("mask_outlier",),               # 4: Outlier
-    ("mask_parameter",),             # 5: Parametrization
-]
+# Maps MaskWidget tab → mask target(s) evaluated by btn_mask_evaluate.
+_TAB_MASK_EVALUATE_TARGETS: dict = {
+    _MaskTab.FILES: ("mask_file",),  # blemish section removed from UI
+    _MaskTab.DRAW: ("mask_draw",),
+    _MaskTab.BINARY: ("mask_threshold",),
+    _MaskTab.MANUAL: ("mask_list",),
+    _MaskTab.OUTLIER: ("mask_outlier",),
+    _MaskTab.PARAMETER: ("mask_parameter",),
+}
 
 
 class SimpleMaskGUI(QMainWindow, Ui):
@@ -312,7 +338,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             elif os.path.isdir(path):
                 self.work_dir = path
 
-        self.MaskWidget.setCurrentIndex(0)
+        self.MaskWidget.setCurrentIndex(_MaskTab.FILES)
         header = self.tableView.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
@@ -634,10 +660,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 self.update_parameters(new_center_vh=(row, col))
             return
 
-        current_idx = self.MaskWidget.currentIndex()
-        if current_idx not in [3, 5]:
-            return
-        if current_idx == 3:
+        if self.MaskWidget.currentIndex() == _MaskTab.MANUAL:
             # manual mode; select the dead pixel with mouse click
             if not self.mask_list_include.isChecked():
                 self.mask_list_add_pts([np.array([col, row])])
@@ -655,7 +678,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
         self.sm.mask_action(action)
         self.plot()
-        self.plot_index.setCurrentIndex(2)
+        self.plot_index.setCurrentIndex(_plot_index("scattering * mask"))
 
     def mask_apply_current_tab(self):
         """Apply the mask(s) for the currently active MaskWidget tab."""
@@ -672,10 +695,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         deliberately skips that prompt — the user is mid-decision on the
         partition dialog and already saw it during Evaluate/Apply).
         """
-        idx = self.MaskWidget.currentIndex()
-        if idx < 0 or idx >= len(_TAB_MASK_TARGETS):
+        targets = _TAB_MASK_TARGETS.get(self.MaskWidget.currentIndex())
+        if targets is None:
             return
-        for target in _TAB_MASK_TARGETS[idx]:
+        for target in targets:
             self.mask_apply(target)
         self._set_apply_state(False)
 
@@ -684,10 +707,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
         self._maybe_prompt_metadata_update()
-        idx = self.MaskWidget.currentIndex()
-        if idx < 0 or idx >= len(_TAB_MASK_EVALUATE_TARGETS):
+        targets = _TAB_MASK_EVALUATE_TARGETS.get(self.MaskWidget.currentIndex())
+        if targets is None:
             return
-        for target in _TAB_MASK_EVALUATE_TARGETS[idx]:
+        for target in targets:
             self.mask_evaluate(target)
         self._set_apply_state(True)
 
@@ -918,7 +941,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         msg = self.sm.mask_evaluate(target, **kwargs)
         self.statusbar.showMessage(msg, 10000)
-        self._show_plot_index(6)
+        self._show_channel("preview")
         return
 
     def update_threshold_preset(self, target="low"):
@@ -964,7 +987,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self._update_groupindex_checkbox_enabled()
 
         self.plot()
-        self.plot_index.setCurrentIndex(2)
+        self.plot_index.setCurrentIndex(_plot_index("scattering * mask"))
 
     def _on_plot_index_changed(self, idx):
         """Update the displayed 2D slice when the channel selector changes."""
@@ -981,19 +1004,21 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         if not self.is_ready():
             return
-        channel = idx - 1
+        channel = idx - _CHANNEL_OFFSET
         vb = self.mp1.getView()
         saved_range = vb.viewRange() if self.mp1.image is not None else None
         self.mp1.setImage(self.sm.dset.data_display[channel])
         if saved_range is not None:
             vb.setRange(xRange=saved_range[0], yRange=saved_range[1], padding=0)
-        if idx in [3, 6]:   # mask and preview: enforce binary 0/1 scale
+        if idx in _BINARY_PLOT_INDICES:
             self.mp1.setLevels(0, 1)
 
-    def _show_plot_index(self, idx):
-        """Select display channel idx and redraw it even when already selected:
-        setCurrentIndex on the current index emits no currentIndexChanged, and
-        the channel's data_display slice may have been updated in place."""
+    def _show_channel(self, field):
+        """Select the DISPLAY_FIELD channel `field` and redraw it even when
+        already selected: setCurrentIndex on the current index emits no
+        currentIndexChanged, and the channel's data_display slice may have
+        been updated in place."""
+        idx = _plot_index(field)
         if self.plot_index.currentIndex() == idx:
             self._on_plot_index_changed(idx)
         else:
@@ -1012,7 +1037,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if item:
             item.setEnabled(enabled)
         if not enabled and self.plot_index.currentIndex() == _RAWDATA_IDX:
-            self.plot_index.setCurrentIndex(_RAWDATA_IDX + 1)
+            self.plot_index.setCurrentIndex(_plot_index("scattering"))
 
     def _set_apply_state(self, ready: bool) -> None:
         """Enable/disable btn_mask_apply and keep its tooltip + bold in sync."""
@@ -1296,8 +1321,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
         self.update_xmap_limits()
 
-        while self.plot_index.count() > 7:
-            self.plot_index.removeItem(7)
+        while self.plot_index.count() > _QMAP_START_IDX:
+            self.plot_index.removeItem(_QMAP_START_IDX)
         for key in self.sm.qmap.keys():
             self.plot_index.addItem(key)
 
@@ -1310,7 +1335,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self._update_frame_range()
         else:
             self._raw_total_frames = 0
-        self.plot_index.setCurrentIndex(2)  # default to "scattering * mask" after load
+        self.plot_index.setCurrentIndex(_plot_index("scattering * mask"))  # default after load
         self.plot(reset_view=True)
         self.statusbar.showMessage("data is loaded", 500)
         self.btn_load.setText("Load")
@@ -1352,9 +1377,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         col = int(np.floor(mouse_point.x()))
         row = int(np.floor(mouse_point.y()))
         if idx == _RAWDATA_IDX:
-            channel = 0   # use scattering channel for coordinates when rawdata active
+            # use scattering channel for coordinates when rawdata active
+            channel = DISPLAY_FIELD.index("scattering")
         else:
-            channel = idx - 1
+            channel = idx - _CHANNEL_OFFSET
         msg = self.sm.dset.get_coordinates(col, row, channel)
         if msg:
             self.infobar.clear()
@@ -1411,7 +1437,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         idx = self.plot_index.currentIndex()
         if idx == _RAWDATA_IDX:
             return   # rawdata handled separately; nothing to show until user selects a frame
-        channel = idx - 1   # rawdata occupies slot 0; shift back
+        channel = idx - _CHANNEL_OFFSET
         self.mp1.clear()
         self.mp1.setImage(self.sm.dset.data_display[channel])
         self.mp1.adjust_viewbox()
@@ -1454,7 +1480,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def add_drawing(self):
         if not self.is_ready():
             return
-        if self.MaskWidget.currentIndex() != 1:
+        if self.MaskWidget.currentIndex() != _MaskTab.DRAW:
             return
         color = ("r", "g", "y", "b", "c", "m", "k", "w")[
             self.cb_selector_color.currentIndex()
@@ -1751,7 +1777,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         try:
             self.sm.compute_partition(**kwargs)
             self.statusbar.showMessage("New partition is generated.", 1000)
-            self._show_plot_index(4)  # dynamic map
+            self._show_channel("dqmap_partition")
         except Exception:
             traceback.print_exc()
         finally:
