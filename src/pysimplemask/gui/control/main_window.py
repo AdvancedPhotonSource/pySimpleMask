@@ -918,7 +918,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         msg = self.sm.mask_evaluate(target, **kwargs)
         self.statusbar.showMessage(msg, 10000)
-        self.plot_index.setCurrentIndex(6)
+        self._show_plot_index(6)
         return
 
     def update_threshold_preset(self, target="low"):
@@ -989,6 +989,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
             vb.setRange(xRange=saved_range[0], yRange=saved_range[1], padding=0)
         if idx in [3, 6]:   # mask and preview: enforce binary 0/1 scale
             self.mp1.setLevels(0, 1)
+
+    def _show_plot_index(self, idx):
+        """Select display channel idx and redraw it even when already selected:
+        setCurrentIndex on the current index emits no currentIndexChanged, and
+        the channel's data_display slice may have been updated in place."""
+        if self.plot_index.currentIndex() == idx:
+            self._on_plot_index_changed(idx)
+        else:
+            self.plot_index.setCurrentIndex(idx)
 
     def is_ready(self):
         if not self.sm.is_ready():
@@ -1742,11 +1751,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         try:
             self.sm.compute_partition(**kwargs)
             self.statusbar.showMessage("New partition is generated.", 1000)
-            dynamic_map_index = 4
-            if self.plot_index.currentIndex() == dynamic_map_index:
-                self._on_plot_index_changed(dynamic_map_index)
-            else:
-                self.plot_index.setCurrentIndex(dynamic_map_index)
+            self._show_plot_index(4)  # dynamic map
         except Exception:
             traceback.print_exc()
         finally:

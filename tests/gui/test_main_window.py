@@ -346,6 +346,27 @@ def test_outlier_without_roi_still_scans_whole_image(qapp, tmp_path):
     assert {(4, 4), (16, 24)} <= locs
 
 
+def test_reevaluate_redraws_preview_when_already_selected(qapp, tmp_path):
+    """Evaluating again while "preview" is already shown must redraw it.
+    Regression: setCurrentIndex(preview) on the current index emits no
+    currentIndexChanged, so the canvas kept the stale preview until the user
+    switched the display target away and back."""
+    gui = _load_gui(tmp_path, _hot_pixel_frames())
+    gui.plot()
+    gui.comboBox_outlier_target.setCurrentText("AdjacentPixels")
+    gui.outlier_num_roi.setValue(8)
+    gui.outlier_cutoff.setValue(3.0)
+    gui.mask_evaluate("mask_outlier")
+    assert gui.plot_index.currentIndex() == 6
+
+    gui.outlier_cutoff.setValue(5.0)
+    with patch.object(gui.mp1, "setImage", wraps=gui.mp1.setImage) as spy:
+        gui.mask_evaluate("mask_outlier")
+    spy.assert_called_once()
+    shown = spy.call_args.args[0]
+    assert np.array_equal(shown, gui.sm.dset.data_display[6 - 1])
+
+
 def test_outlier_roi_removed_when_target_switches_to_rings(qapp, tmp_path):
     from pysimplemask.gui.view.widgets import OUTLIER_ROI_KEY
 
