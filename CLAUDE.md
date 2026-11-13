@@ -124,6 +124,12 @@ geometry directly. `core/` imports no Qt and is fully scriptable.
   `data_display` channel stack, mask state, centers, `compute_qmap()`) and pick a format
   loader from `reader/formats/` (`get_format_loader` by extension: hdf/imm/rigaku/rigaku_extend). `stype`
   selects the qmap geometry. All loaders return the per-pixel **mean** over the frame range.
+- `reader/io_utils.average_frames_parallel` (the HDF mean) reads one-frame-per-chunk
+  bitshuffle / LZ4 / Blosc (or uncompressed) datasets with **threads that bypass h5py**:
+  chunk offsets come from h5py, then each thread `readinto`s its chunks and decompresses
+  them with the hdf5plugin filter libraries through ctypes (all of which release the GIL).
+  Any other layout (gzip, multi-frame chunks, virtual datasets) falls back to an h5py
+  process pool.
 
 **`gui/` — Qt only** (`src/pysimplemask/gui/`)
 - `view/mask.ui` (Designer source) → `view/ui_mask.py` (**generated** by `pyside6-uic`,
