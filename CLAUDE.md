@@ -130,6 +130,15 @@ geometry directly. `core/` imports no Qt and is fully scriptable.
   them with the hdf5plugin filter libraries through ctypes (all of which release the GIL).
   Any other layout (gzip, multi-frame chunks, virtual datasets) falls back to an h5py
   process pool.
+- **Frame browsing** (the GUI's `rawdata` channel): a loader that can read a few frames
+  quickly sets `num_browsable_frames` and implements `get_frames_mean(begin_idx, end_idx)`
+  — `HdfDataset` (h5py slice), `RigakuDataset` and `RigakuExtendDataset` (events are
+  stored in frame order, so a frame range is one `searchsorted` slice of them) and
+  `Rigaku3MDataset` (stitched modules). `default_frame_average` is the browser's default
+  window: 1, or 100 for the Rigaku loaders, whose single frames are too sparse to show.
+  `FileReader` forwards all three, so the GUI calls `sm.dset.get_frames_mean(...)` and
+  never opens the file itself. IMM, Timepix and TIFF have no frame browsing
+  (`num_browsable_frames == 0`).
 
 **`gui/` — Qt only** (`src/pysimplemask/gui/`)
 - `view/mask.ui` (Designer source) → `view/ui_mask.py` (**generated** by `pyside6-uic`,

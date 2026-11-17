@@ -81,6 +81,52 @@ def test_get_scattering_frame_subset(make_hdf):
 
 
 # ---------------------------------------------------------------------------
+# get_frames_mean: browsing the frames a few at a time
+# ---------------------------------------------------------------------------
+
+
+def test_frames_of_a_stack_can_be_browsed_one_at_a_time(make_hdf):
+    ds = HdfDataset(make_hdf(np.zeros((5, 3, 4))))
+    assert ds.num_browsable_frames == 5
+    assert ds.default_frame_average == 1
+
+
+def test_get_frames_mean(make_hdf):
+    frames = np.arange(5 * 3 * 4, dtype=np.int32).reshape(5, 3, 4)
+    ds = HdfDataset(make_hdf(frames))
+    one = ds.get_frames_mean(2, 3)
+    assert one.shape == (3, 4)
+    assert one.dtype == np.float32
+    assert np.array_equal(one, frames[2])
+    assert np.array_equal(ds.get_frames_mean(1, 4), frames[1:4].mean(axis=0))
+    assert np.array_equal(ds.get_frames_mean(0, 5), ds.get_scattering(num_frames=0))
+
+
+def test_get_frames_mean_reads_unsigned_counts_as_signed(make_hdf):
+    """As get_scattering: the overflow marker of an unsigned detector (65535
+    for uint16) shows as -1, not as a huge count."""
+    frames = np.ones((3, 2, 2), dtype=np.uint16)
+    frames[:, 0, 0] = 65535
+    ds = HdfDataset(make_hdf(frames))
+    assert np.array_equal(ds.get_frames_mean(0, 3), [[-1, 1], [1, 1]])
+    assert np.array_equal(ds.get_frames_mean(0, 3), ds.get_scattering(num_frames=0))
+
+
+@pytest.mark.parametrize("begin_idx, end_idx", [(-1, 2), (2, 2), (3, 1), (4, 6), (5, 6)])
+def test_get_frames_mean_rejects_range_outside_frames(make_hdf, begin_idx, end_idx):
+    ds = HdfDataset(make_hdf(np.zeros((5, 3, 4))))
+    with pytest.raises(ValueError):
+        ds.get_frames_mean(begin_idx, end_idx)
+
+
+def test_single_image_has_no_frames_to_browse(make_hdf):
+    ds = HdfDataset(make_hdf(np.zeros((3, 4))))
+    assert ds.num_browsable_frames == 0
+    with pytest.raises(ValueError):
+        ds.get_frames_mean(0, 1)
+
+
+# ---------------------------------------------------------------------------
 # resolve_frame_range
 # ---------------------------------------------------------------------------
 

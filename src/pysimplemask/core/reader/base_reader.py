@@ -112,6 +112,8 @@ class FileReader(object):
         self.data_display = None
         self.scat = None
         self.scat_log = None
+        # The format loader (reader/formats) of the readers that use one.
+        self.loader = None
 
     def prepare_data(self, *args, metadata_fname=None, **kwargs):
         self.metadata = self.get_metadata(metadata_fname=metadata_fname)
@@ -166,6 +168,25 @@ class FileReader(object):
 
     def get_scattering(self, *args, **kwargs):
         raise NotImplementedError
+
+    @property
+    def num_browsable_frames(self):
+        """Number of frames that :meth:`get_frames_mean` can read; 0 if the
+        frames cannot be browsed (a single image, or a format without it)."""
+        return getattr(self.loader, "num_browsable_frames", 0)
+
+    @property
+    def default_frame_average(self):
+        """Frames to average into one image, by default, when browsing them."""
+        return getattr(self.loader, "default_frame_average", 1)
+
+    def get_frames_mean(self, begin_idx, end_idx):
+        """Return the per-pixel mean of the frames ``[begin_idx, end_idx)``,
+        to browse the frames a few at a time (see
+        ``ScatteringDataset.get_frames_mean``)."""
+        if self.num_browsable_frames == 0:
+            raise ValueError(f"the frames of {self.fname} cannot be browsed")
+        return self.loader.get_frames_mean(begin_idx, end_idx)
 
     def get_metadata(self, *args, **kwargs):
         try:

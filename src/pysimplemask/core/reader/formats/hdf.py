@@ -44,6 +44,7 @@ class HdfDataset(ScatteringDataset):
             self.det_size = tuple(shape)
         elif self.ndim == 3:
             self.det_size = tuple(shape[1:])
+            self.num_browsable_frames = int(shape[0])
         else:
             raise ValueError(f"unexpected dataset rank {self.ndim} for {data_path!r}")
 
@@ -63,3 +64,12 @@ class HdfDataset(ScatteringDataset):
             chunk_size=32,
             num_processes=num_processes,
         )
+
+    def get_frames_mean(self, begin_idx, end_idx):
+        self._check_frame_range(begin_idx, end_idx)
+        with h5py.File(self.fname, "r") as f:
+            data = f[self.data_path][begin_idx:end_idx]
+        # as get_scattering: unsigned counts are read as signed ones
+        if data.dtype.kind == "u":
+            data = data.astype(np.dtype(f"int{data.dtype.itemsize * 8}"))
+        return data.mean(axis=0).astype(np.float32)

@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 MODULE_SHAPE = (512, 1024)
 # A module index is packed into 21 bits; 3M module files offset by one mega-pixel.
 _MODULE_INDEX_OFFSET = 1024 * 1024
+# A single frame holds too few photons to show the scattering pattern, so
+# browsing the frames averages this many of them into one image by default.
+DEFAULT_FRAME_AVERAGE = 100
 
 
 def convert_sparse(raw):
@@ -58,12 +61,15 @@ def get_number_of_frames_from_binfile(filepath, endianness="<"):
 class RigakuDataset(ScatteringDataset):
     """Loader for a single Rigaku 500k 64-bit binary file."""
 
+    default_frame_average = DEFAULT_FRAME_AVERAGE
+
     def __init__(self, fname, det_size=MODULE_SHAPE, total_frames=None, **kwargs):
         super().__init__(fname)
         self.det_size = tuple(det_size)
         self.index, self.frame, self.count, self.num_frames_total = self._read(
             total_frames
         )
+        self.num_browsable_frames = self.num_frames_total
 
     def _read(self, total_frames):
         with open(self.fname, "rb") as f:
@@ -96,9 +102,23 @@ class RigakuDataset(ScatteringDataset):
         summed = np.asarray(smat[begin_idx:end_idx].sum(axis=0)).reshape(self.det_size)
         return (summed / n_frames).astype(np.float32)
 
+    def get_frames_mean(self, begin_idx, end_idx):
+        self._check_frame_range(begin_idx, end_idx)
+        # The file lists its events frame by frame, so the events of a range
+        # of frames are one slice of it, found without scanning them all.
+        lo, hi = np.searchsorted(self.frame, (begin_idx, end_idx))
+        summed = np.bincount(
+            self.index[lo:hi],
+            weights=self.count[lo:hi],
+            minlength=self.det_size[0] * self.det_size[1],
+        ).reshape(self.det_size)
+        return (summed / (end_idx - begin_idx)).astype(np.float32)
+
 
 class Rigaku3MDataset(ScatteringDataset):
     """Loader for a Rigaku 3M dataset: six 500k modules in a 3x2 layout."""
+
+    default_frame_average = DEFAULT_FRAME_AVERAGE
 
     # Physical module ordering of the six ``*.bin.00N`` files.
     _MODULE_ORDER = (5, 0, 4, 1, 3, 2)
@@ -108,6 +128,8 @@ class Rigaku3MDataset(ScatteringDataset):
         self.gap = gap
         self.layout = layout
         self.modules = self._load_modules()
+        # every module is given the frame count of the longest module file
+        self.num_browsable_frames = self.modules[0].num_browsable_frames
 
         rows = MODULE_SHAPE[0] * layout[0] + gap[0] * (layout[0] - 1)
         cols = MODULE_SHAPE[1] * layout[1] + gap[1] * (layout[1] - 1)
@@ -145,3 +167,8 @@ class Rigaku3MDataset(ScatteringDataset):
             for m in self.modules
         ]
         return self._stitch(module_images)
+
+    def get_frames_mean(self, begin_idx, end_idx):
+        return self._stitch(
+            [m.get_frames_mean(begin_idx, end_idx) for m in self.modules]
+        )
