@@ -14,10 +14,11 @@ import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
-from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
+from pysimplemask.core.reader.base_reader import DISPLAY_FIELD, FileReader
 from pysimplemask.gui.control.main_window import (
     _FRAME_RANGE_CUSTOM,
     _FRAME_RANGE_NUM_FRAMES,
+    _RAWDATA_IDX,
     SimpleMaskGUI,
     _MaskTab,
     _plot_index,
@@ -620,6 +621,210 @@ def test_rawdata_disabled_after_loading_single_frame_hdf(qapp, tmp_path):
     gui = _load_gui(tmp_path, np.ones((1, 20, 24), dtype=np.uint16))
     model = gui.plot_index.model()
     assert not model.item(0).isEnabled()
+
+
+# A Rigaku frame is a list of photon events. In these, frame n puts
+# (n % 7) + 1 counts into pixel n % 5 of the module's first row.
+_RIGAKU_NUM_FRAMES = 250
+_RIGAKU_MODULE_SHAPE = (512, 1024)
+
+
+def _write_rigaku_module(path, num_frames=_RIGAKU_NUM_FRAMES):
+    """Write a Rigaku 500k module file of 64-bit event words
+    ``[frame:24][pixel index:21]...[count:12]``."""
+    frame = np.arange(num_frames, dtype=np.uint64)
+    words = (
+        (frame << np.uint64(40))
+        | ((frame % np.uint64(5)) << np.uint64(16))
+        | (frame % np.uint64(7) + np.uint64(1))
+    )
+    words.tofile(path)
+
+
+def _rigaku_module_sum(begin_idx, end_idx):
+    """Sum of the frames ``[begin_idx, end_idx)`` of that module."""
+    image = np.zeros(_RIGAKU_MODULE_SHAPE)
+    for n in range(begin_idx, end_idx):
+        image[0, n % 5] += n % 7 + 1
+    return image
+
+
+def _load_file(gui, path):
+    gui.fname.setText(str(path))
+    gui.load()
+    assert gui.sm.is_ready()
+
+
+def _show_rawdata_frame(gui, idx):
+    """Step the frame browser to ``idx`` and read it now, rather than when
+    the debounce timer fires."""
+    gui.spinBox_current_frame.setValue(idx)
+    gui._frame_timer.stop()
+    gui._read_and_show_frame()
+
+
+def test_rawdata_browses_rigaku_500k_frames(qapp, tmp_path):
+    """A Rigaku 500k file has rawdata, browsed 100 frames at a time by default."""
+    path = tmp_path / "scan.bin"
+    _write_rigaku_module(path)
+    gui = SimpleMaskGUI()
+    gui.plot_log.setChecked(False)
+    _load_file(gui, path)
+
+    assert gui.plot_index.model().item(_RAWDATA_IDX).isEnabled()
+    assert gui.spinBox_frame_average.value() == 100
+    # 250 frames are two whole windows of 100
+    assert gui.horizontalSlider_frame.maximum() == 1
+    assert gui.spinBox_current_frame.maximum() == 1
+
+    gui.plot_index.setCurrentIndex(_RAWDATA_IDX)
+    assert gui.spinBox_frame_average.isEnabled()
+    assert gui.mp1.image.shape == _RIGAKU_MODULE_SHAPE
+    assert np.allclose(gui.mp1.image, _rigaku_module_sum(0, 100) / 100)
+    _show_rawdata_frame(gui, 1)
+    assert gui.horizontalSlider_frame.value() == 1
+    assert np.allclose(gui.mp1.image, _rigaku_module_sum(100, 200) / 100)
+
+    # a narrower window gives more steps, and stays on step 1
+    gui.spinBox_frame_average.setValue(10)
+    assert gui.horizontalSlider_frame.maximum() == 24
+    assert np.allclose(gui.mp1.image, _rigaku_module_sum(10, 20) / 10)
+    _show_rawdata_frame(gui, 24)
+    assert np.allclose(gui.mp1.image, _rigaku_module_sum(240, 250) / 10)
+
+    # single frames, and a window wider than the file
+    gui.spinBox_frame_average.setValue(1)
+    _show_rawdata_frame(gui, 249)
+    assert np.allclose(gui.mp1.image, _rigaku_module_sum(249, 250))
+    gui.spinBox_frame_average.setValue(1000)
+    assert gui.horizontalSlider_frame.maximum() == 0
+    assert np.allclose(gui.mp1.image, _rigaku_module_sum(0, 250) / 250)
+
+
+def test_rawdata_browses_rigaku_extend_frames(qapp, tmp_path):
+    """A RigakuExtend (.bix) file has rawdata too, with the same default window."""
+    # as _write_rigaku_module, in the RigakuExtend layout of the event words:
+    # [frame:32][pixel index:20][count:12]
+    frame = np.arange(_RIGAKU_NUM_FRAMES, dtype=np.uint64)
+    words = (
+        (frame << np.uint64(32))
+        | ((frame % np.uint64(5)) << np.uint64(12))
+        | (frame % np.uint64(7) + np.uint64(1))
+    )
+    path = tmp_path / "scan.bix"
+    words.tofile(path)
+    gui = SimpleMaskGUI()
+    gui.plot_log.setChecked(False)
+    _load_file(gui, path)
+
+    assert gui.plot_index.model().item(_RAWDATA_IDX).isEnabled()
+    assert gui.spinBox_frame_average.value() == 100
+    assert gui.horizontalSlider_frame.maximum() == 1
+
+    gui.plot_index.setCurrentIndex(_RAWDATA_IDX)
+    _show_rawdata_frame(gui, 1)
+    # the same events as the 500k module, on the 448 columns of this one
+    assert gui.mp1.image.shape == (512, 448)
+    assert np.allclose(gui.mp1.image, _rigaku_module_sum(100, 200)[:, :448] / 100)
+
+
+def test_rawdata_shows_rigaku_frames_in_log_scale(qapp, tmp_path):
+    path = tmp_path / "scan.bin"
+    _write_rigaku_module(path)
+    gui = SimpleMaskGUI()
+    gui.plot_log.setChecked(True)
+    _load_file(gui, path)
+    gui.plot_index.setCurrentIndex(_RAWDATA_IDX)
+
+    mean = _rigaku_module_sum(0, 100) / 100
+    # the pixels without a count show as the faintest one that has any
+    expected = np.log10(np.maximum(mean, mean[mean > 0].min()))
+    assert np.allclose(gui.mp1.image, expected)
+
+
+def test_rawdata_browses_rigaku_3m_frames(qapp, tmp_path):
+    """A Rigaku 3M dataset (six module files) has rawdata as well, stitched."""
+    # module file N holds 10 * N frames fewer than the first
+    module_frames = {n: _RIGAKU_NUM_FRAMES - 10 * n for n in range(6)}
+    for suffix, num_frames in module_frames.items():
+        _write_rigaku_module(tmp_path / f"scan.bin.00{suffix}", num_frames)
+    gui = SimpleMaskGUI()
+    gui.plot_log.setChecked(False)
+    _load_file(gui, tmp_path / "scan.bin.000")
+
+    assert gui.plot_index.model().item(_RAWDATA_IDX).isEnabled()
+    assert gui.spinBox_frame_average.value() == 100
+    # the dataset is as long as its longest module file
+    assert gui.horizontalSlider_frame.maximum() == 1
+
+    gui.plot_index.setCurrentIndex(_RAWDATA_IDX)
+    gui.spinBox_frame_average.setValue(50)
+    _show_rawdata_frame(gui, 4)  # frames 200-249
+    image = gui.mp1.image
+    assert image.shape == (1676, 2100)
+    # Module files (5, 0, 4, 1, 3, 2) fill the 3x2 layout row by row; block
+    # (r, c) starts at row r * (512 + 70), column c * (1024 + 52).
+    filled = np.zeros(image.shape, dtype=bool)
+    for block, suffix in enumerate((5, 0, 4, 1, 3, 2)):
+        top, left = (block // 2) * 582, (block % 2) * 1076
+        where = (slice(top, top + 512), slice(left, left + 1024))
+        # a module file that ends within the window adds nothing after its end
+        expected = _rigaku_module_sum(200, max(200, module_frames[suffix])) / 50
+        assert np.allclose(image[where], expected), suffix
+        filled[where] = True
+    assert image[0, 1076:1081].any()  # module file 0, all 50 frames
+    assert not image[0, 0:5].any()  # module file 5 ends at frame 200
+    assert not image[~filled].any()  # the gaps between the modules
+
+
+def test_frame_average_default_follows_the_loaded_format(qapp, tmp_path):
+    """Each load sets the average window to the default of its format: 100
+    frames for Rigaku, single frames for HDF."""
+    rigaku_path = tmp_path / "scan.bin"
+    _write_rigaku_module(rigaku_path)
+    hdf_path = tmp_path / "scan.h5"
+    frames = np.ones((6, 20, 24), dtype=np.uint16)
+    frames *= np.arange(6, dtype=np.uint16)[:, None, None]
+    with h5py.File(hdf_path, "w") as h:
+        h["/entry/data/data"] = frames
+    gui = SimpleMaskGUI()
+    gui.plot_log.setChecked(False)
+
+    _load_file(gui, hdf_path)
+    assert gui.spinBox_frame_average.value() == 1
+    assert gui.horizontalSlider_frame.maximum() == 5
+
+    # load shows the averaged scattering: changing the window to the default
+    # must not make it read raw frames as well
+    with patch.object(FileReader, "get_frames_mean") as get_frames_mean:
+        _load_file(gui, rigaku_path)
+    get_frames_mean.assert_not_called()
+    assert gui.spinBox_frame_average.value() == 100
+    assert gui.horizontalSlider_frame.maximum() == 1
+    assert gui.plot_index.currentIndex() == _plot_index("scattering * mask")
+
+    _load_file(gui, hdf_path)
+    assert gui.spinBox_frame_average.value() == 1
+    assert gui.horizontalSlider_frame.maximum() == 5
+    gui.plot_index.setCurrentIndex(_RAWDATA_IDX)
+    _show_rawdata_frame(gui, 4)
+    assert np.array_equal(gui.mp1.image, frames[4])
+
+    # a window the user changed is back at the default after the next load
+    gui.spinBox_frame_average.setValue(3)
+    assert np.array_equal(gui.mp1.image, frames[3:6].mean(axis=0))
+    _load_file(gui, hdf_path)
+    assert gui.spinBox_frame_average.value() == 1
+
+
+def test_rawdata_disabled_after_loading_single_frame_rigaku(qapp, tmp_path):
+    """A Rigaku file of a single frame has nothing to browse."""
+    path = tmp_path / "scan.bin"
+    _write_rigaku_module(path, num_frames=1)
+    gui = SimpleMaskGUI()
+    _load_file(gui, path)
+    assert gui._detect_rawdata() == (False, 0)
+    assert not gui.plot_index.model().item(_RAWDATA_IDX).isEnabled()
 
 
 def test_set_apply_state_toggles_bold_with_enabled(qapp, tmp_path):

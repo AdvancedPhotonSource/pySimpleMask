@@ -35,7 +35,7 @@ from pysimplemask.core.mask import is_periodic_angle_map
 from pysimplemask.core.model import SimpleMaskModel
 from pysimplemask.core.partition import least_multiple
 from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
-from pysimplemask.core.reader.formats import count_frames, count_hdf_frames
+from pysimplemask.core.reader.formats import count_frames
 from pysimplemask.core.reader.io_utils import resolve_frame_range
 from pysimplemask.gui.model.roi_extract import extract_roi_geometry, roi_region
 from pysimplemask.gui.model.table_model import (
@@ -1133,11 +1133,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def _detect_rawdata(self) -> tuple:
         """Return (has_rawdata, num_frames) for the currently loaded file.
 
-        Checks for /entry/data/data with ndim==3 and shape[0] > 1.
+        It has rawdata when it holds more than one frame in a format whose
+        frames can be read a few at a time: an HDF stack, or a Rigaku 500k,
+        3M or RigakuExtend file.
         """
         if not self.sm.is_ready():
             return False, 0
-        num_frames = count_hdf_frames(self.sm.dset.fname)
+        num_frames = self.sm.dset.num_browsable_frames
         if num_frames <= 1:
             return False, 0
         return True, num_frames
@@ -1180,8 +1182,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self._frame_timer.start()   # restart: cancel pending read, schedule new one
 
     def _read_and_show_frame(self) -> None:
-        """Timer callback: read (and average) raw frames from HDF5 and display."""
-        import h5py
+        """Timer callback: read (and average) raw frames and display them."""
         if not self.sm.is_ready():
             return
         idx = self._pending_frame_idx
@@ -1190,12 +1191,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         end = min(start + n_avg, self._raw_total_frames if self._raw_total_frames > 0 else start + 1)
         fname = self.sm.dset.fname
         try:
-            with h5py.File(fname, "r") as f:
-                raw = f["/entry/data/data"][start:end]
-            # Cast unsigned int to signed (uint16→int16, uint32→int32)
-            if raw.dtype.kind == "u":
-                raw = raw.astype(np.dtype(f"int{raw.dtype.itemsize * 8}"))
-            frame = raw.mean(axis=0).astype(np.float32) if raw.ndim == 3 else raw.astype(np.float32)
+            frame = self.sm.dset.get_frames_mean(start, end)
         except Exception as exc:
             logger.error("Failed to read frames %d-%d from %s: %s", start, end, fname, exc)
             return
@@ -1394,7 +1390,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self._set_rawdata_enabled(has_rawdata)
         if has_rawdata:
             self._raw_total_frames = num_frames
-            self.spinBox_frame_average.setValue(1)
+            # no valueChanged: it would read and show a frame, and load ends
+            # on another channel
+            self.spinBox_frame_average.blockSignals(True)
+            self.spinBox_frame_average.setValue(self.sm.dset.default_frame_average)
+            self.spinBox_frame_average.blockSignals(False)
             self._update_frame_range()
         else:
             self._raw_total_frames = 0
