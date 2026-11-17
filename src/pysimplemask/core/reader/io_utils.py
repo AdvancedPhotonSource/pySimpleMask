@@ -3,6 +3,7 @@
 """Raw-frame IO helpers shared across format loaders."""
 
 import ctypes
+import gc
 import logging
 import pathlib
 import struct
@@ -326,16 +327,25 @@ def _average_direct(layout, num_workers=None):
         total[lo:hi] += sums[:num_sums, lo:hi].sum(axis=0, dtype=np.float64)
 
     logger.info("using %d threads to load %d frames", num_workers, num_frames)
-    with ThreadPoolExecutor(max_workers=num_workers) as pool:
-        for start in range(0, num_frames, num_workers * _SUM_WINDOW):
-            stop = min(start + num_workers * _SUM_WINDOW, num_frames)
-            jobs = [
-                job
-                for job in np.array_split(np.arange(start, stop), num_workers)
-                if len(job)
-            ]
-            list(pool.map(_sum_frames, repeat(layout), jobs, sums))
-            list(pool.map(fold, edges[:-1], edges[1:], repeat(len(jobs))))
+    # The garbage collector runs in whichever thread trips it, and would then
+    # destroy the caller's unreachable objects from a worker thread; the GUI's
+    # Qt objects do not survive that.  Hold it off until the threads are done.
+    gc_was_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        with ThreadPoolExecutor(max_workers=num_workers) as pool:
+            for start in range(0, num_frames, num_workers * _SUM_WINDOW):
+                stop = min(start + num_workers * _SUM_WINDOW, num_frames)
+                jobs = [
+                    job
+                    for job in np.array_split(np.arange(start, stop), num_workers)
+                    if len(job)
+                ]
+                list(pool.map(_sum_frames, repeat(layout), jobs, sums))
+                list(pool.map(fold, edges[:-1], edges[1:], repeat(len(jobs))))
+    finally:
+        if gc_was_enabled:
+            gc.enable()
     return (total / num_frames).reshape(layout.shape).astype(np.float32)
 
 

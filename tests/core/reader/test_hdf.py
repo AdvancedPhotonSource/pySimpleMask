@@ -6,6 +6,8 @@ Covers :class:`pysimplemask.core.reader.formats.hdf.HdfDataset` and
 :func:`pysimplemask.core.reader.io_utils.average_frames_parallel`.
 """
 
+import gc
+import threading
 import types
 
 import h5py
@@ -240,6 +242,43 @@ def test_direct_read_long_stack_does_not_overflow(make_hdf):
     expected = np.full((4, 5), 127, dtype=np.float32)
     expected[0, 0] = -128
     assert np.array_equal(result, expected)
+
+
+def test_direct_read_keeps_garbage_collection_in_the_calling_thread(make_hdf):
+    """A collection that a worker thread trips would destroy the caller's
+    garbage from that thread, which crashes a GUI whose Qt objects are among
+    it; none may run until the threads are done."""
+    frames = _random_frames("uint16", num_frames=200)
+    path = make_hdf(frames, **_DIRECT_LAYOUTS["bitshuffle-lz4"])
+    caller = threading.get_ident()
+    collecting_threads = set()
+
+    def record(phase, info):
+        collecting_threads.add(threading.get_ident())
+
+    threshold = gc.get_threshold()
+    gc.callbacks.append(record)
+    gc.set_threshold(1, 1, 1)  # collect at every opportunity
+    try:
+        result = average_frames_parallel(path, num_frames=0, num_processes=4)
+    finally:
+        gc.set_threshold(*threshold)
+        gc.callbacks.remove(record)
+
+    _assert_mean(result, frames)
+    assert collecting_threads <= {caller}
+    assert gc.isenabled()
+
+
+def test_direct_read_leaves_garbage_collection_disabled_if_it_was(make_hdf):
+    frames = _random_frames("uint16", num_frames=4)
+    path = make_hdf(frames, **_DIRECT_LAYOUTS["bitshuffle-lz4"])
+    gc.disable()
+    try:
+        average_frames_parallel(path, num_frames=0)
+        assert not gc.isenabled()
+    finally:
+        gc.enable()
 
 
 def test_direct_read_chunk_stored_without_filter(make_hdf):
