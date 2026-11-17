@@ -69,33 +69,53 @@ class Ui_SimpleMask(object):
         self.comboBox_beamline.addItem("")
         self.comboBox_beamline.addItem("")
         self.comboBox_beamline.setObjectName(u"comboBox_beamline")
+        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.comboBox_beamline.sizePolicy().hasHeightForWidth())
+        self.comboBox_beamline.setSizePolicy(sizePolicy2)
 
         self.horizontalLayout.addWidget(self.comboBox_beamline)
 
-        self.label_9 = QLabel(self.groupBox)
-        self.label_9.setObjectName(u"label_9")
+        self.label_frame_range = QLabel(self.groupBox)
+        self.label_frame_range.setObjectName(u"label_frame_range")
 
-        self.horizontalLayout.addWidget(self.label_9)
+        self.horizontalLayout.addWidget(self.label_frame_range)
 
-        self.spinBox_3 = QSpinBox(self.groupBox)
-        self.spinBox_3.setObjectName(u"spinBox_3")
-        self.spinBox_3.setMaximum(99999)
+        self.comboBox_frame_range = QComboBox(self.groupBox)
+        self.comboBox_frame_range.addItem("")
+        self.comboBox_frame_range.addItem("")
+        self.comboBox_frame_range.addItem("")
+        self.comboBox_frame_range.addItem("")
+        self.comboBox_frame_range.setObjectName(u"comboBox_frame_range")
+        sizePolicy2.setHeightForWidth(self.comboBox_frame_range.sizePolicy().hasHeightForWidth())
+        self.comboBox_frame_range.setSizePolicy(sizePolicy2)
 
-        self.horizontalLayout.addWidget(self.spinBox_3)
+        self.horizontalLayout.addWidget(self.comboBox_frame_range)
 
-        self.label_28 = QLabel(self.groupBox)
-        self.label_28.setObjectName(u"label_28")
+        self.label_begin_idx = QLabel(self.groupBox)
+        self.label_begin_idx.setObjectName(u"label_begin_idx")
 
-        self.horizontalLayout.addWidget(self.label_28)
+        self.horizontalLayout.addWidget(self.label_begin_idx)
 
-        self.spinBox_4 = QSpinBox(self.groupBox)
-        self.spinBox_4.setObjectName(u"spinBox_4")
-        self.spinBox_4.setMinimum(-1)
-        self.spinBox_4.setMaximum(1000000)
-        self.spinBox_4.setSingleStep(100)
-        self.spinBox_4.setValue(-1)
+        self.spinBox_begin_idx = QSpinBox(self.groupBox)
+        self.spinBox_begin_idx.setObjectName(u"spinBox_begin_idx")
+        self.spinBox_begin_idx.setMaximum(99999)
 
-        self.horizontalLayout.addWidget(self.spinBox_4)
+        self.horizontalLayout.addWidget(self.spinBox_begin_idx)
+
+        self.label_num_frames = QLabel(self.groupBox)
+        self.label_num_frames.setObjectName(u"label_num_frames")
+
+        self.horizontalLayout.addWidget(self.label_num_frames)
+
+        self.spinBox_num_frames = QSpinBox(self.groupBox)
+        self.spinBox_num_frames.setObjectName(u"spinBox_num_frames")
+        self.spinBox_num_frames.setMaximum(9999999)
+        self.spinBox_num_frames.setSingleStep(100)
+        self.spinBox_num_frames.setValue(1000)
+
+        self.horizontalLayout.addWidget(self.spinBox_num_frames)
 
         self.btn_load = QPushButton(self.groupBox)
         self.btn_load.setObjectName(u"btn_load")
@@ -107,11 +127,11 @@ class Ui_SimpleMask(object):
 
         self.groupBox_15 = QGroupBox(self.groupBox)
         self.groupBox_15.setObjectName(u"groupBox_15")
-        sizePolicy2 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
-        sizePolicy2.setHorizontalStretch(0)
-        sizePolicy2.setVerticalStretch(1)
-        sizePolicy2.setHeightForWidth(self.groupBox_15.sizePolicy().hasHeightForWidth())
-        self.groupBox_15.setSizePolicy(sizePolicy2)
+        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(1)
+        sizePolicy3.setHeightForWidth(self.groupBox_15.sizePolicy().hasHeightForWidth())
+        self.groupBox_15.setSizePolicy(sizePolicy3)
         self.groupBox_15.setMinimumSize(QSize(0, 0))
         self.gridLayout_10 = QGridLayout(self.groupBox_15)
         self.gridLayout_10.setObjectName(u"gridLayout_10")
@@ -140,11 +160,8 @@ class Ui_SimpleMask(object):
 
         self.btn_update_parameters = QPushButton(self.groupBox_15)
         self.btn_update_parameters.setObjectName(u"btn_update_parameters")
-        sizePolicy3 = QSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
-        sizePolicy3.setHorizontalStretch(0)
-        sizePolicy3.setVerticalStretch(0)
-        sizePolicy3.setHeightForWidth(self.btn_update_parameters.sizePolicy().hasHeightForWidth())
-        self.btn_update_parameters.setSizePolicy(sizePolicy3)
+        sizePolicy2.setHeightForWidth(self.btn_update_parameters.sizePolicy().hasHeightForWidth())
+        self.btn_update_parameters.setSizePolicy(sizePolicy2)
 
         self.horizontalLayout_5.addWidget(self.btn_update_parameters)
 
@@ -163,8 +180,8 @@ class Ui_SimpleMask(object):
         self.gridLayout_9.setContentsMargins(0, 0, 0, 0)
         self.metadata_tree = ParameterTree(self.scrollAreaWidgetContents)
         self.metadata_tree.setObjectName(u"metadata_tree")
-        sizePolicy2.setHeightForWidth(self.metadata_tree.sizePolicy().hasHeightForWidth())
-        self.metadata_tree.setSizePolicy(sizePolicy2)
+        sizePolicy3.setHeightForWidth(self.metadata_tree.sizePolicy().hasHeightForWidth())
+        self.metadata_tree.setSizePolicy(sizePolicy3)
         self.metadata_tree.setMaximumSize(QSize(16777215, 16777215))
 
         self.gridLayout_9.addWidget(self.metadata_tree, 0, 0, 1, 1)
@@ -215,8 +232,8 @@ class Ui_SimpleMask(object):
         self.gridLayout_4.setContentsMargins(1, 1, 1, 1)
         self.btn_mask_evaluate = QPushButton(self.groupBox_2)
         self.btn_mask_evaluate.setObjectName(u"btn_mask_evaluate")
-        sizePolicy3.setHeightForWidth(self.btn_mask_evaluate.sizePolicy().hasHeightForWidth())
-        self.btn_mask_evaluate.setSizePolicy(sizePolicy3)
+        sizePolicy2.setHeightForWidth(self.btn_mask_evaluate.sizePolicy().hasHeightForWidth())
+        self.btn_mask_evaluate.setSizePolicy(sizePolicy2)
         self.btn_mask_evaluate.setMinimumSize(QSize(0, 0))
 
         self.gridLayout_4.addWidget(self.btn_mask_evaluate, 1, 0, 1, 1)
@@ -228,8 +245,8 @@ class Ui_SimpleMask(object):
 
         self.btn_mask_apply = QPushButton(self.groupBox_2)
         self.btn_mask_apply.setObjectName(u"btn_mask_apply")
-        sizePolicy3.setHeightForWidth(self.btn_mask_apply.sizePolicy().hasHeightForWidth())
-        self.btn_mask_apply.setSizePolicy(sizePolicy3)
+        sizePolicy2.setHeightForWidth(self.btn_mask_apply.sizePolicy().hasHeightForWidth())
+        self.btn_mask_apply.setSizePolicy(sizePolicy2)
         self.btn_mask_apply.setMaximumSize(QSize(16777215, 16777215))
 
         self.gridLayout_4.addWidget(self.btn_mask_apply, 1, 1, 1, 1)
@@ -476,8 +493,8 @@ class Ui_SimpleMask(object):
 
         self.label_27 = QLabel(self.groupBox_9)
         self.label_27.setObjectName(u"label_27")
-        sizePolicy3.setHeightForWidth(self.label_27.sizePolicy().hasHeightForWidth())
-        self.label_27.setSizePolicy(sizePolicy3)
+        sizePolicy2.setHeightForWidth(self.label_27.sizePolicy().hasHeightForWidth())
+        self.label_27.setSizePolicy(sizePolicy2)
 
         self.gridLayout_15.addWidget(self.label_27, 1, 2, 1, 1)
 
@@ -677,8 +694,8 @@ class Ui_SimpleMask(object):
 
         self.btn_mask_list_clear = QPushButton(self.groupBox_11)
         self.btn_mask_list_clear.setObjectName(u"btn_mask_list_clear")
-        sizePolicy3.setHeightForWidth(self.btn_mask_list_clear.sizePolicy().hasHeightForWidth())
-        self.btn_mask_list_clear.setSizePolicy(sizePolicy3)
+        sizePolicy2.setHeightForWidth(self.btn_mask_list_clear.sizePolicy().hasHeightForWidth())
+        self.btn_mask_list_clear.setSizePolicy(sizePolicy2)
 
         self.gridLayout_22.addWidget(self.btn_mask_list_clear, 3, 0, 1, 6)
 
@@ -734,8 +751,8 @@ class Ui_SimpleMask(object):
         self.comboBox_outlier_target.addItem("")
         self.comboBox_outlier_target.addItem("")
         self.comboBox_outlier_target.setObjectName(u"comboBox_outlier_target")
-        sizePolicy3.setHeightForWidth(self.comboBox_outlier_target.sizePolicy().hasHeightForWidth())
-        self.comboBox_outlier_target.setSizePolicy(sizePolicy3)
+        sizePolicy2.setHeightForWidth(self.comboBox_outlier_target.sizePolicy().hasHeightForWidth())
+        self.comboBox_outlier_target.setSizePolicy(sizePolicy2)
         self.comboBox_outlier_target.setMinimumSize(QSize(120, 0))
 
         self.gridLayout_13.addWidget(self.comboBox_outlier_target, 0, 1, 1, 2)
@@ -1353,8 +1370,8 @@ class Ui_SimpleMask(object):
 
         self.groupBox_4 = QGroupBox(self.groupBox_5)
         self.groupBox_4.setObjectName(u"groupBox_4")
-        sizePolicy3.setHeightForWidth(self.groupBox_4.sizePolicy().hasHeightForWidth())
-        self.groupBox_4.setSizePolicy(sizePolicy3)
+        sizePolicy2.setHeightForWidth(self.groupBox_4.sizePolicy().hasHeightForWidth())
+        self.groupBox_4.setSizePolicy(sizePolicy2)
         self.gridLayout_3 = QGridLayout(self.groupBox_4)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.gridLayout_3.setContentsMargins(0, 0, 0, 0)
@@ -1414,8 +1431,8 @@ class Ui_SimpleMask(object):
         self.plot_cmap.addItem("")
         self.plot_cmap.addItem("")
         self.plot_cmap.setObjectName(u"plot_cmap")
-        sizePolicy3.setHeightForWidth(self.plot_cmap.sizePolicy().hasHeightForWidth())
-        self.plot_cmap.setSizePolicy(sizePolicy3)
+        sizePolicy2.setHeightForWidth(self.plot_cmap.sizePolicy().hasHeightForWidth())
+        self.plot_cmap.setSizePolicy(sizePolicy2)
 
         self.gridLayout_3.addWidget(self.plot_cmap, 1, 9, 1, 1)
 
@@ -1517,8 +1534,15 @@ class Ui_SimpleMask(object):
         self.comboBox_beamline.setItemText(1, QCoreApplication.translate("SimpleMask", u"APS_9IDD", None))
         self.comboBox_beamline.setItemText(2, QCoreApplication.translate("SimpleMask", u"NativeFiles", None))
 
-        self.label_9.setText(QCoreApplication.translate("SimpleMask", u"begin index:", None))
-        self.label_28.setText(QCoreApplication.translate("SimpleMask", u"num_frames", None))
+        self.label_frame_range.setText(QCoreApplication.translate("SimpleMask", u"Frame Range:", None))
+        self.comboBox_frame_range.setItemText(0, QCoreApplication.translate("SimpleMask", u"All frames", None))
+        self.comboBox_frame_range.setItemText(1, QCoreApplication.translate("SimpleMask", u"1/5 of frames", None))
+        self.comboBox_frame_range.setItemText(2, QCoreApplication.translate("SimpleMask", u"1/2 of frames", None))
+        self.comboBox_frame_range.setItemText(3, QCoreApplication.translate("SimpleMask", u"Custom", None))
+
+        self.label_begin_idx.setText(QCoreApplication.translate("SimpleMask", u"Begin:", None))
+        self.label_num_frames.setText(QCoreApplication.translate("SimpleMask", u"Frames:", None))
+        self.spinBox_num_frames.setSpecialValueText(QCoreApplication.translate("SimpleMask", u"to end", None))
         self.btn_load.setText(QCoreApplication.translate("SimpleMask", u"Load", None))
         self.groupBox_15.setTitle(QCoreApplication.translate("SimpleMask", u"Metadata", None))
         self.label_3.setText(QCoreApplication.translate("SimpleMask", u"BeamCenter:", None))

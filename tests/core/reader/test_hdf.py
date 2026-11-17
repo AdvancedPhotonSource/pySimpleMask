@@ -21,6 +21,7 @@ from pysimplemask.core.reader.io_utils import (
     _chunk_table,
     _probe_direct,
     average_frames_parallel,
+    resolve_frame_range,
 )
 
 
@@ -77,6 +78,48 @@ def test_get_scattering_frame_subset(make_hdf):
     ds = HdfDataset(path)
     result = ds.get_scattering(num_frames=2, begin_idx=1)
     assert np.allclose(result, frames[1:3].mean(axis=0))
+
+
+# ---------------------------------------------------------------------------
+# resolve_frame_range
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "total_frames, start_frame, num_frames, expected",
+    [
+        (5000, 0, 0, 5000),  # all frames
+        (5000, 100, None, 4900),  # ... that remain
+        (5000, 0, 300, 300),  # an exact count
+        (5000, 4900, 300, 100),  # ... clamped to the end
+        (5000, 0, 1, 1),
+        (20000, 0, 0.5, 10000),  # a fraction of the frames
+        (20000, 0, 0.2, 4000),
+        (20000, 15000, 0.5, 5000),  # ... of the whole dataset, then clamped
+        (1500, 0, 0.5, 1000),  # ... but at least 1000 of them
+        (600, 0, 0.5, 600),  # ... or all there are
+        (20000, 0, -1, 4000),  # the default subset is a fifth
+        (3000, 0, -1, 1000),
+        (3000, 2500, -1, 500),
+    ],
+)
+def test_resolve_frame_range(total_frames, start_frame, num_frames, expected):
+    assert resolve_frame_range(total_frames, start_frame, num_frames) == expected
+
+
+def test_resolve_frame_range_negative_is_a_fifth():
+    """``num_frames < 0`` keeps meaning ``max(1000, total // 5)`` frames, and
+    is what the fraction 0.2 gives."""
+    for total_frames in range(1, 60000, 7):
+        expected = min(total_frames, max(1000, total_frames // 5))
+        assert resolve_frame_range(total_frames, 0, -1) == expected
+        assert resolve_frame_range(total_frames, 0, 0.2) == expected
+
+
+@pytest.mark.parametrize("start_frame", [-1, 10, 11])
+def test_resolve_frame_range_rejects_start_outside_dataset(start_frame):
+    with pytest.raises(ValueError):
+        resolve_frame_range(10, start_frame, 0)
 
 
 # ---------------------------------------------------------------------------

@@ -35,6 +35,8 @@ from pysimplemask.core.mask import is_periodic_angle_map
 from pysimplemask.core.model import SimpleMaskModel
 from pysimplemask.core.partition import least_multiple
 from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
+from pysimplemask.core.reader.formats import count_frames, count_hdf_frames
+from pysimplemask.core.reader.io_utils import resolve_frame_range
 from pysimplemask.gui.model.roi_extract import extract_roi_geometry, roi_region
 from pysimplemask.gui.model.table_model import (
     DrawGroupTableModel,
@@ -70,6 +72,17 @@ class _MaskTab(IntEnum):
     MANUAL = 3
     OUTLIER = 4
     PARAMETER = 5
+
+
+# comboBox_frame_range item → the num_frames it loads from the first frame
+# (see resolve_frame_range); _FRAME_RANGE_CUSTOM takes the range from the
+# begin / number-of-frames spin boxes instead.
+_FRAME_RANGE_NUM_FRAMES = {
+    "All frames": 0,
+    "1/5 of frames": 1 / 5,
+    "1/2 of frames": 1 / 2,
+}
+_FRAME_RANGE_CUSTOM = "Custom"
 
 
 _XY_LABEL_OFFSET_PX = 12   # screen pixels between the cursor and the floating (x, y) label
@@ -189,6 +202,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         # Frame controls are disabled until rawdata channel is active
         self._raw_total_frames = 0   # set by load() for frame-average range calculation
+        self._selected_total_frames = 0   # frames of the file in the fname box; 0 if not known
         self.label_frame.setEnabled(False)
         self.horizontalSlider_frame.setEnabled(False)
         self.spinBox_current_frame.setEnabled(False)
@@ -214,6 +228,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
             pass
             
         self.btn_load.clicked.connect(self.load)
+        self.comboBox_frame_range.currentIndexChanged.connect(
+            self._on_frame_range_selected
+        )
+        self.fname.textChanged.connect(self._update_selected_total_frames)
+        self._on_frame_range_selected()  # sync the inputs with the initial selection
         self.btn_plot.clicked.connect(self.plot)
         self.btn_compute_qpartition.clicked.connect(self.compute_partition)
 
@@ -364,12 +383,22 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.comboBox_beamline.setToolTip(
             "Select the beamline configuration that matches your data source"
         )
-        self.spinBox_3.setToolTip("First frame index to include (0-based)")
-        self.spinBox_4.setToolTip(
+        self.comboBox_frame_range.setToolTip(
             "Frames to load and average.\n"
-            "  0 = all remaining frames from begin index\n"
-            " >0 = exactly that many frames (clamped to file end)\n"
-            " <0 = representative subset: max(1000, total ÷ 5)"
+            "  All frames: the whole file\n"
+            "  1/5 or 1/2 of frames: that share of the file, counted from its\n"
+            "      first frame, but at least 1000 frames\n"
+            "  Custom: the range set by Begin and Frames"
+        )
+        self.spinBox_begin_idx.setToolTip(
+            "Index of the first frame to load (0-based).\n"
+            "Set it with the Custom range; the other ranges start at frame 0."
+        )
+        self.spinBox_num_frames.setToolTip(
+            "Number of frames to load from Begin (clamped to the end of the file);\n"
+            '"to end" loads every frame from Begin on.\n'
+            "Set it with the Custom range; for the other ranges it shows how many\n"
+            "frames they load from the selected file."
         )
         self.btn_load.setToolTip(
             "Load and average the selected frame range from the data file"
@@ -1106,22 +1135,12 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         Checks for /entry/data/data with ndim==3 and shape[0] > 1.
         """
-        import h5py
         if not self.sm.is_ready():
             return False, 0
-        fname = self.sm.dset.fname
-        try:
-            if not h5py.is_hdf5(fname):
-                return False, 0
-            with h5py.File(fname, "r") as f:
-                if "/entry/data/data" not in f:
-                    return False, 0
-                s = f["/entry/data/data"].shape
-                if len(s) != 3 or s[0] <= 1:
-                    return False, 0
-                return True, int(s[0])
-        except Exception:
+        num_frames = count_hdf_frames(self.sm.dset.fname)
+        if num_frames <= 1:
             return False, 0
+        return True, num_frames
 
     def _update_frame_range(self) -> None:
         """Recompute slider/spinbox range from raw frame count and frame_average."""
@@ -1273,6 +1292,50 @@ class SimpleMaskGUI(QMainWindow, Ui):
                         self.comboBox_hdffile_path.setCurrentText(preferred)
                         break
 
+    def _update_selected_total_frames(self) -> None:
+        """Count the frames of the file in the fname box, and show what the
+        selected frame range loads from it."""
+        self._selected_total_frames = count_frames(self.fname.text())
+        self._on_frame_range_selected()
+
+    def _on_frame_range_selected(self) -> None:
+        """Enable the begin / number-of-frames inputs for a custom range; for a
+        preset, show in them (disabled) the range it loads."""
+        choice = self.comboBox_frame_range.currentText()
+        custom = choice == _FRAME_RANGE_CUSTOM
+        for widget in (
+            self.label_begin_idx,
+            self.spinBox_begin_idx,
+            self.label_num_frames,
+            self.spinBox_num_frames,
+        ):
+            widget.setEnabled(custom)
+        if custom:
+            # start from the range last shown; setValue redisplays a cleared box
+            self.spinBox_num_frames.setValue(self.spinBox_num_frames.value())
+            return
+
+        num_frames = _FRAME_RANGE_NUM_FRAMES[choice]
+        self.spinBox_begin_idx.setValue(0)
+        if self._selected_total_frames > 0:
+            self.spinBox_num_frames.setValue(
+                resolve_frame_range(self._selected_total_frames, 0, num_frames)
+            )
+        elif num_frames == 0:
+            self.spinBox_num_frames.setValue(0)   # displayed as "to end"
+        else:
+            self.spinBox_num_frames.clear()   # a share of an unknown frame count
+
+    def _selected_frame_range(self) -> dict:
+        """The begin_idx / num_frames of read_data for the selected frame range."""
+        choice = self.comboBox_frame_range.currentText()
+        if choice == _FRAME_RANGE_CUSTOM:
+            return {
+                "begin_idx": self.spinBox_begin_idx.value(),
+                "num_frames": self.spinBox_num_frames.value(),
+            }
+        return {"begin_idx": 0, "num_frames": _FRAME_RANGE_NUM_FRAMES[choice]}
+
     def load(self):
         # self.fname.setText('/mnt/c/Users/mqichu/Documents/local_dev/pysimplemask/tests/data/E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_att04_Rq0_00001_0001-100000.hdf')
         if not os.path.isfile(self.fname.text()):
@@ -1287,8 +1350,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         fname = self.fname.text()
         kwargs = {
-            "begin_idx": self.spinBox_3.value(),
-            "num_frames": self.spinBox_4.value(),
+            **self._selected_frame_range(),
             "beamline": self.comboBox_beamline.currentText(),
         }
         try:
@@ -1327,6 +1389,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self.plot_index.addItem(key)
 
         self.display_metadata()
+        self._update_selected_total_frames()   # the file may have grown since it was selected
         has_rawdata, num_frames = self._detect_rawdata()
         self._set_rawdata_enabled(has_rawdata)
         if has_rawdata:

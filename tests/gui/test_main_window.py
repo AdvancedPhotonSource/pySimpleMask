@@ -15,7 +15,13 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
 from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
-from pysimplemask.gui.control.main_window import SimpleMaskGUI, _MaskTab, _plot_index
+from pysimplemask.gui.control.main_window import (
+    _FRAME_RANGE_CUSTOM,
+    _FRAME_RANGE_NUM_FRAMES,
+    SimpleMaskGUI,
+    _MaskTab,
+    _plot_index,
+)
 
 
 @pytest.fixture(scope="module")
@@ -201,6 +207,130 @@ def test_named_indices_match_ui_order(qapp):
     assert gui.plot_index.count() == 1 + len(DISPLAY_FIELD)   # plus rawdata
     for field, label in channel_labels.items():
         assert gui.plot_index.itemText(_plot_index(field)) == label
+
+
+def test_frame_range_presets_match_ui(qapp):
+    """Every comboBox_frame_range item of mask.ui is a preset of
+    _FRAME_RANGE_NUM_FRAMES or the custom range, and startup selects all
+    the frames."""
+    gui = SimpleMaskGUI()
+    box = gui.comboBox_frame_range
+    items = [box.itemText(n) for n in range(box.count())]
+    assert items == [*_FRAME_RANGE_NUM_FRAMES, _FRAME_RANGE_CUSTOM]
+    assert box.currentText() == "All frames"
+
+
+def test_begin_and_frames_inputs_enabled_only_for_custom_range(qapp):
+    gui = SimpleMaskGUI()
+    inputs = (
+        gui.label_begin_idx,
+        gui.spinBox_begin_idx,
+        gui.label_num_frames,
+        gui.spinBox_num_frames,
+    )
+    for preset in _FRAME_RANGE_NUM_FRAMES:
+        gui.comboBox_frame_range.setCurrentText(preset)
+        assert not any(widget.isEnabled() for widget in inputs), preset
+    gui.comboBox_frame_range.setCurrentText(_FRAME_RANGE_CUSTOM)
+    assert all(widget.isEnabled() for widget in inputs)
+    gui.comboBox_frame_range.setCurrentText("All frames")
+    assert not any(widget.isEnabled() for widget in inputs)
+
+
+def test_load_reads_the_selected_frame_range(qapp, tmp_path):
+    """load() averages the frames picked in the Frame Range box."""
+    # frame n is a flat image of value n: the mean tells which frames were read
+    num_frames = 2400
+    frames = np.ones((num_frames, 20, 24), dtype=np.uint16)
+    frames *= np.arange(num_frames, dtype=np.uint16)[:, None, None]
+    path = tmp_path / "scan.h5"
+    with h5py.File(path, "w") as h:
+        h["/entry/data/data"] = frames
+    gui = SimpleMaskGUI()
+    gui.fname.setText(str(path))
+
+    def loaded_mean(frame_range):
+        gui.comboBox_frame_range.setCurrentText(frame_range)
+        gui.load()
+        scat = gui.sm.dset.scat
+        assert scat.min() == scat.max()
+        return float(scat[0, 0])
+
+    assert loaded_mean("All frames") == np.arange(2400).mean()
+    assert loaded_mean("1/2 of frames") == np.arange(1200).mean()
+    # a fifth would be 480 frames, but a subset holds at least 1000
+    assert loaded_mean("1/5 of frames") == np.arange(1000).mean()
+
+    gui.comboBox_frame_range.setCurrentText(_FRAME_RANGE_CUSTOM)
+    gui.spinBox_begin_idx.setValue(2)
+    gui.spinBox_num_frames.setValue(3)
+    assert loaded_mean(_FRAME_RANGE_CUSTOM) == np.arange(2, 5).mean()
+    # loading leaves a custom range as it was typed in
+    assert (gui.spinBox_begin_idx.value(), gui.spinBox_num_frames.value()) == (2, 3)
+
+    gui.spinBox_begin_idx.setValue(2390)
+    gui.spinBox_num_frames.setValue(0)
+    assert gui.spinBox_num_frames.text() == "to end"
+    assert loaded_mean(_FRAME_RANGE_CUSTOM) == np.arange(2390, 2400).mean()
+
+    # back on a preset, the load starts at the first frame again
+    assert loaded_mean("All frames") == np.arange(2400).mean()
+
+
+def test_presets_show_the_frame_range_they_load(qapp, tmp_path):
+    """The Begin / Frames inputs, disabled for a preset, show what it loads
+    from the selected file once that file's frame count is known."""
+    path = tmp_path / "scan.h5"
+    with h5py.File(path, "w") as h:
+        h["/entry/data/data"] = np.zeros((2400, 4, 5), dtype=np.uint8)
+    gui = SimpleMaskGUI()
+
+    def shown(frame_range):
+        gui.comboBox_frame_range.setCurrentText(frame_range)
+        return gui.spinBox_begin_idx.text(), gui.spinBox_num_frames.text()
+
+    # no file yet: all its frames is "to end", a share of them is not known
+    assert shown("All frames") == ("0", "to end")
+    assert shown("1/5 of frames") == ("0", "")
+    assert shown("1/2 of frames") == ("0", "")
+
+    # selecting a file updates the preset that is showing ...
+    gui.fname.setText(str(path))
+    assert gui.spinBox_num_frames.text() == "1200"
+    assert not gui.spinBox_num_frames.isEnabled()
+    # ... and so does switching between them
+    assert shown("All frames") == ("0", "2400")
+    assert shown("1/5 of frames") == ("0", "1000")   # a subset holds at least 1000
+    assert shown("1/2 of frames") == ("0", "1200")
+
+    # Custom starts from the range last shown, and keeps what is entered
+    assert shown(_FRAME_RANGE_CUSTOM) == ("0", "1200")
+    gui.spinBox_begin_idx.setValue(7)
+    gui.spinBox_num_frames.setValue(30)
+    gui.fname.setText(str(tmp_path / "missing.h5"))
+    assert shown(_FRAME_RANGE_CUSTOM) == ("7", "30")
+
+    # a file whose frame count is not known blanks the share again, and
+    # Custom brings the number back
+    assert shown("1/2 of frames") == ("0", "")
+    assert shown(_FRAME_RANGE_CUSTOM) == ("0", "30")
+
+
+def test_load_recounts_the_frames_of_a_file_that_grew(qapp, tmp_path):
+    """The frame count is taken when the file is selected; a file still being
+    written has more frames by the time it is loaded."""
+    path = tmp_path / "scan.h5"
+    with h5py.File(path, "w") as h:
+        h["/entry/data/data"] = np.ones((10, 20, 24), dtype=np.uint16)
+    gui = SimpleMaskGUI()
+    gui.fname.setText(str(path))
+    assert gui.spinBox_num_frames.text() == "10"
+
+    with h5py.File(path, "w") as h:
+        h["/entry/data/data"] = np.ones((25, 20, 24), dtype=np.uint16)
+    assert gui.spinBox_num_frames.text() == "10"
+    gui.load()
+    assert gui.spinBox_num_frames.text() == "25"
 
 
 def test_rawdata_item_disabled_by_default(qapp, tmp_path):

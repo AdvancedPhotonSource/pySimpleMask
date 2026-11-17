@@ -360,13 +360,21 @@ def process_chunk(file_path, dataset_name, start_idx, end_idx):
         return np.sum(chunk, axis=0, dtype=np.float32)
 
 
+# A subset of the frames (see resolve_frame_range) is never smaller than this,
+# and is a fifth of the dataset unless a fraction is given.
+_MIN_SUBSET_FRAMES = 1000
+_DEFAULT_SUBSET_FRACTION = 0.2
+
+
 def resolve_frame_range(total_frames, start_frame, num_frames):
     """Clamp a requested frame range to what the dataset contains.
 
     ``num_frames`` semantics, shared by every format loader:
-      * ``> 0`` — exactly that many frames (clamped to the end);
+      * ``>= 1`` — exactly that many frames (clamped to the end);
       * ``0`` / ``None`` — all remaining frames from ``start_frame``;
-      * ``< 0`` — a representative subset (``max(1000, total_frames // 5)``).
+      * a fraction between 0 and 1 — a representative subset: that share of
+        the dataset's frames, but at least 1000 of them;
+      * ``< 0`` — the default subset, the same as ``0.2``.
 
     Returns the number of frames to read, starting at ``start_frame``.
     """
@@ -374,8 +382,9 @@ def resolve_frame_range(total_frames, start_frame, num_frames):
         raise ValueError(f"start_frame must be between 0 and {total_frames - 1}")
     if num_frames is None or num_frames == 0:
         num_frames = total_frames - start_frame
-    elif num_frames < 0:
-        num_frames = max(1000, total_frames // 5)
+    elif num_frames < 1:
+        fraction = num_frames if num_frames > 0 else _DEFAULT_SUBSET_FRACTION
+        num_frames = max(_MIN_SUBSET_FRAMES, int(total_frames * fraction))
     if start_frame + num_frames > total_frames:
         num_frames = total_frames - start_frame
     return num_frames

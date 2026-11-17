@@ -14,6 +14,21 @@ from .base import ScatteringDataset
 logger = logging.getLogger(__name__)
 
 
+def count_hdf_frames(fname):
+    """Number of frames in the ``/entry/data/data`` stack of the HDF5 file
+    ``fname``; 0 if it is not such a file (a single image included)."""
+    try:
+        if not h5py.is_hdf5(fname):
+            return 0
+        with h5py.File(fname, "r") as f:
+            if "/entry/data/data" not in f:
+                return 0
+            shape = f["/entry/data/data"].shape
+            return int(shape[0]) if len(shape) == 3 else 0
+    except Exception:
+        return 0
+
+
 class HdfDataset(ScatteringDataset):
     """Loader for 2-D or 3-D (frame, y, x) detector data stored in HDF5."""
 
