@@ -14,11 +14,14 @@ import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QFileDialog, QMessageBox
 
+from pysimplemask.core.mask import MaskAssemble
 from pysimplemask.core.reader.base_reader import DISPLAY_FIELD, FileReader
 from pysimplemask.gui.control.main_window import (
     _FRAME_RANGE_CUSTOM,
     _FRAME_RANGE_NUM_FRAMES,
+    _RAW_PLOT_INDICES,
     _RAWDATA_IDX,
+    _RAWDATA_MASK_IDX,
     SimpleMaskGUI,
     _MaskTab,
     _plot_index,
@@ -205,7 +208,10 @@ def test_named_indices_match_ui_order(qapp):
         "preview": "preview",
     }
     assert set(channel_labels) == set(DISPLAY_FIELD)
-    assert gui.plot_index.count() == 1 + len(DISPLAY_FIELD)   # plus rawdata
+    # the raw frames come first, as read and with the mask applied
+    assert gui.plot_index.itemText(_RAWDATA_IDX) == "rawdata"
+    assert gui.plot_index.itemText(_RAWDATA_MASK_IDX) == "rawdata * mask"
+    assert gui.plot_index.count() == len(_RAW_PLOT_INDICES) + len(DISPLAY_FIELD)
     for field, label in channel_labels.items():
         assert gui.plot_index.itemText(_plot_index(field)) == label
 
@@ -335,12 +341,13 @@ def test_load_recounts_the_frames_of_a_file_that_grew(qapp, tmp_path):
 
 
 def test_rawdata_item_disabled_by_default(qapp, tmp_path):
-    """rawdata plot_index item is grayed out before any data is loaded."""
+    """The rawdata plot_index items are grayed out before any data is loaded."""
     gui = SimpleMaskGUI()
     model = gui.plot_index.model()
-    item = model.item(0)   # index 0 = rawdata
-    assert item is not None
-    assert not item.isEnabled(), "rawdata should be disabled before data load"
+    for idx in _RAW_PLOT_INDICES:
+        item = model.item(idx)
+        assert item is not None
+        assert not item.isEnabled(), "rawdata should be disabled before data load"
 
 
 def test_frame_controls_hidden_by_default(qapp, tmp_path):
@@ -610,17 +617,19 @@ def test_detect_rawdata_returns_true_for_multi_frame_hdf(qapp, tmp_path):
 
 
 def test_rawdata_enabled_after_loading_multi_frame_hdf(qapp, tmp_path):
-    """rawdata combobox item is enabled after loading a multi-frame HDF."""
+    """The rawdata combobox items are enabled after loading a multi-frame HDF."""
     gui = _load_gui(tmp_path, np.ones((5, 20, 24), dtype=np.uint16))
     model = gui.plot_index.model()
-    assert model.item(0).isEnabled(), "rawdata should be enabled for multi-frame HDF"
+    for idx in _RAW_PLOT_INDICES:
+        assert model.item(idx).isEnabled(), "rawdata should be enabled for multi-frame HDF"
 
 
 def test_rawdata_disabled_after_loading_single_frame_hdf(qapp, tmp_path):
-    """rawdata combobox item is disabled after loading a single-frame HDF."""
+    """The rawdata combobox items are disabled after loading a single-frame HDF."""
     gui = _load_gui(tmp_path, np.ones((1, 20, 24), dtype=np.uint16))
     model = gui.plot_index.model()
-    assert not model.item(0).isEnabled()
+    for idx in _RAW_PLOT_INDICES:
+        assert not model.item(idx).isEnabled()
 
 
 # A Rigaku frame is a list of photon events. In these, frame n puts
@@ -777,6 +786,121 @@ def test_rawdata_browses_rigaku_3m_frames(qapp, tmp_path):
     assert not image[~filled].any()  # the gaps between the modules
 
 
+def _load_frames_with_blemish(tmp_path, monkeypatch, frames, blemish):
+    """Load an HDF stack of ``frames`` into a new GUI, on a detector whose
+    default blemish is ``blemish``."""
+    monkeypatch.setattr(
+        MaskAssemble, "get_default_blemish", lambda self: blemish.copy()
+    )
+    path = tmp_path / "scan.h5"
+    with h5py.File(path, "w") as h:
+        h["/entry/data/data"] = frames
+    gui = SimpleMaskGUI()
+    _load_file(gui, path)
+    assert np.array_equal(gui.sm.mask_kernel.blemish, blemish)
+    return gui
+
+
+def _frames_with_a_hot_pixel():
+    """Six frames of 1-49 counts, with a hot pixel at (5, 5)."""
+    rng = np.random.default_rng(1)
+    frames = rng.integers(1, 50, size=(6, 20, 24)).astype(np.int32)
+    frames[:, 5, 5] = 10**6
+    return frames
+
+
+def test_rawdata_times_mask_shows_frames_with_the_current_mask(
+    qapp, tmp_path, monkeypatch
+):
+    """ "rawdata * mask" browses the frames like "rawdata", with the current
+    mask applied: the blemish until a mask is applied on top of it."""
+    frames = _frames_with_a_hot_pixel()
+    blemish = np.ones(frames.shape[1:], dtype=bool)
+    blemish[0, :3] = False
+    gui = _load_frames_with_blemish(tmp_path, monkeypatch, frames, blemish)
+    gui.plot_log.setChecked(False)
+
+    # no mask applied yet: the blemish
+    gui.plot_index.setCurrentIndex(_RAWDATA_MASK_IDX)
+    for widget in (
+        gui.label_frame,
+        gui.horizontalSlider_frame,
+        gui.spinBox_current_frame,
+        gui.spinBox_frame_average,
+        gui.label_average,
+    ):
+        assert widget.isEnabled()
+    _show_rawdata_frame(gui, 2)
+    assert np.array_equal(gui.mp1.image, frames[2] * blemish)
+    assert not gui.mp1.image[0, :3].any()
+    assert gui.mp1.image[5, 5] == 10**6
+    # ... also for an average of frames
+    gui.spinBox_frame_average.setValue(2)
+    assert np.array_equal(gui.mp1.image, frames[4:6].mean(axis=0) * blemish)
+    gui.spinBox_frame_average.setValue(1)
+
+    # "rawdata" shows the same frame as it was read
+    gui.plot_index.setCurrentIndex(_RAWDATA_IDX)
+    assert np.array_equal(gui.mp1.image, frames[2])
+
+    # a mask applied on top of the blemish shows as well
+    gui.sm.mask_evaluate(
+        "mask_threshold", low=0, high=1000, low_enable=True, high_enable=True
+    )
+    gui.mask_apply("mask_threshold")
+    assert gui.plot_index.currentIndex() == _plot_index("scattering * mask")
+    mask = blemish.copy()
+    mask[5, 5] = False
+    assert np.array_equal(gui.sm.mask, mask)
+    gui.plot_index.setCurrentIndex(_RAWDATA_MASK_IDX)
+    assert np.array_equal(gui.mp1.image, frames[2] * mask)
+    assert gui.mp1.image[5, 5] == 0
+
+    # undoing it leaves the blemish again
+    gui.mask_action("undo")
+    gui.plot_index.setCurrentIndex(_RAWDATA_MASK_IDX)
+    assert np.array_equal(gui.mp1.image, frames[2] * blemish)
+
+
+def test_rawdata_times_mask_in_log_scale(qapp, tmp_path, monkeypatch):
+    """Masked pixels show as the faintest of the pixels that are left."""
+    frames = _frames_with_a_hot_pixel()
+    blemish = np.ones(frames.shape[1:], dtype=bool)
+    blemish[5, 5] = False  # the hot pixel
+    blemish[0, :3] = False
+    gui = _load_frames_with_blemish(tmp_path, monkeypatch, frames, blemish)
+    gui.plot_log.setChecked(True)
+
+    gui.plot_index.setCurrentIndex(_RAWDATA_MASK_IDX)
+    _show_rawdata_frame(gui, 3)
+    kept = frames[3][blemish]
+    expected = np.where(blemish, np.log10(frames[3]), np.log10(kept.min()))
+    assert np.allclose(gui.mp1.image, expected)
+    assert np.isclose(gui.mp1.image.max(), np.log10(kept.max()))  # not the hot pixel's
+
+
+def test_rawdata_times_mask_browses_rigaku_frames(qapp, tmp_path, monkeypatch):
+    blemish = np.ones(_RIGAKU_MODULE_SHAPE, dtype=bool)
+    blemish[0, 1:3] = False  # two of the five pixels the frames hit
+    monkeypatch.setattr(
+        MaskAssemble, "get_default_blemish", lambda self: blemish.copy()
+    )
+    path = tmp_path / "scan.bin"
+    _write_rigaku_module(path)
+    gui = SimpleMaskGUI()
+    gui.plot_log.setChecked(False)
+    _load_file(gui, path)
+
+    assert gui.plot_index.model().item(_RAWDATA_MASK_IDX).isEnabled()
+    gui.plot_index.setCurrentIndex(_RAWDATA_MASK_IDX)
+    _show_rawdata_frame(gui, 1)
+    assert gui.spinBox_frame_average.value() == 100
+    raw = _rigaku_module_sum(100, 200) / 100
+    assert np.allclose(gui.mp1.image, raw * blemish)
+    assert not gui.mp1.image[0, 1:3].any()
+    assert gui.mp1.image[0, 0] > 0 and raw[0, 1] > 0
+
+
 def test_frame_average_default_follows_the_loaded_format(qapp, tmp_path):
     """Each load sets the average window to the default of its format: 100
     frames for Rigaku, single frames for HDF."""
@@ -824,7 +948,8 @@ def test_rawdata_disabled_after_loading_single_frame_rigaku(qapp, tmp_path):
     gui = SimpleMaskGUI()
     _load_file(gui, path)
     assert gui._detect_rawdata() == (False, 0)
-    assert not gui.plot_index.model().item(_RAWDATA_IDX).isEnabled()
+    for idx in _RAW_PLOT_INDICES:
+        assert not gui.plot_index.model().item(idx).isEnabled()
 
 
 def test_set_apply_state_toggles_bold_with_enabled(qapp, tmp_path):

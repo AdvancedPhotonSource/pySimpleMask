@@ -130,7 +130,8 @@ geometry directly. `core/` imports no Qt and is fully scriptable.
   them with the hdf5plugin filter libraries through ctypes (all of which release the GIL).
   Any other layout (gzip, multi-frame chunks, virtual datasets) falls back to an h5py
   process pool.
-- **Frame browsing** (the GUI's `rawdata` channel): a loader that can read a few frames
+- **Frame browsing** (the GUI's `rawdata` and `rawdata * mask` channels; the latter
+  multiplies each frame by `sm.mask`, the blemish until a mask is applied): a loader that can read a few frames
   quickly sets `num_browsable_frames` and implements `get_frames_mean(begin_idx, end_idx)`
   — `HdfDataset` (h5py slice), `RigakuDataset` and `RigakuExtendDataset` (events are
   stored in frame order, so a frame range is one `searchsorted` slice of them) and

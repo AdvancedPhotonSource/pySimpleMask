@@ -48,10 +48,13 @@ from pysimplemask.gui.view.widgets import OUTLIER_ROI_KEY
 HOME_DIR = Path.home()
 CONFIG_FILE = HOME_DIR / ".pysimplemask" / "config.json"
 
-# plot_index lists "rawdata" first, then data_display's channels in order:
-# DISPLAY_FIELD, then the qmap keys appended at load.
+# plot_index lists the raw frames first ("rawdata", then "rawdata * mask"),
+# then data_display's channels in order: DISPLAY_FIELD, then the qmap keys
+# appended at load.
 _RAWDATA_IDX = 0
-_CHANNEL_OFFSET = _RAWDATA_IDX + 1   # plot_index position of data_display[0]
+_RAWDATA_MASK_IDX = 1
+_RAW_PLOT_INDICES = (_RAWDATA_IDX, _RAWDATA_MASK_IDX)   # read frame by frame, not from data_display
+_CHANNEL_OFFSET = len(_RAW_PLOT_INDICES)   # plot_index position of data_display[0]
 _QMAP_START_IDX = _CHANNEL_OFFSET + len(DISPLAY_FIELD)
 
 
@@ -200,7 +203,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.setupUi(self)
         self.setWindowTitle(f"pySimpleMask {__version__}")
 
-        # Frame controls are disabled until rawdata channel is active
+        # Frame controls are disabled until a rawdata channel is active
         self._raw_total_frames = 0   # set by load() for frame-average range calculation
         self._selected_total_frames = 0   # frames of the file in the fname box; 0 if not known
         self.label_frame.setEnabled(False)
@@ -209,7 +212,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.spinBox_frame_average.setEnabled(False)
         self.label_average.setEnabled(False)
 
-        # rawdata item starts disabled (grayed) until a compatible file is loaded
+        # rawdata items start disabled (grayed) until a compatible file is loaded
         self._set_rawdata_enabled(False)
 
         # No metadata loaded yet — nothing to update until a file is loaded and
@@ -572,7 +575,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         # ── Display controls ──────────────────────────────────────────────────
         self.plot_index.setToolTip(
-            "What to display: scattering image, mask, dynamic/static partition, or preview"
+            "What to display: the raw frames (rawdata, as read or with the current mask\n"
+            "applied), scattering image, mask, dynamic/static partition, or preview"
         )
         self.plot_center.setToolTip("Show or hide the beam center crosshair")
         self.checkBox_showxy.setToolTip(
@@ -1020,15 +1024,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
     def _on_plot_index_changed(self, idx):
         """Update the displayed 2D slice when the channel selector changes."""
-        show_frame_controls = (idx == _RAWDATA_IDX)
+        show_frame_controls = idx in _RAW_PLOT_INDICES
         self.label_frame.setEnabled(show_frame_controls)
         self.horizontalSlider_frame.setEnabled(show_frame_controls)
         self.spinBox_current_frame.setEnabled(show_frame_controls)
         self.spinBox_frame_average.setEnabled(show_frame_controls)
         self.label_average.setEnabled(show_frame_controls)
 
-        if idx == _RAWDATA_IDX:
-            self._read_and_show_frame()   # show frame 0 immediately
+        if idx in _RAW_PLOT_INDICES:
+            self._read_and_show_frame()   # show the current frame immediately
             return   # rawdata display handled by frame browser callbacks
 
         if not self.is_ready():
@@ -1060,12 +1064,13 @@ class SimpleMaskGUI(QMainWindow, Ui):
         return True
 
     def _set_rawdata_enabled(self, enabled: bool) -> None:
-        """Enable or gray out the rawdata item in plot_index."""
+        """Enable or gray out the rawdata items in plot_index."""
         model = self.plot_index.model()
-        item = model.item(_RAWDATA_IDX)
-        if item:
-            item.setEnabled(enabled)
-        if not enabled and self.plot_index.currentIndex() == _RAWDATA_IDX:
+        for idx in _RAW_PLOT_INDICES:
+            item = model.item(idx)
+            if item:
+                item.setEnabled(enabled)
+        if not enabled and self.plot_index.currentIndex() in _RAW_PLOT_INDICES:
             self.plot_index.setCurrentIndex(_plot_index("scattering"))
 
     def _set_apply_state(self, ready: bool) -> None:
@@ -1195,6 +1200,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         except Exception as exc:
             logger.error("Failed to read frames %d-%d from %s: %s", start, end, fname, exc)
             return
+        if self.plot_index.currentIndex() == _RAWDATA_MASK_IDX:
+            # The current mask, as in "scattering * mask": the blemish until
+            # a mask is applied on top of it. Masked pixels are left empty.
+            frame = frame * self.sm.mask
         if self.plot_log.isChecked():
             positive = frame[frame > 0]
             floor = float(positive.min()) if positive.size else 1.0
@@ -1442,6 +1451,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if idx == _RAWDATA_IDX:
             # use scattering channel for coordinates when rawdata active
             channel = DISPLAY_FIELD.index("scattering")
+        elif idx == _RAWDATA_MASK_IDX:
+            channel = DISPLAY_FIELD.index("scattering * mask")
         else:
             channel = idx - _CHANNEL_OFFSET
         msg = self.sm.dset.get_coordinates(col, row, channel)
@@ -1498,7 +1509,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
 
         idx = self.plot_index.currentIndex()
-        if idx == _RAWDATA_IDX:
+        if idx in _RAW_PLOT_INDICES:
             return   # rawdata handled separately; nothing to show until user selects a frame
         channel = idx - _CHANNEL_OFFSET
         self.mp1.clear()

@@ -2432,6 +2432,11 @@ QPushButton:disabled {
              </item>
              <item>
               <property name="text">
+               <string>rawdata * mask</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
                <string>scattering</string>
               </property>
              </item>
