@@ -2,6 +2,7 @@
 # See LICENSE file for details
 """Raw-frame IO helpers shared across format loaders."""
 
+import contextlib
 import ctypes
 import gc
 import logging
@@ -276,7 +277,30 @@ def _probe_direct(dataset, start_frame, num_frames):
     return _DirectLayout(fname, shape, dtype, *table, decode)
 
 
-def _read_into(f, offset, buf):
+def default_num_workers():
+    """Number of threads that read a file when the caller does not say: half
+    the CPUs, capped because more only contend for memory bandwidth."""
+    return min(max(1, cpu_count() // 2), _DIRECT_MAX_WORKERS)
+
+
+@contextlib.contextmanager
+def gc_paused():
+    """Hold the garbage collector off while worker threads run.
+
+    The collector runs in whichever thread trips it, and would then destroy
+    the caller's unreachable objects from a worker thread; the GUI's Qt
+    objects do not survive that. It is left disabled if it already was.
+    """
+    was_enabled = gc.isenabled()
+    gc.disable()
+    try:
+        yield
+    finally:
+        if was_enabled:
+            gc.enable()
+
+
+def read_into(f, offset, buf):
     """Fill the uint8 array ``buf`` from byte ``offset`` of the open file ``f``."""
     f.seek(offset)
     done = 0
@@ -299,9 +323,9 @@ def _sum_frames(layout, frames, out):
             if layout.decode is None or layout.stored[i]:
                 if nbytes != frame_bytes.size:
                     raise ValueError(f"frame {i}: unexpected raw chunk size {nbytes}")
-                _read_into(f, offset, frame_bytes)
+                read_into(f, offset, frame_bytes)
             else:
-                _read_into(f, offset, chunk[:nbytes])
+                read_into(f, offset, chunk[:nbytes])
                 layout.decode(chunk[:nbytes], frame)
             if n == 0:
                 out[:] = frame
@@ -314,7 +338,7 @@ def _average_direct(layout, num_workers=None):
     summed by ``num_workers`` threads."""
     num_frames = len(layout.addr)
     if num_workers is None:
-        num_workers = min(max(1, cpu_count() // 2), _DIRECT_MAX_WORKERS)
+        num_workers = default_num_workers()
     num_workers = min(num_workers, num_frames)
     size = layout.shape[0] * layout.shape[1]
     sums = np.empty((num_workers, size), dtype=_SUM_DTYPE[layout.dtype.str[1:]])
@@ -327,25 +351,16 @@ def _average_direct(layout, num_workers=None):
         total[lo:hi] += sums[:num_sums, lo:hi].sum(axis=0, dtype=np.float64)
 
     logger.info("using %d threads to load %d frames", num_workers, num_frames)
-    # The garbage collector runs in whichever thread trips it, and would then
-    # destroy the caller's unreachable objects from a worker thread; the GUI's
-    # Qt objects do not survive that.  Hold it off until the threads are done.
-    gc_was_enabled = gc.isenabled()
-    gc.disable()
-    try:
-        with ThreadPoolExecutor(max_workers=num_workers) as pool:
-            for start in range(0, num_frames, num_workers * _SUM_WINDOW):
-                stop = min(start + num_workers * _SUM_WINDOW, num_frames)
-                jobs = [
-                    job
-                    for job in np.array_split(np.arange(start, stop), num_workers)
-                    if len(job)
-                ]
-                list(pool.map(_sum_frames, repeat(layout), jobs, sums))
-                list(pool.map(fold, edges[:-1], edges[1:], repeat(len(jobs))))
-    finally:
-        if gc_was_enabled:
-            gc.enable()
+    with gc_paused(), ThreadPoolExecutor(max_workers=num_workers) as pool:
+        for start in range(0, num_frames, num_workers * _SUM_WINDOW):
+            stop = min(start + num_workers * _SUM_WINDOW, num_frames)
+            jobs = [
+                job
+                for job in np.array_split(np.arange(start, stop), num_workers)
+                if len(job)
+            ]
+            list(pool.map(_sum_frames, repeat(layout), jobs, sums))
+            list(pool.map(fold, edges[:-1], edges[1:], repeat(len(jobs))))
     return (total / num_frames).reshape(layout.shape).astype(np.float32)
 
 
