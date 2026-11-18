@@ -78,6 +78,7 @@ Launch the desktop application:
 ```bash
 pysimplemask                          # or: pysimplemask gui
 pysimplemask --path /path/to/data    # open at a specific directory
+pysimplemask --path /path/to/scan.h5 # load that dataset at launch (any other file: open at its directory)
 ```
 
 ### Workflow

@@ -35,6 +35,7 @@ Common commands (prefix each with the env's `bin/` or activate the env first):
 ```bash
 pysimplemask                       # launch the GUI (needs an X11/Wayland display)
 pysimplemask --path /data/dir      # launch with a starting directory
+pysimplemask --path /data/scan.h5  # launch and load that dataset (a file that fails to load: start in its directory)
 pysimplemask-combine-qmaps a.h5 b.h5 out.h5   # merge two qmap HDF5 files
 pysimplemask report qmap.h5 -o report.png     # generate PDF/PNG report from qmap
 

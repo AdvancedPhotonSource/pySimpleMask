@@ -156,8 +156,8 @@ def main() -> None:
 
     Subcommands: gui (default), web, build, combine, report.
     Running ``pysimplemask`` with no subcommand launches the GUI.
-    ``pysimplemask --path DIR`` is a backward-compatible shortcut for
-    ``pysimplemask gui --path DIR``.
+    ``pysimplemask --path PATH`` is a backward-compatible shortcut for
+    ``pysimplemask gui --path PATH``.
     """
     parser = argparse.ArgumentParser(
         prog="pysimplemask",
@@ -168,10 +168,11 @@ def main() -> None:
     parser.add_argument(
         "--version", action="version", version=f"pySimpleMask {__version__}"
     )
-    # Top-level --path for backward compatibility (pysimplemask --path DIR)
+    # Top-level --path for backward compatibility (pysimplemask --path PATH)
     parser.add_argument(
-        "--path", "-p", default=None, metavar="DIR",
-        help="GUI working directory (shortcut for 'gui --path DIR').",
+        "--path", "-p", default=None, metavar="PATH",
+        help="GUI starting directory, or a dataset file to load "
+             "(shortcut for 'gui --path PATH').",
     )
 
     subparsers = parser.add_subparsers(dest="subcommand")
@@ -181,8 +182,9 @@ def main() -> None:
         "gui", help="Launch the PySide6 GUI (default when no subcommand given)."
     )
     p_gui.add_argument(
-        "--path", "-p", default=None, metavar="DIR",
-        help="Starting directory (defaults to cwd).",
+        "--path", "-p", default=None, metavar="PATH",
+        help="Starting directory (defaults to cwd), or a dataset file to load "
+             "at launch. A file that is not a dataset stands for its folder.",
     )
 
     # ── web ──────────────────────────────────────────────────────────────────

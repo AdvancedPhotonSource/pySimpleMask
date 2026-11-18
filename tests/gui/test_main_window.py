@@ -1992,3 +1992,57 @@ def test_work_dir_defaults_to_cwd_when_no_path(qapp, tmp_path, monkeypatch):
     gui = SimpleMaskGUI()
     assert gui.work_dir == str(tmp_path)
     assert gui._dialog_dir() == str(tmp_path)
+
+
+def _launch_gui(qapp, path):
+    """A window launched with ``--path path``, after the first turn of the
+    event loop, which loads the file that ``path`` names."""
+    gui = SimpleMaskGUI(path=str(path))
+    gui.comboBox_beamline.setCurrentText("APS_8IDI")   # not what the config file left selected
+    qapp.processEvents()
+    return gui
+
+
+def test_launch_path_to_a_dataset_loads_it(qapp, tmp_path):
+    path = tmp_path / "scan.h5"
+    frames = np.arange(3 * 24 * 32, dtype=np.float32).reshape(3, 24, 32)
+    with h5py.File(path, "w") as h:
+        h["/entry/data/data"] = frames
+
+    gui = _launch_gui(qapp, path)
+
+    assert gui.sm.is_ready()
+    assert gui.sm.dset.fname == str(path)
+    np.testing.assert_allclose(gui.sm.dset.scat, frames.mean(axis=0))
+    assert gui.fname.text() == str(path)
+    assert gui.plot_index.currentIndex() == _plot_index("scattering * mask")
+    # the dialogs open in the folder of the file
+    assert gui.work_dir == str(tmp_path)
+
+
+def _write_text_file(path):
+    path.write_text("not a dataset")
+
+
+def _write_metadata_sidecar(path):
+    with h5py.File(path, "w") as h:
+        h["/entry/instrument/incident_beam/incident_energy"] = 10.0
+
+
+@pytest.mark.parametrize(
+    "name, write",
+    [("notes.txt", _write_text_file), ("scan_metadata.hdf", _write_metadata_sidecar)],
+)
+def test_launch_path_to_a_file_that_is_no_dataset_opens_its_folder(
+    qapp, tmp_path, name, write
+):
+    path = tmp_path / name
+    write(path)
+
+    with patch.object(QFileDialog, "exec", side_effect=AssertionError("no dialog")):
+        gui = _launch_gui(qapp, path)
+
+    assert not gui.sm.is_ready()
+    assert gui.fname.text() == ""
+    assert gui.work_dir == str(tmp_path)
+    assert gui._dialog_dir() == str(tmp_path)

@@ -350,12 +350,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # Directory every file dialog opens in. It is fixed at launch (the
         # --path argument, or the cwd pysimplemask was started from) and is
         # deliberately never updated when the user browses elsewhere, so each
-        # new browse starts back at the original folder.
+        # new browse starts back at the original folder. A --path that names
+        # a file stands for the folder of that file; the file itself is
+        # loaded once the window is up (_load_launch_file).
         self.work_dir = os.getcwd()
+        self._launch_file = None
         if path is not None:
             path = os.path.abspath(path)
             if os.path.isfile(path):
-                self.fname.setText(str(path))
+                self._launch_file = path
                 self.work_dir = os.path.dirname(path)
             elif os.path.isdir(path):
                 self.work_dir = path
@@ -376,6 +379,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.save_load_settings(mode="load")
         self._setup_tooltips()
         self.show()
+        if self._launch_file is not None:
+            # from the event loop, so the window comes up before the load
+            QTimer.singleShot(0, self._load_launch_file)
 
     def _setup_tooltips(self):
         # ── Input file & data loading ─────────────────────────────────────────
@@ -1341,13 +1347,36 @@ class SimpleMaskGUI(QMainWindow, Ui):
             }
         return {"begin_idx": 0, "num_frames": _FRAME_RANGE_NUM_FRAMES[choice]}
 
-    def load(self):
+    def _load_launch_file(self) -> None:
+        """Load the file that ``--path`` named at launch.
+
+        A file that does not load as a dataset (with the beamline the last
+        session left selected) is dropped: the fname box stays empty, as if
+        ``--path`` had named its folder, which work_dir already is.
+        """
+        fname, self._launch_file = self._launch_file, None
+        if not os.path.isfile(fname):   # gone since launch; load() would ask for another
+            return
+        self.fname.setText(fname)
+        if self.load():
+            return
+        self.fname.clear()
+        logger.warning(
+            "%s is not a dataset; starting in its folder %s", fname, self.work_dir
+        )
+        self.statusbar.showMessage(
+            f"Not a dataset: {fname}. Browsing starts in its folder.", 8000
+        )
+
+    def load(self) -> bool:
+        """Load the file in the fname box (asking for one if it holds none).
+        Returns whether a dataset was loaded."""
         # self.fname.setText('/mnt/c/Users/mqichu/Documents/local_dev/pysimplemask/tests/data/E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_att04_Rq0_00001_0001-100000.hdf')
         if not os.path.isfile(self.fname.text()):
             self.select_raw()
         if not os.path.isfile(self.fname.text()):
             self.statusbar.showMessage("select a valid file")
-            return
+            return False
 
         self.btn_load.setText("loading...")
         self.statusbar.showMessage("loading data...", 120000)
@@ -1366,7 +1395,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not ok:
             self.btn_load.setText("Load")
             self.statusbar.showMessage(f"Failed to load: {fname}", 8000)
-            return
+            return False
         # drawn ROIs belong to the previous dataset (fires sigRoiRemoved, which
         # also drops their draw-table rows)
         self.mp1.remove_rois("roi_")
@@ -1412,6 +1441,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.statusbar.showMessage("data is loaded", 500)
         self.btn_load.setText("Load")
         self.btn_load.repaint()
+        return True
 
     def display_metadata(self):
         param_struct = self.sm.dset.get_parametertree_structure()
