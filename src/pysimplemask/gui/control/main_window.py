@@ -90,8 +90,10 @@ _FRAME_RANGE_CUSTOM = "Custom"
 
 _XY_LABEL_OFFSET_PX = 12   # screen pixels between the cursor and the floating (x, y) label
 _METADATA_SUFFIX = "_metadata.hdf"   # companion metadata sidecar, never the data file to load
+# List only extensions a reader handles (core/reader/formats.get_format_loader,
+# plus TIFF through the NativeFiles reader): the dialog offers whatever is here.
 _RAW_FILE_FILTER = (
-    "Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.bix *.tif *.tiff *.fits *.raw *.bin.* *.tpx *.tpx.*)"
+    "Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.bix *.tif *.tiff *.bin.* *.tpx *.tpx.*)"
 )
 CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
 

@@ -444,6 +444,18 @@ def test_raw_file_dialog_is_configured_with_metadata_filter(qapp):
     dlg.deleteLater()
 
 
+def test_raw_file_dialog_offers_no_format_without_a_reader(qapp):
+    """The FITS and .raw readers were removed, so the dialog must not offer
+    files that then fail to load as unsupported."""
+    gui = SimpleMaskGUI()
+    dlg = gui._raw_file_dialog()
+    patterns = dlg.nameFilters()[0].split("(", 1)[1].rstrip(")").split()
+    assert "*.fits" not in patterns
+    assert "*.raw" not in patterns
+    assert {"*.hdf", "*.h5", "*.imm", "*.bin", "*.bix", "*.tif"} <= set(patterns)
+    dlg.deleteLater()
+
+
 def _hot_pixel_frames(shape=(3, 24, 32), base=10.0, hot=((4, 4), (16, 24))):
     """Flat frames with hot pixels at the given (row, col) spots."""
     frames = np.full(shape, base, dtype=np.float32)
