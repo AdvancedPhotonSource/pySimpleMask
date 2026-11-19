@@ -5,7 +5,7 @@
 # Generates packaging/macos/icon.icns from packaging/icon.png.
 #
 # Uses sips/iconutil, which only exist on macOS, so this runs in CI
-# (macos-14 runner) rather than being committed as a prebuilt binary asset.
+# (the macOS runner) rather than being committed as a prebuilt binary asset.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

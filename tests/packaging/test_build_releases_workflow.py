@@ -27,10 +27,15 @@ def test_workflow_is_valid_yaml_with_jobs():
     assert "jobs" in workflow
 
 
-def test_macos_build_job_targets_macos14_and_signing_environment():
+def test_macos_build_job_targets_apple_silicon_and_signing_environment():
     workflow = _load_workflow()
     macos_job = workflow["jobs"]["macos-build"]
-    assert macos_job["runs-on"] == "macos-14"
+    # The app ships for M-series Macs only. GitHub's Intel macOS images are
+    # the "-intel" and "-large" labels ("-xlarge" is arm64); the version in
+    # the label is left free because GitHub retires one image a year.
+    runner = macos_job["runs-on"]
+    assert runner.startswith("macos-")
+    assert not runner.endswith(("-intel", "-large"))
     assert macos_job["environment"] == "macos-signing"
 
 

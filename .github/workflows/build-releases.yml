@@ -143,7 +143,11 @@ jobs:
 
   macos-build:
     name: Build, sign, and notarize macOS app
-    runs-on: macos-14
+    # Apple Silicon (arm64) image: the app ships for M-series Macs only. The
+    # Intel images are the "-intel" / "-large" labels. GitHub retires the
+    # oldest macOS image each autumn, so this label needs a bump about once a
+    # year (macos-14 was retired on 2026-11-02).
+    runs-on: macos-15
     environment: macos-signing
     steps:
       - uses: actions/checkout@v7
