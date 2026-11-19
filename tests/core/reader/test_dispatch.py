@@ -102,6 +102,75 @@ def test_get_reader_bogus_beamline(make_hdf):
 
 
 # ---------------------------------------------------------------------------
+# readers: browsing the frames of the loaded file
+# ---------------------------------------------------------------------------
+
+
+def test_reader_browses_hdf_frames(make_hdf):
+    frames = np.arange(4 * 3 * 5).reshape(4, 3, 5)
+    for beamline in ("APS_8IDI", "APS_9IDD"):
+        reader = get_reader(beamline, make_hdf(frames))
+        assert reader.num_browsable_frames == 4
+        assert reader.default_frame_average == 1
+        assert np.array_equal(reader.get_frames_mean(1, 3), frames[1:3].mean(axis=0))
+
+
+def test_reader_browses_rigaku_frames(make_rigaku):
+    path = make_rigaku([(0, 0, 0, 5), (1, 0, 0, 3), (2, 1, 2, 8)])
+    reader = get_reader("APS_8IDI", path)
+    assert reader.num_browsable_frames == 3
+    assert reader.default_frame_average == 100
+    img = reader.get_frames_mean(1, 3)
+    assert img.shape == (512, 1024)
+    assert img[0, 0] == 3 / 2 and img[1, 2] == 8 / 2
+
+
+def test_reader_browses_rigaku_3m_frames(make_rigaku_3m):
+    events_by_suffix = {suffix: [(0, 0, 0, 1), (1, 0, 0, 3)] for suffix in range(6)}
+    reader = get_reader("APS_8IDI", make_rigaku_3m(events_by_suffix))
+    assert reader.num_browsable_frames == 2
+    assert reader.default_frame_average == 100
+    img = reader.get_frames_mean(0, 2)
+    assert img.shape == (1676, 2100)
+    assert img.sum() == 6 * (1 + 3) / 2
+
+
+def test_reader_browses_rigaku_extend_frames(make_rigaku_extend):
+    path = make_rigaku_extend([(0, 0, 0, 5), (1, 0, 0, 3), (2, 1, 2, 8)])
+    reader = get_reader("APS_8IDI", path)
+    assert reader.num_browsable_frames == 3
+    assert reader.default_frame_average == 100
+    img = reader.get_frames_mean(1, 3)
+    assert img.shape == (512, 448)
+    assert img[0, 0] == 3 / 2 and img[1, 2] == 8 / 2
+
+
+def test_reader_without_browsable_frames(make_hdf, make_imm, tmp_path):
+    """A single image, and the formats that only average their frames."""
+    import tifffile
+
+    tif = tmp_path / "img.tif"
+    tifffile.imwrite(str(tif), np.ones((2, 8, 8), dtype=np.float32))
+    readers = [
+        get_reader("APS_8IDI", make_hdf(np.zeros((4, 5)))),
+        get_reader("APS_8IDI", make_imm(np.ones((3, 2, 3), dtype=np.uint16))),
+        get_reader("NativeFiles", str(tif)),
+    ]
+    for reader in readers:
+        assert reader.num_browsable_frames == 0
+        assert reader.default_frame_average == 1
+        with pytest.raises(ValueError):
+            reader.get_frames_mean(0, 1)
+
+
+def test_xpcs_result_has_no_frames_to_browse(make_xpcs_result):
+    reader = get_handler("APS_8IDI", make_xpcs_result())
+    assert reader.num_browsable_frames == 0
+    with pytest.raises(ValueError):
+        reader.get_frames_mean(0, 1)
+
+
+# ---------------------------------------------------------------------------
 # get_handler: error-swallowing delegator
 # ---------------------------------------------------------------------------
 

@@ -11,6 +11,7 @@ from scipy.sparse import coo_array
 
 from ..io_utils import resolve_frame_range
 from .base import ScatteringDataset
+from .rigaku import DEFAULT_FRAME_AVERAGE
 
 logger = logging.getLogger(__name__)
 
@@ -54,12 +55,15 @@ def get_number_of_frames_from_binfile(filepath, endianness="<"):
 class RigakuExtendDataset(ScatteringDataset):
     """Loader for a single RigakuExtend 512x448 64-bit binary file."""
 
+    default_frame_average = DEFAULT_FRAME_AVERAGE
+
     def __init__(self, fname, det_size=MODULE_SHAPE, total_frames=None, **kwargs):
         super().__init__(fname)
         self.det_size = tuple(det_size)
         self.index, self.frame, self.count, self.num_frames_total = self._read(
             total_frames
         )
+        self.num_browsable_frames = self.num_frames_total
 
     def _read(self, total_frames):
         with open(self.fname, "rb") as f:
@@ -87,3 +91,15 @@ class RigakuExtendDataset(ScatteringDataset):
 
         summed = np.asarray(smat[begin_idx:end_idx].sum(axis=0)).reshape(self.det_size)
         return (summed / n_frames).astype(np.float32)
+
+    def get_frames_mean(self, begin_idx, end_idx):
+        self._check_frame_range(begin_idx, end_idx)
+        # The file lists its events frame by frame, so the events of a range
+        # of frames are one slice of it, found without scanning them all.
+        lo, hi = np.searchsorted(self.frame, (begin_idx, end_idx))
+        summed = np.bincount(
+            self.index[lo:hi],
+            weights=self.count[lo:hi],
+            minlength=self.det_size[0] * self.det_size[1],
+        ).reshape(self.det_size)
+        return (summed / (end_idx - begin_idx)).astype(np.float32)

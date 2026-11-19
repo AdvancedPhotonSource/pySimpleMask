@@ -306,8 +306,15 @@ class SimpleMaskModel(object):
         )
         return saxs1d, zero_loc
 
-    def compute_adjacent_saxs1d(self, method="percentile", cutoff=3.0, box_size=32):
-        """Outlier removal by adjacent square boxes instead of q-rings."""
+    def compute_adjacent_saxs1d(
+        self, method="percentile", cutoff=3.0, box_size=32, region=None
+    ):
+        """Outlier removal by adjacent square boxes instead of q-rings.
+
+        ``region`` (bool array of the image shape, optional) restricts the
+        removal to those pixels, e.g. the rectangle ROI drawn in the GUI's
+        Outlier tab; see ``outlier_removal_adjacent_boxes``.
+        """
         t0 = time.perf_counter()
         saxs1d, zero_loc = outlier_removal_adjacent_boxes(
             self.dset.scat,
@@ -315,6 +322,7 @@ class SimpleMaskModel(object):
             box_size=box_size,
             method=method,
             cutoff=cutoff,
+            region=region,
         )
         logger.info(
             "adjacent-box outlier removal finished in %f seconds",

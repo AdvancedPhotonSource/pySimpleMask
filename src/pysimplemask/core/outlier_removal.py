@@ -185,6 +185,21 @@ def outlier_removal_with_saxs(
     return saxs1d, bad_pixel_all
 
 
+def _tile_bounds(start, stop, box_size, include_partial):
+    """``[(a, b), ...]`` of adjacent ``box_size`` tiles laid over ``[start, stop)``.
+
+    Only complete tiles fit unless ``include_partial`` is set, in which case
+    the last tile is clipped to ``stop`` so the whole span is covered.
+    """
+    span = stop - start
+    n = span // box_size
+    if include_partial and span % box_size:
+        n += 1
+    return [
+        (start + i * box_size, min(start + (i + 1) * box_size, stop)) for i in range(n)
+    ]
+
+
 def outlier_removal_adjacent_boxes(
     saxs_lin,
     mask,
@@ -193,6 +208,7 @@ def outlier_removal_adjacent_boxes(
     cutoff=3.0,
     percentile=(5, 95),
     eps=1e-16,
+    region=None,
 ):
     """Outlier removal by dividing the detector into adjacent square boxes.
 
@@ -218,6 +234,14 @@ def outlier_removal_adjacent_boxes(
         (low, high) percentile for clipping when method='percentile'.
     eps : float
         Guard against near-zero division.
+    region : np.ndarray, shape (H, W), dtype bool, optional
+        Restrict the removal to the pixels where ``region`` is True (e.g. the
+        rectangle ROI drawn in the GUI's Outlier tab). The tile grid is then
+        anchored at the top-left corner of the region's bounding box and the
+        edge tiles are clipped to that box, so the whole region is covered
+        even when its extent is not a multiple of ``box_size`` (unlike the
+        whole-image case, where the edge remainder is ignored). ``None``
+        processes the whole image.
 
     Returns
     -------
@@ -231,10 +255,27 @@ def outlier_removal_adjacent_boxes(
     if box_size < 1:
         raise ValueError(f"box_size must be >= 1, got {box_size}")
     H, W = saxs_lin.shape
-    n_row = H // box_size
-    n_col = W // box_size
+    if region is None:
+        rb0, rb1, cb0, cb1 = 0, H, 0, W
+        partial_tiles = False
+    else:
+        region = np.asarray(region, dtype=bool)
+        if region.shape != saxs_lin.shape:
+            raise ValueError(
+                f"region shape {region.shape} does not match image shape {saxs_lin.shape}"
+            )
+        rows = np.flatnonzero(region.any(axis=1))
+        cols = np.flatnonzero(region.any(axis=0))
+        if rows.size == 0:
+            return np.zeros((5, 0)), np.zeros((2, 0), dtype=int)
+        rb0, rb1 = int(rows[0]), int(rows[-1]) + 1
+        cb0, cb1 = int(cols[0]), int(cols[-1]) + 1
+        mask = mask & region
+        partial_tiles = True
 
-    if n_row == 0 or n_col == 0:
+    row_tiles = _tile_bounds(rb0, rb1, box_size, partial_tiles)
+    col_tiles = _tile_bounds(cb0, cb1, box_size, partial_tiles)
+    if not row_tiles or not col_tiles:
         return np.zeros((5, 0)), np.zeros((2, 0), dtype=int)
 
     method_lc = method.lower()
@@ -243,10 +284,8 @@ def outlier_removal_adjacent_boxes(
 
     records = []   # (raw_avg, ref, thr, max_val, bad_coords)
 
-    for br in range(n_row):
-        for bc in range(n_col):
-            r0, r1 = br * box_size, (br + 1) * box_size
-            c0, c1 = bc * box_size, (bc + 1) * box_size
+    for r0, r1 in row_tiles:
+        for c0, c1 in col_tiles:
             box_mask = mask[r0:r1, c0:c1]
             box_data = saxs_lin[r0:r1, c0:c1]
 

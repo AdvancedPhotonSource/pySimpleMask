@@ -217,3 +217,37 @@ def test_generate_report_from_qmap_num_frames(loaded_model, tmp_path):
 
 
 
+
+
+def test_describe_blemish_footer_text():
+    from pysimplemask.core.report import _describe_blemish
+
+    arr = np.ones((2, 2), dtype=bool)
+    assert _describe_blemish({"blemish_sources": ["detector default", "bs.hdf"]}, arr) == (
+        "detector default + bs.hdf"
+    )
+    # kernel sources win over the raw CLI path
+    assert _describe_blemish(
+        {"blemish_sources": ["bs.hdf"], "blemish": "/x/other.hdf"}, arr
+    ) == "bs.hdf"
+    assert _describe_blemish({"blemish": "/some/dir/bs.hdf"}, None) == "bs.hdf"
+    assert _describe_blemish({}, arr) == "stored"
+    assert _describe_blemish({}, None) == "none"
+
+
+def test_generate_report_after_blemish_file(loaded_model, tmp_path):
+    """A blemish file applied via the model is what the report's panel sees."""
+    user = np.ones(loaded_model.shape, dtype=np.uint8)
+    user[0:5, 0:5] = 0
+    fpath = tmp_path / "bs.hdf"
+    with h5py.File(fpath, "w") as h:
+        h["/qmap/mask"] = user
+    loaded_model.mask_evaluate("mask_blemish", fname=str(fpath), key="/qmap/mask")
+    loaded_model.mask_apply("mask_blemish")
+
+    assert loaded_model.mask_kernel.blemish_sources == ["bs.hdf"]
+    np.testing.assert_array_equal(loaded_model.mask_kernel.blemish, user.astype(bool))
+
+    out = tmp_path / "report.png"
+    generate_report(loaded_model, str(out), params={"blemish": str(fpath)})
+    assert out.exists() and out.stat().st_size > 1024

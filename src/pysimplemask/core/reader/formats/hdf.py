@@ -14,6 +14,21 @@ from .base import ScatteringDataset
 logger = logging.getLogger(__name__)
 
 
+def count_hdf_frames(fname):
+    """Number of frames in the ``/entry/data/data`` stack of the HDF5 file
+    ``fname``; 0 if it is not such a file (a single image included)."""
+    try:
+        if not h5py.is_hdf5(fname):
+            return 0
+        with h5py.File(fname, "r") as f:
+            if "/entry/data/data" not in f:
+                return 0
+            shape = f["/entry/data/data"].shape
+            return int(shape[0]) if len(shape) == 3 else 0
+    except Exception:
+        return 0
+
+
 class HdfDataset(ScatteringDataset):
     """Loader for 2-D or 3-D (frame, y, x) detector data stored in HDF5."""
 
@@ -29,6 +44,7 @@ class HdfDataset(ScatteringDataset):
             self.det_size = tuple(shape)
         elif self.ndim == 3:
             self.det_size = tuple(shape[1:])
+            self.num_browsable_frames = int(shape[0])
         else:
             raise ValueError(f"unexpected dataset rank {self.ndim} for {data_path!r}")
 
@@ -48,3 +64,12 @@ class HdfDataset(ScatteringDataset):
             chunk_size=32,
             num_processes=num_processes,
         )
+
+    def get_frames_mean(self, begin_idx, end_idx):
+        self._check_frame_range(begin_idx, end_idx)
+        with h5py.File(self.fname, "r") as f:
+            data = f[self.data_path][begin_idx:end_idx]
+        # as get_scattering: unsigned counts are read as signed ones
+        if data.dtype.kind == "u":
+            data = data.astype(np.dtype(f"int{data.dtype.itemsize * 8}"))
+        return data.mean(axis=0).astype(np.float32)

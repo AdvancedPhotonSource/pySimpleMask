@@ -7,6 +7,13 @@ from PySide6 import QtCore
 # Images are indexed (row, col); match pyqtgraph's display orientation.
 pg.setConfigOptions(imageAxisOrder="row-major")
 
+# Canvas key of the Outlier tab's region rectangle (at most one at a time).
+OUTLIER_ROI_KEY = "outlier_roi"
+# Keys of user-placed ROIs that survive a redraw (``ImageViewROI.clear()``
+# keeps them): the Draw tab's "roi_*" shapes and the Outlier tab's rectangle.
+# Every other item (e.g. the center marker) is a transient overlay.
+PERSISTENT_ROI_PREFIXES = ("roi_", OUTLIER_ROI_KEY)
+
 
 class ImageViewROI(pg.ImageView):
     # Emitted from remove_item() for every key actually removed, regardless of
@@ -86,12 +93,16 @@ class ImageViewROI(pg.ImageView):
             self.remove_item(key)
 
     def clear(self):
-        # Keep "roi_*" drawn shapes across a redraw (pg.ImageView.clear() only
-        # resets the displayed image, not added scene items) — only wipe
-        # transient overlays like the center marker. Drawn ROIs are removed
-        # by explicit user action (their own remove handle, the draw table's
-        # right-click Remove) or remove_rois() (e.g. on loading a new file).
-        non_roi_keys = [key for key in self.roi if not key.startswith("roi_")]
+        # Keep user-placed ROIs (PERSISTENT_ROI_PREFIXES) across a redraw
+        # (pg.ImageView.clear() only resets the displayed image, not added
+        # scene items) — only wipe transient overlays like the center marker.
+        # Those ROIs are removed by explicit user action (their own remove
+        # handle, the draw table's right-click Remove, the Outlier tab's
+        # Remove ROI), by Apply on the Outlier tab, or by remove_rois() /
+        # remove_item() (e.g. on loading a new file).
+        non_roi_keys = [
+            key for key in self.roi if not key.startswith(PERSISTENT_ROI_PREFIXES)
+        ]
         for key in non_roi_keys:
             self.remove_item(key)
         super(ImageViewROI, self).clear()

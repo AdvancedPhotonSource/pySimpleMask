@@ -105,10 +105,11 @@ def make_rigaku_3m(tmp_path):
 
 @pytest.fixture
 def make_hdf(tmp_path):
-    def _make(frames, data_path="/entry/data/data", name="data.h5"):
+    def _make(frames, data_path="/entry/data/data", name="data.h5", **kwargs):
+        """``kwargs`` (chunks, compression, ...) go to ``create_dataset``."""
         path = tmp_path / name
         with h5py.File(path, "w") as h:
-            h[data_path] = np.asarray(frames)
+            h.create_dataset(data_path, data=np.asarray(frames), **kwargs)
         return str(path)
 
     return _make

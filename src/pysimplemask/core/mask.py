@@ -11,6 +11,17 @@ import skimage.io as skio
 
 logger = logging.getLogger(__name__)
 
+# Angular maps whose constraint ranges are treated as periodic (period 360°)
+# by MaskParameter. The GUI uses the same predicate to decide which spin boxes
+# may be set beyond the map's own min/max.
+PERIODIC_ANGLE_MAPS = ("phi", "chi", "alpha")
+
+
+def is_periodic_angle_map(xmap_name, unit):
+    """True when a constraint on ``xmap_name`` is an angle in degrees whose
+    range may cross the ±180° seam (e.g. ``[170, 190]`` or ``[-190, -170]``)."""
+    return xmap_name in PERIODIC_ANGLE_MAPS and unit == "deg"
+
 
 # unused (no references):
 # def create_qring(qmin, qmax, pmin, pmax, qnum=1, flag_const_width=True):
@@ -87,8 +98,10 @@ class MaskFile(MaskBase):
     def __init__(self, shape=(512, 1024), fname=None, **kwargs) -> None:
         super().__init__(shape=shape)
         self.mtype = "file"
+        self.fname = None  # path of the last successfully loaded mask file
 
     def evaluate(self, fname=None, key=None):
+        self.fname = None
         if not os.path.isfile(fname):
             return
 
@@ -115,6 +128,7 @@ class MaskFile(MaskBase):
         assert mask.shape == self.shape
         mask = mask <= 0
         self.zero_loc = np.array(np.nonzero(mask))
+        self.fname = fname
 
 
 class MaskThreshold(MaskBase):
@@ -152,15 +166,24 @@ class MaskParameter(MaskBase):
         row_masks = []
         for i, (xmap_name, logic, unit, vbeg, vend) in enumerate(constraints):
             xmap = qmap[xmap_name]
-            if xmap_name in ["phi", "chi", "alpha"] and unit == "deg":
+            if is_periodic_angle_map(xmap_name, unit):
                 # deal with the periodicity of the angle,
                 # vbeg, vend = 160, 200 or vbeg, vend = -200, -160
+                # (exactly one bound may lie beyond ±180; the other must be
+                # inside [-180, 180] for the wrap to apply)
                 xmap = np.copy(xmap)
                 if vbeg <= -180 and -180 <= vend <= 180:
                     xmap[xmap > vend] -= 360.0
                 if vend > 180 and -180 <= vbeg <= 180:
                     xmap[xmap < vbeg] += 360.0
             mask_t = (xmap >= vbeg) * (xmap <= vend)
+            if not mask_t.any():
+                logger.warning(
+                    "mask_parameter row %d (%s %s [%g, %g] %s) matches no pixels; "
+                    "%s spans [%g, %g] on this detector",
+                    i + 1, xmap_name, logic, vbeg, vend, unit,
+                    xmap_name, np.nanmin(qmap[xmap_name]), np.nanmax(qmap[xmap_name]),
+                )
             if logic == "AND":
                 mask = np.logical_and(mask, mask_t)
             elif logic == "OR":
@@ -171,6 +194,11 @@ class MaskParameter(MaskBase):
             # from several AND-ed rows simply ends up labeled by the last one.
             group_index_map[mask_t] = i + 1
             row_masks.append(mask_t)
+        if constraints and not mask.any():
+            logger.warning(
+                "mask_parameter: the combined %d constraint row(s) leave no valid pixels",
+                len(constraints),
+            )
         group_index_map[~mask] = 0
         self.zero_loc = np.array(np.nonzero(~mask))
         self.group_index_map = group_index_map
@@ -268,6 +296,11 @@ class MaskAssemble:
         self.saxs_lin = saxs_lin
         self.qmap = qmap
 
+        # Human-readable account of what self.blemish is made of: the detector
+        # default (if ADHelper has one for this shape) and any blemish file
+        # applied through the "mask_blemish" target. Empty means self.blemish
+        # is the all-ones fallback, i.e. no blemish at all.
+        self.blemish_sources = []
         self.blemish = self.get_default_blemish()
         self.mask_record = [np.ones_like(self.saxs_lin, dtype=bool), self.blemish]
         self.mask_ptr = 1
@@ -295,6 +328,7 @@ class MaskAssemble:
                 # (e.g. uint8); this mask feeds self.mask directly, and a non-bool
                 # mask silently turns boolean masking (xmap[mask]) into advanced
                 # integer indexing elsewhere.
+                self.blemish_sources.append("detector default")
                 return blemish.astype(bool)
         except ImportError:
             pass  # ADHelper not installed — fall back
@@ -308,6 +342,16 @@ class MaskAssemble:
             return self.get_mask()
 
         worker_mask = self.get_one_mask(target)
+        if target == "mask_blemish":
+            # A blemish file applied on top of the detector default is part of
+            # the blemish itself, not just another mask step: the saved
+            # /qmap/blemish, the report's blemish panel and "reset to blemish"
+            # must all see default AND file.
+            self.blemish = np.logical_and(self.blemish, worker_mask)
+            fname = getattr(self.workers[target], "fname", None)
+            source = os.path.basename(fname) if fname else "file"
+            if source not in self.blemish_sources:
+                self.blemish_sources.append(source)
         contributions = self.contribution_record[self.mask_ptr]
         if target in self.REPLACEABLE_TARGETS:
             contributions = tuple(c for c in contributions if c[0] != target)

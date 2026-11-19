@@ -27,7 +27,7 @@ bound to *this* checkout. If `import pysimplemask` ever resolves elsewhere (the 
 `.pth` once pointed at a sibling `pySimpleMask-refactor` path), reinstall from the repo root:
 
 ```bash
-/local/MQICHU/envs/l2606_simplemask_refact/bin/pip install -e ".[dev]"
+/local/MQICHU/envs/l2606_simplemask_refact/bin/pip install -e ".[dev,gui]"   # gui: PySide6 and pyqtgraph (the base package has no Qt)
 ```
 
 Common commands (prefix each with the env's `bin/` or activate the env first):
@@ -35,6 +35,7 @@ Common commands (prefix each with the env's `bin/` or activate the env first):
 ```bash
 pysimplemask                       # launch the GUI (needs an X11/Wayland display)
 pysimplemask --path /data/dir      # launch with a starting directory
+pysimplemask --path /data/scan.h5  # launch and load that dataset (a file that fails to load: start in its directory)
 pysimplemask-combine-qmaps a.h5 b.h5 out.h5   # merge two qmap HDF5 files
 pysimplemask report qmap.h5 -o report.png     # generate PDF/PNG report from qmap
 
@@ -106,6 +107,10 @@ geometry directly. `core/` imports no Qt and is fully scriptable.
 - `outlier_removal.py` — two strategies: `outlier_removal_with_saxs` (circular q-rings)
   and `outlier_removal_adjacent_boxes` (fixed-size spatial tiles, sorted brightest-first).
   Both share `compute_outlier_percentile` / `compute_outlier_mad` helpers.
+  `outlier_removal_adjacent_boxes` takes an optional boolean `region` (the GUI's
+  Outlier-tab rectangle ROI, `OUTLIER_ROI_KEY` on the canvas) that restricts the
+  removal to part of the image; the tile grid is then anchored at the region's
+  bounding box with clipped edge tiles.
 - `ellipse_util.py` — ellipse-fit q-correction for the eq-ephi partition mode.
 - `report.py` — `generate_report(model, output_path)` and `generate_report_from_qmap(qmap_file, ...)`:
   generates a 2×3 PDF/PNG summary report (blemish, masked scattering, mask, beam-center crop with
@@ -120,6 +125,29 @@ geometry directly. `core/` imports no Qt and is fully scriptable.
   `data_display` channel stack, mask state, centers, `compute_qmap()`) and pick a format
   loader from `reader/formats/` (`get_format_loader` by extension: hdf/imm/rigaku/rigaku_extend). `stype`
   selects the qmap geometry. All loaders return the per-pixel **mean** over the frame range.
+- `reader/io_utils.average_frames_parallel` (the HDF mean) reads one-frame-per-chunk
+  bitshuffle / LZ4 / Blosc (or uncompressed) datasets with **threads that bypass h5py**:
+  chunk offsets come from h5py, then each thread `readinto`s its chunks and decompresses
+  them with the hdf5plugin filter libraries through ctypes (all of which release the GIL).
+  Any other layout (gzip, multi-frame chunks, virtual datasets) falls back to an h5py
+  process pool.
+- `formats/rigaku.py` (500k and 3M) does **not hold the file in memory**. A Rigaku file
+  lists its events (64-bit words) in frame order, so a range of frames is one stretch of
+  the file: it is found by bisection, then read and summed (`np.bincount`) in 8 MiB
+  chunks, by threads when the range is long (`gc_paused` as for HDF). A full 3M load
+  (373 M events, 2.9 GB) takes ~0.8 s. Chunks much smaller than that make the numpy
+  calls short and the threads queue for the GIL. `rigaku_extend.py` still decodes the
+  whole file into memory and sums it through a CSR matrix.
+- **Frame browsing** (the GUI's `rawdata` and `rawdata * mask` channels; the latter
+  multiplies each frame by `sm.mask`, the blemish until a mask is applied): a loader that can read a few frames
+  quickly sets `num_browsable_frames` and implements `get_frames_mean(begin_idx, end_idx)`
+  — `HdfDataset` (h5py slice), `RigakuDataset` (the same read as its mean, above),
+  `RigakuExtendDataset` (a `searchsorted` slice of its in-memory events) and
+  `Rigaku3MDataset` (stitched modules). `default_frame_average` is the browser's default
+  window: 1, or 100 for the Rigaku loaders, whose single frames are too sparse to show.
+  `FileReader` forwards all three, so the GUI calls `sm.dset.get_frames_mean(...)` and
+  never opens the file itself. IMM, Timepix and TIFF have no frame browsing
+  (`num_browsable_frames == 0`).
 
 **`gui/` — Qt only** (`src/pysimplemask/gui/`)
 - `view/mask.ui` (Designer source) → `view/ui_mask.py` (**generated** by `pyside6-uic`,

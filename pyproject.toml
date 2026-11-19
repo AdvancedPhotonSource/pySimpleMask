@@ -21,6 +21,7 @@ classifiers = [
   "Operating System :: OS Independent",
 ]
 
+# the library and command-line tools (matplotlib draws the PDF report); the desktop app is the gui extra
 dependencies = [
   "numpy",
   "scipy",
@@ -28,14 +29,17 @@ dependencies = [
   "hdf5plugin",
   "scikit-image",
   "matplotlib",
-  "pyqtgraph",
-  "PySide6>=6.8",
   "astropy",
   "imagecodecs",
   "tifffile",
 ]
 
 [project.optional-dependencies]
+gui = [
+  # PySide6 6.12.0 with pyqtgraph 0.14.0 segfaults the GUI test suite (tests/gui, 2026-10-26); 6.11.3 is fine
+  "PySide6>=6.8,<6.12",
+  "pyqtgraph",
+]
 dev = [
   "coverage", # Testing
   "mypy",     # Type checking
@@ -49,6 +53,7 @@ web = [
 ]
 pyinstaller = [
   "pyinstaller>=6.21",
+  "pysimplemask[gui]",
 ]
 
 [project.scripts]

@@ -2,14 +2,16 @@
 # See LICENSE file for details
 """Raw-frame IO helpers shared across format loaders."""
 
+import contextlib
 import ctypes
+import gc
 import logging
-import os
 import pathlib
 import struct
-import sys
 from concurrent.futures import ThreadPoolExecutor
+from itertools import repeat
 from multiprocessing import Pool, cpu_count
+from typing import Callable, NamedTuple, Optional
 
 import h5py
 import hdf5plugin  # noqa: F401  # registers HDF5 compression plugins (bitshuffle/lz4)
@@ -30,132 +32,340 @@ def _cast_to_signed(arr: np.ndarray) -> np.ndarray:
         return arr.astype(np.dtype(f"int{arr.dtype.itemsize * 8}"))
     return arr
 
-# ---------------------------------------------------------------------------
-# GIL detection — evaluated once at module import (= app startup).
-# sys._is_gil_enabled() is present on CPython 3.13+ free-threaded builds;
-# older interpreters always have the GIL so we default to True.
-# ---------------------------------------------------------------------------
-_GIL_ENABLED: bool = getattr(sys, "_is_gil_enabled", lambda: True)()
-if not _GIL_ENABLED:
-    logger.info(
-        "Free-threaded Python detected (GIL disabled) — "
-        "thread-parallel HDF5-bypass path will be used for LZ4-chunked datasets."
-    )
 
 _CHUNK_MEMORY_BUDGET = 256 * 1024 * 1024  # 256 MiB
 
-# HDF5 pure-LZ4 block filter (id 32004).  Wire format per chunk:
-#   bytes  0–7:  total uncompressed bytes  (uint64, big-endian)
-#   bytes  8–11: block size               (uint32, big-endian)
-#   bytes 12–15: compressed block size    (uint32, big-endian)
-#   bytes 16–:   LZ4 data
+# ---------------------------------------------------------------------------
+# Direct chunk read — frame-per-chunk datasets decoded without the HDF5 library.
+#
+# h5py serialises every read behind a global lock, so reading through it only
+# scales with worker *processes*, which pay to start up, to decode into large
+# intermediate stacks and to pickle their sums back.  For the layouts the
+# detectors write (one frame per chunk; bitshuffle, LZ4 or Blosc) the chunk
+# index is read once through h5py instead, and worker threads then read and
+# decompress the chunks themselves.  File reads, the decompressors (called
+# through ctypes) and numpy all release the GIL, so the threads run in
+# parallel on a regular interpreter as well as on a free-threaded one.
+# ---------------------------------------------------------------------------
+_BSHUF_FILTER_ID = 32008
 _LZ4_FILTER_ID = 32004
-_NOGIL_DEFAULT_WORKERS = 16   # empirical elbow on Lustre: 8–16 threads
+_BLOSC_FILTER_ID = 32001
+# cd_values[4] of the bitshuffle filter -> decompress function of its library
+_BSHUF_DECODERS = {2: "bshuf_decompress_lz4", 3: "bshuf_decompress_zstd"}
+# The bitshuffle and LZ4 filters start a chunk with (big-endian) the
+# uncompressed size in bytes (uint64) and the block size in bytes (uint32);
+# the LZ4 filter then prefixes every block with its compressed size (uint32).
+_CHUNK_HEADER = struct.Struct(">QI")
+_LZ4_BLOCK_HEADER = struct.Struct(">I")
+# A Blosc chunk is one Blosc buffer; its header holds (little-endian, after
+# four bytes of versions and flags) the uncompressed size, the block size and
+# the compressed size (uint32 each).
+_BLOSC_HEADER = struct.Struct("<4xIII")
+
+# Frame dtype (unsigned types already reinterpreted as signed, see
+# _cast_to_signed) -> dtype of a worker's running sum.  The threads are limited
+# by memory bandwidth, so the sum is kept narrow; a worker adds up at most
+# _SUM_WINDOW frames before its sum is folded into the float64 total, which
+# keeps the integer sums exact (256 int8 frames fit int16, 256 int16 frames
+# fit int32) and the float32 sum of int32 counts exact up to 2**24 per pixel.
+_SUM_DTYPE = {"i1": "i2", "i2": "i4", "i4": "f4", "i8": "f8", "f4": "f4", "f8": "f8"}
+_SUM_WINDOW = 256
+# Default cap on the threads: more only contend for memory bandwidth.
+_DIRECT_MAX_WORKERS = 32
+
+_filter_libs: dict = {}
 
 
-# ---------------------------------------------------------------------------
-# LZ4 shared library — loaded lazily; only needed on the no-GIL path.
-# Deferred so the module stays importable even without libh5lz4.so.
-# ---------------------------------------------------------------------------
-_lz4_lib = None
+def _filter_func(lib, name, restype, argtypes):
+    """Return function ``name`` of the ``h5<lib>`` filter library bundled in hdf5plugin."""
+    if lib not in _filter_libs:
+        plugin_dir = pathlib.Path(hdf5plugin.__file__).parent / "plugins"
+        paths = sorted(plugin_dir.glob(f"*h5{lib}.*"))
+        if not paths:
+            raise OSError(f"no h5{lib} filter library in {plugin_dir}")
+        _filter_libs[lib] = ctypes.CDLL(str(paths[0]))
+    func = getattr(_filter_libs[lib], name)
+    func.restype, func.argtypes = restype, argtypes
+    return func
 
 
-def _get_lz4_lib():
-    """Return the LZ4 ctypes handle, loading it from hdf5plugin on first call."""
-    global _lz4_lib
-    if _lz4_lib is not None:
-        return _lz4_lib
-    plugin_dir = pathlib.Path(hdf5plugin.__file__).parent / "plugins"
-    lib = ctypes.CDLL(str(plugin_dir / "libh5lz4.so"))
-    lib.LZ4_decompress_safe.restype = ctypes.c_int
-    lib.LZ4_decompress_safe.argtypes = [
-        ctypes.c_char_p,  # src  (compressed bytes)
-        ctypes.c_char_p,  # dst  (output buffer)
-        ctypes.c_int,     # compressedSize
-        ctypes.c_int,     # maxDecompressedSize
-    ]
-    _lz4_lib = lib
-    return lib
-
-
-# ---------------------------------------------------------------------------
-# No-GIL workers — pure os.pread + ctypes LZ4; no h5py, no HDF5 mutex.
-# ---------------------------------------------------------------------------
-
-def _decode_lz4_chunk(raw: bytes, out: np.ndarray) -> None:
-    """Parse 16-byte LZ4 filter header and decompress *raw* into *out* (flat uint32)."""
-    lz4 = _get_lz4_lib()
-    total_bytes = struct.unpack_from(">Q", raw, 0)[0]
-    comp_size   = struct.unpack_from(">I", raw, 12)[0]
-    ret = lz4.LZ4_decompress_safe(
-        raw[16: 16 + comp_size],
-        out.ctypes.data_as(ctypes.c_char_p),
-        comp_size,
-        total_bytes,
+def _bshuf_decoder(name):
+    """Return ``decode(chunk, frame)`` for chunks of the bitshuffle filter."""
+    # int64_t f(const void *in, void *out, size_t size, size_t elem_size, size_t block_size)
+    func = _filter_func(
+        "bshuf", name, ctypes.c_int64, [ctypes.c_void_p] * 2 + [ctypes.c_size_t] * 3
     )
-    if ret != total_bytes:
-        raise RuntimeError(f"LZ4 decompression: got {ret} bytes, expected {total_bytes}")
+
+    def decode(chunk, frame):
+        nbytes, block_nbytes = _CHUNK_HEADER.unpack_from(chunk)
+        if nbytes != frame.nbytes:
+            raise ValueError(f"chunk holds {nbytes} bytes, expected {frame.nbytes}")
+        ret = func(
+            chunk.ctypes.data + _CHUNK_HEADER.size,
+            frame.ctypes.data,
+            frame.size,
+            frame.itemsize,
+            block_nbytes // frame.itemsize,
+        )
+        if ret < 0:
+            raise RuntimeError(f"bitshuffle decompression failed with error {ret}")
+
+    return decode
 
 
-def _read_and_sum_nogil(args):
-    """pread + LZ4-decompress + accumulate for one worker's slice of frames."""
-    fd, chunk_list, partial, H, W = args
-    frame_u32 = np.empty(H * W, dtype=np.uint32)
-    for byte_offset, raw_size in chunk_list:
-        _decode_lz4_chunk(os.pread(fd, int(raw_size), int(byte_offset)), frame_u32)
-        partial += _cast_to_signed(frame_u32).reshape(H, W)
-    return len(chunk_list)
+def _lz4_decoder():
+    """Return ``decode(chunk, frame)`` for chunks of the LZ4 filter."""
+    # int LZ4_decompress_safe(const char *src, char *dst, int compressedSize, int dstCapacity)
+    func = _filter_func(
+        "lz4", "LZ4_decompress_safe", ctypes.c_int, [ctypes.c_void_p] * 2 + [ctypes.c_int] * 2
+    )
+
+    def decode(chunk, frame):
+        nbytes, block_nbytes = _CHUNK_HEADER.unpack_from(chunk)
+        if nbytes != frame.nbytes or block_nbytes == 0:
+            raise ValueError(f"chunk holds {nbytes} bytes, expected {frame.nbytes}")
+        src, dst = chunk.ctypes.data, frame.ctypes.data
+        pos, done = _CHUNK_HEADER.size, 0
+        while done < nbytes:
+            block = min(block_nbytes, nbytes - done)
+            (size,) = _LZ4_BLOCK_HEADER.unpack_from(chunk, pos)
+            pos += _LZ4_BLOCK_HEADER.size
+            if pos + size > chunk.size:
+                raise ValueError("LZ4 block runs past the end of its chunk")
+            if size == block:  # the filter stores an incompressible block as is
+                ctypes.memmove(dst + done, src + pos, block)
+            elif func(src + pos, dst + done, size, block) != block:
+                raise RuntimeError("LZ4 decompression failed")
+            pos += size
+            done += block
+
+    return decode
 
 
-def _try_scan_lz4(dataset, start_frame, num_frames):
-    """Return a list of (byte_offset, size) for each frame if the dataset uses
-    the LZ4 filter with one frame per chunk; otherwise return None.
+def _blosc_decoder():
+    """Return ``decode(chunk, frame)`` for chunks of the Blosc filter."""
+    # int blosc_decompress_ctx(const void *src, void *dest, size_t destsize,
+    #                          int numinternalthreads)
+    func = _filter_func(
+        "blosc",
+        "blosc_decompress_ctx",
+        ctypes.c_int,
+        [ctypes.c_void_p] * 2 + [ctypes.c_size_t, ctypes.c_int],
+    )
 
-    Called while the h5py file handle is still open.
-    """
+    def decode(chunk, frame):
+        nbytes, _, compressed_nbytes = _BLOSC_HEADER.unpack_from(chunk)
+        if nbytes != frame.nbytes or compressed_nbytes > chunk.size:
+            raise ValueError(f"chunk holds {nbytes} bytes, expected {frame.nbytes}")
+        if func(chunk.ctypes.data, frame.ctypes.data, frame.nbytes, 1) != frame.nbytes:
+            raise RuntimeError("Blosc decompression failed")
+
+    return decode
+
+
+def _chunk_decoder(filter_id, cd_values, itemsize):
+    """Return ``decode(chunk, frame)`` for an HDF5 filter, or ``None`` if the
+    chunks it writes cannot be decoded here."""
     try:
-        plist = dataset.id.get_create_plist()
-        chunk_shape = dataset.chunks
-        if (plist.get_nfilters() < 1
-                or plist.get_filter(0)[0] != _LZ4_FILTER_ID
-                or chunk_shape is None
-                or chunk_shape[0] != 1):
-            return None
-        _get_lz4_lib()  # verify the shared lib is loadable before committing
-        logger.info("no-GIL: scanning %d LZ4 chunk byte-offsets", num_frames)
-        return [
-            (info.byte_offset, info.size)
-            for i in range(start_frame, start_frame + num_frames)
-            for info in (dataset.id.get_chunk_info_by_coord((i, 0, 0)),)
-        ]
-    except Exception as exc:
-        logger.debug("no-GIL LZ4 path unavailable (%s), falling back to multiprocessing", exc)
+        if filter_id == _LZ4_FILTER_ID:
+            return _lz4_decoder()
+        if filter_id == _BLOSC_FILTER_ID:
+            return _blosc_decoder()
+        # cd_values: (major, minor, elem_size, block_size, compression)
+        if (
+            filter_id == _BSHUF_FILTER_ID
+            and len(cd_values) >= 5
+            and cd_values[2] == itemsize
+            and cd_values[4] in _BSHUF_DECODERS
+        ):
+            return _bshuf_decoder(_BSHUF_DECODERS[cd_values[4]])
+    except (AttributeError, OSError) as exc:
+        logger.debug("filter library is not usable for a direct chunk read: %s", exc)
+    return None
+
+
+class _DirectLayout(NamedTuple):
+    """Where a range of frames lives in its file, and how to decode it."""
+
+    fname: str
+    shape: tuple  # (rows, cols) of one frame
+    dtype: np.dtype  # frame dtype; unsigned types are reinterpreted as signed
+    addr: np.ndarray  # file offset of each frame
+    nbytes: np.ndarray  # stored size of each frame
+    stored: np.ndarray  # True where a frame was written without the filter
+    decode: Optional[Callable]  # chunk decoder; None for a dataset without filter
+
+
+def _chunk_table(dataset, start_frame, num_frames):
+    """Return ``(addr, nbytes, stored)`` of the one-frame chunks in a frame
+    range, or ``None`` if one of them was never written."""
+    addr = np.full(num_frames, -1, dtype=np.int64)
+    nbytes = np.zeros(num_frames, dtype=np.int64)
+    stored = np.zeros(num_frames, dtype=bool)
+
+    def record(n, info):
+        if 0 <= n < num_frames and info.byte_offset is not None:
+            addr[n], nbytes[n] = info.byte_offset, info.size
+            # bit 0 of the mask set -> the (only) filter was skipped for this chunk
+            stored[n] = info.filter_mask & 1
+
+    if hasattr(dataset.id, "chunk_iter"):
+        dataset.id.chunk_iter(lambda info: record(info.chunk_offset[0] - start_frame, info))
+    else:  # HDF5 < 1.12.3
+        for n in range(num_frames):
+            record(n, dataset.id.get_chunk_info_by_coord((start_frame + n, 0, 0)))
+
+    if np.any(addr < 0):
+        return None
+    return addr, nbytes, stored
+
+
+def _probe_direct(dataset, start_frame, num_frames):
+    """Return the :class:`_DirectLayout` of a frame range of a 3-D h5py
+    dataset if it can be read without the HDF5 library, else ``None``.
+
+    Qualifying datasets hold a native fixed-size type and are either
+    contiguous, or chunked one frame per chunk with no filter or with the
+    bitshuffle (LZ4/ZSTD), the LZ4 or the Blosc filter alone.
+    """
+    dtype = dataset.dtype
+    if dtype.kind == "u":
+        dtype = np.dtype(f"int{dtype.itemsize * 8}")
+    if not (
+        dataset.dtype.isnative
+        and dtype.str[1:] in _SUM_DTYPE
+        and not dataset.is_virtual
+        and dataset.external is None
+        and dataset.file.driver == "sec2"
+        and dataset.file.userblock_size == 0
+    ):
         return None
 
+    # the file that actually holds the data; differs from the opened file when
+    # the dataset is reached through an external link
+    fname = dataset.file.filename
+    shape = tuple(int(n) for n in dataset.shape[1:])
+    frame_nbytes = shape[0] * shape[1] * dtype.itemsize
 
-def _run_nogil_average(file_path, lz4_frames, H, W, num_frames):
-    """Thread-parallel reduction over a pre-scanned list of LZ4 chunk offsets.
+    if dataset.chunks is None:
+        offset = dataset.id.get_offset()
+        if offset is None:
+            return None
+        addr = offset + frame_nbytes * np.arange(
+            start_frame, start_frame + num_frames, dtype=np.int64
+        )
+        nbytes = np.full(num_frames, frame_nbytes, dtype=np.int64)
+        return _DirectLayout(
+            fname, shape, dtype, addr, nbytes, np.ones(num_frames, dtype=bool), None
+        )
 
-    Phase 1 (already done by caller): chunk byte-offsets collected via h5py.
-    Phase 2 (here): os.pread + LZ4_decompress_safe in ThreadPoolExecutor —
-    threads run freely without GIL serialisation.
+    if dataset.chunks != (1, *shape):
+        return None
+    dcpl = dataset.id.get_create_plist()
+    decode = None
+    if dcpl.get_nfilters() == 1:
+        filter_id, _, cd_values, _ = dcpl.get_filter(0)
+        decode = _chunk_decoder(filter_id, cd_values, dtype.itemsize)
+        if decode is None:
+            return None
+    elif dcpl.get_nfilters() != 0:
+        return None
+
+    table = _chunk_table(dataset, start_frame, num_frames)
+    if table is None:
+        return None
+    return _DirectLayout(fname, shape, dtype, *table, decode)
+
+
+def default_num_workers():
+    """Number of threads that read a file when the caller does not say: half
+    the CPUs, capped because more only contend for memory bandwidth."""
+    return min(max(1, cpu_count() // 2), _DIRECT_MAX_WORKERS)
+
+
+@contextlib.contextmanager
+def gc_paused():
+    """Hold the garbage collector off while worker threads run.
+
+    The collector runs in whichever thread trips it, and would then destroy
+    the caller's unreachable objects from a worker thread; the GUI's Qt
+    objects do not survive that. It is left disabled if it already was.
     """
-    splits = [s for s in np.array_split(lz4_frames, _NOGIL_DEFAULT_WORKERS) if len(s)]
-    n_workers = len(splits)
-    partials = np.zeros((n_workers, H, W), dtype=np.float32)
-    fd = os.open(str(file_path), os.O_RDONLY)
+    was_enabled = gc.isenabled()
+    gc.disable()
     try:
-        jobs = [(fd, list(s), p, H, W) for s, p in zip(splits, partials)]
-        logger.info("averaging %d frames with %d threads (no-GIL HDF5-bypass)", num_frames, n_workers)
-        with ThreadPoolExecutor(max_workers=n_workers) as executor:
-            list(executor.map(_read_and_sum_nogil, jobs))
+        yield
     finally:
-        os.close(fd)
-    return (partials.sum(axis=0) / num_frames).astype(np.float32)
+        if was_enabled:
+            gc.enable()
+
+
+def read_into(f, offset, buf):
+    """Fill the uint8 array ``buf`` from byte ``offset`` of the open file ``f``."""
+    f.seek(offset)
+    done = 0
+    while done < buf.size:
+        n = f.readinto(buf[done:])
+        if not n:
+            raise OSError(f"unexpected end of file while reading {f.name}")
+        done += n
+
+
+def _sum_frames(layout, frames, out):
+    """Sum the frames ``frames`` (indices into ``layout``) into the flat array ``out``."""
+    frame = np.empty(out.size, dtype=layout.dtype)
+    frame_bytes = frame.view(np.uint8)
+    chunk = np.empty(int(layout.nbytes[frames].max()), dtype=np.uint8)
+    # one file object per thread: seek + readinto is then safe, and portable
+    with open(layout.fname, "rb", buffering=0) as f:
+        for n, i in enumerate(frames):
+            nbytes, offset = int(layout.nbytes[i]), int(layout.addr[i])
+            if layout.decode is None or layout.stored[i]:
+                if nbytes != frame_bytes.size:
+                    raise ValueError(f"frame {i}: unexpected raw chunk size {nbytes}")
+                read_into(f, offset, frame_bytes)
+            else:
+                read_into(f, offset, chunk[:nbytes])
+                layout.decode(chunk[:nbytes], frame)
+            if n == 0:
+                out[:] = frame
+            else:
+                np.add(out, frame, out=out, dtype=out.dtype, casting="unsafe")
+
+
+def _average_direct(layout, num_workers=None):
+    """Return the float32 mean image of the frames of a :class:`_DirectLayout`,
+    summed by ``num_workers`` threads."""
+    num_frames = len(layout.addr)
+    if num_workers is None:
+        num_workers = default_num_workers()
+    num_workers = min(num_workers, num_frames)
+    size = layout.shape[0] * layout.shape[1]
+    sums = np.empty((num_workers, size), dtype=_SUM_DTYPE[layout.dtype.str[1:]])
+    total = np.zeros(size, dtype=np.float64)
+    # folding the sums in bands of pixels keeps each band of the total in
+    # cache, and lets the threads do it as well
+    edges = np.linspace(0, size, num_workers + 1, dtype=np.int64)
+
+    def fold(lo, hi, num_sums):
+        total[lo:hi] += sums[:num_sums, lo:hi].sum(axis=0, dtype=np.float64)
+
+    logger.info("using %d threads to load %d frames", num_workers, num_frames)
+    with gc_paused(), ThreadPoolExecutor(max_workers=num_workers) as pool:
+        for start in range(0, num_frames, num_workers * _SUM_WINDOW):
+            stop = min(start + num_workers * _SUM_WINDOW, num_frames)
+            jobs = [
+                job
+                for job in np.array_split(np.arange(start, stop), num_workers)
+                if len(job)
+            ]
+            list(pool.map(_sum_frames, repeat(layout), jobs, sums))
+            list(pool.map(fold, edges[:-1], edges[1:], repeat(len(jobs))))
+    return (total / num_frames).reshape(layout.shape).astype(np.float32)
 
 
 # ---------------------------------------------------------------------------
-# Multiprocessing worker (GIL-enabled / non-LZ4 fallback path)
+# Multiprocessing worker (fallback for layouts the direct read cannot handle)
 # ---------------------------------------------------------------------------
 
 def process_chunk(file_path, dataset_name, start_idx, end_idx):
@@ -165,13 +375,21 @@ def process_chunk(file_path, dataset_name, start_idx, end_idx):
         return np.sum(chunk, axis=0, dtype=np.float32)
 
 
+# A subset of the frames (see resolve_frame_range) is never smaller than this,
+# and is a fifth of the dataset unless a fraction is given.
+_MIN_SUBSET_FRAMES = 1000
+_DEFAULT_SUBSET_FRACTION = 0.2
+
+
 def resolve_frame_range(total_frames, start_frame, num_frames):
     """Clamp a requested frame range to what the dataset contains.
 
     ``num_frames`` semantics, shared by every format loader:
-      * ``> 0`` — exactly that many frames (clamped to the end);
+      * ``>= 1`` — exactly that many frames (clamped to the end);
       * ``0`` / ``None`` — all remaining frames from ``start_frame``;
-      * ``< 0`` — a representative subset (``max(1000, total_frames // 5)``).
+      * a fraction between 0 and 1 — a representative subset: that share of
+        the dataset's frames, but at least 1000 of them;
+      * ``< 0`` — the default subset, the same as ``0.2``.
 
     Returns the number of frames to read, starting at ``start_frame``.
     """
@@ -179,8 +397,9 @@ def resolve_frame_range(total_frames, start_frame, num_frames):
         raise ValueError(f"start_frame must be between 0 and {total_frames - 1}")
     if num_frames is None or num_frames == 0:
         num_frames = total_frames - start_frame
-    elif num_frames < 0:
-        num_frames = max(1000, total_frames // 5)
+    elif num_frames < 1:
+        fraction = num_frames if num_frames > 0 else _DEFAULT_SUBSET_FRACTION
+        num_frames = max(_MIN_SUBSET_FRAMES, int(total_frames * fraction))
     if start_frame + num_frames > total_frames:
         num_frames = total_frames - start_frame
     return num_frames
@@ -196,20 +415,20 @@ def average_frames_parallel(
 ):
     """Return the per-pixel mean image over a range of frames in a 3-D HDF5 stack.
 
-    On free-threaded Python (no GIL) with a dataset compressed by the LZ4 HDF5
-    filter (id 32004, one frame per chunk), this uses a thread-parallel
-    HDF5-bypass: chunk byte-offsets are scanned once via h5py, then worker
-    threads call os.pread + LZ4_decompress_safe directly, bypassing the HDF5
-    serialisation mutex entirely.  On GIL-enabled Python or non-LZ4 datasets
-    the original multiprocessing path is used.
+    A dataset stored one frame per chunk with the bitshuffle, LZ4 or Blosc
+    filter (or uncompressed) is read by worker threads that bypass the HDF5
+    library: the chunk byte-offsets are scanned once via h5py, then each thread
+    reads and decompresses its share of the chunks directly (see
+    :func:`_probe_direct`).  Any other layout is read through h5py in worker
+    processes.
 
-    See :func:`resolve_frame_range` for ``num_frames`` semantics.
+    ``num_processes`` is the number of workers of either kind; the default is
+    half the CPU count, and no more than 32 threads.  See
+    :func:`resolve_frame_range` for ``num_frames`` semantics.
 
     Returns:
         np.ndarray: 2-D ``float32`` mean image.
     """
-    _lz4_frames = None  # set to a list of (byte_offset, size) on the no-GIL path
-
     with h5py.File(file_path, "r") as f:
         dataset = f[dataset_name]
         if dataset.ndim != 3:
@@ -219,6 +438,15 @@ def average_frames_parallel(
         logger.info("Total frames in dataset: %d", total_frames)
         num_frames = resolve_frame_range(total_frames, start_frame, num_frames)
 
+        try:
+            layout = _probe_direct(dataset, start_frame, num_frames)
+            if layout is not None:
+                return _average_direct(layout, num_processes)
+        except Exception as exc:
+            logger.warning(
+                "direct chunk read failed (%s), reading through h5py instead", exc
+            )
+
         # Small ranges are cheaper to read in a single process.
         if num_frames < chunk_size:
             frames = _cast_to_signed(dataset[start_frame: start_frame + num_frames])
@@ -226,34 +454,22 @@ def average_frames_parallel(
                 np.float32
             )
 
-        H, W = int(dataset.shape[1]), int(dataset.shape[2])
+        if num_processes is None:
+            num_processes = max(1, cpu_count() // 2)
+        # Grow chunks toward one-per-worker to amortize the per-chunk file open,
+        # but cap each chunk's in-memory size so wide detectors don't blow up RAM.
+        frame_nbytes = int(np.prod(dataset.shape[1:])) * dataset.dtype.itemsize
+        budget_frames = max(1, _CHUNK_MEMORY_BUDGET // max(frame_nbytes, 1))
+        per_worker = -(-num_frames // num_processes)  # ceil division
+        chunk_size = max(chunk_size, min(per_worker, budget_frames))
 
-        # No-GIL fast path: scan LZ4 chunk byte-offsets while the file is open.
-        if not _GIL_ENABLED:
-            _lz4_frames = _try_scan_lz4(dataset, start_frame, num_frames)
-
-        if _lz4_frames is None:
-            # Grow chunks toward one-per-worker to amortize the per-chunk file open,
-            # but cap each chunk's in-memory size so wide detectors don't blow up RAM.
-            if num_processes is None:
-                num_processes = max(1, cpu_count() // 2)
-            frame_nbytes = int(np.prod(dataset.shape[1:])) * dataset.dtype.itemsize
-            budget_frames = max(1, _CHUNK_MEMORY_BUDGET // max(frame_nbytes, 1))
-            per_worker = -(-num_frames // num_processes)  # ceil division
-            chunk_size = max(chunk_size, min(per_worker, budget_frames))
-
-            stop = start_frame + num_frames
-            chunks = [
-                (file_path, dataset_name, i, min(i + chunk_size, stop))
-                for i in range(start_frame, stop, chunk_size)
-            ]
+        stop = start_frame + num_frames
+        chunks = [
+            (file_path, dataset_name, i, min(i + chunk_size, stop))
+            for i in range(start_frame, stop, chunk_size)
+        ]
     # h5py file is closed here; all needed metadata is in local variables.
 
-    # No-GIL thread path (LZ4-chunked dataset on free-threaded Python).
-    if _lz4_frames is not None:
-        return _run_nogil_average(file_path, _lz4_frames, H, W, num_frames)
-
-    # Multiprocessing path (GIL-enabled Python or non-LZ4 dataset).
     num_processes = min(len(chunks), num_processes)
     logger.info("using %d cores to load %d frames", num_processes, num_frames)
     with Pool(processes=num_processes) as pool:

@@ -5,12 +5,13 @@ import logging
 import os
 import sys
 import traceback
+from enum import IntEnum
 from pathlib import Path
 
 import numpy as np
 import pyqtgraph as pg
 from pyqtgraph.parametertree import Parameter
-from PySide6.QtCore import QByteArray, QTimer
+from PySide6.QtCore import QByteArray, QSortFilterProxyModel, QTimer
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -30,20 +31,68 @@ from pyqtgraph.Qt import QtCore
 
 from pysimplemask import __version__
 from pysimplemask.core.io import load_pixel_list, text_to_array
+from pysimplemask.core.mask import is_periodic_angle_map
 from pysimplemask.core.model import SimpleMaskModel
 from pysimplemask.core.partition import least_multiple
 from pysimplemask.core.reader.base_reader import DISPLAY_FIELD
-from pysimplemask.gui.model.roi_extract import extract_roi_geometry
+from pysimplemask.core.reader.formats import count_frames
+from pysimplemask.core.reader.io_utils import resolve_frame_range
+from pysimplemask.gui.model.roi_extract import extract_roi_geometry, roi_region
 from pysimplemask.gui.model.table_model import (
     DrawGroupTableModel,
     XmapConstraintsTableModel,
 )
 from pysimplemask.gui.view.ui_mask import Ui_SimpleMask as Ui
+from pysimplemask.gui.view.widgets import OUTLIER_ROI_KEY
 
 HOME_DIR = Path.home()
 CONFIG_FILE = HOME_DIR / ".pysimplemask" / "config.json"
 
-_RAWDATA_IDX = 0   # "rawdata" is always at plot_index position 0
+# plot_index lists the raw frames first ("rawdata", then "rawdata * mask"),
+# then data_display's channels in order: DISPLAY_FIELD, then the qmap keys
+# appended at load.
+_RAWDATA_IDX = 0
+_RAWDATA_MASK_IDX = 1
+_RAW_PLOT_INDICES = (_RAWDATA_IDX, _RAWDATA_MASK_IDX)   # read frame by frame, not from data_display
+_CHANNEL_OFFSET = len(_RAW_PLOT_INDICES)   # plot_index position of data_display[0]
+_QMAP_START_IDX = _CHANNEL_OFFSET + len(DISPLAY_FIELD)
+
+
+def _plot_index(field):
+    """plot_index position of the DISPLAY_FIELD channel named `field`."""
+    return _CHANNEL_OFFSET + DISPLAY_FIELD.index(field)
+
+
+_BINARY_PLOT_INDICES = (_plot_index("mask"), _plot_index("preview"))   # shown on fixed 0/1 levels
+
+
+class _MaskTab(IntEnum):
+    """MaskWidget tab positions, in mask.ui order."""
+
+    FILES = 0
+    DRAW = 1
+    BINARY = 2
+    MANUAL = 3
+    OUTLIER = 4
+    PARAMETER = 5
+
+
+# comboBox_frame_range item → the num_frames it loads from the first frame
+# (see resolve_frame_range); _FRAME_RANGE_CUSTOM takes the range from the
+# begin / number-of-frames spin boxes instead.
+_FRAME_RANGE_NUM_FRAMES = {
+    "All frames": 0,
+    "1/5 of frames": 1 / 5,
+    "1/2 of frames": 1 / 2,
+}
+_FRAME_RANGE_CUSTOM = "Custom"
+
+
+_XY_LABEL_OFFSET_PX = 12   # screen pixels between the cursor and the floating (x, y) label
+_METADATA_SUFFIX = "_metadata.hdf"   # companion metadata sidecar, never the data file to load
+_RAW_FILE_FILTER = (
+    "Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.bix *.tif *.tiff *.fits *.raw *.bin.* *.tpx *.tpx.*)"
+)
 CONFIG_FILE.parent.mkdir(parents=True, exist_ok=True)
 
 logging.basicConfig(
@@ -73,6 +122,27 @@ PVMAP = {
 
 # Maps MaskWidget tab index → mask target(s) applied by btn_mask_apply.
 # Tab 0 (Blemish/Files) applies both; an unevaluated worker is a safe no-op.
+class _HideMetadataFilesProxyModel(QSortFilterProxyModel):
+    """File-dialog proxy that hides ``*_metadata.hdf`` companion files.
+
+    A raw data folder holds the data file(s) plus a ``<prefix>_metadata.hdf``
+    sidecar. The sidecar is picked up automatically by the reader
+    (``find_metadata_file``) and is never the file to load, so keep it out of
+    the "Select raw file" list. Directories always pass so the user can still
+    navigate into a folder whose name happens to end with the suffix.
+
+    Only effective with the non-native Qt dialog: native dialogs ignore
+    :meth:`QFileDialog.setProxyModel`.
+    """
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        model = self.sourceModel()
+        index = model.index(source_row, 0, source_parent)
+        if model.isDir(index):
+            return True
+        return not model.fileName(index).endswith(_METADATA_SUFFIX)
+
+
 def _find_hdf_datasets_matching_shape(fname, target_shape, max_depth=5):
     """Return HDF5 dataset paths whose shape matches target_shape (H, W).
 
@@ -106,24 +176,24 @@ _APPLY_TIP_DISABLED = "Evaluate a mask first — Apply will become available aft
 
 _GROUPINDEX_CHECKBOX_LABEL = "Use group-index for sub-partitions"
 
-_TAB_MASK_TARGETS: list = [
-    ("mask_file",),                  # 0: Files (blemish section removed from UI)
-    ("mask_draw",),                  # 1: Draw
-    ("mask_threshold",),             # 2: Binary
-    ("mask_list",),                  # 3: Manual
-    ("mask_outlier",),               # 4: Outlier
-    ("mask_parameter",),             # 5: Parametrization
-]
+_TAB_MASK_TARGETS: dict = {
+    _MaskTab.FILES: ("mask_file",),  # blemish section removed from UI
+    _MaskTab.DRAW: ("mask_draw",),
+    _MaskTab.BINARY: ("mask_threshold",),
+    _MaskTab.MANUAL: ("mask_list",),
+    _MaskTab.OUTLIER: ("mask_outlier",),
+    _MaskTab.PARAMETER: ("mask_parameter",),
+}
 
-# Maps MaskWidget tab index → mask target(s) evaluated by btn_mask_evaluate.
-_TAB_MASK_EVALUATE_TARGETS: list = [
-    ("mask_file",),                  # 0: Files (blemish section removed from UI)
-    ("mask_draw",),                  # 1: Draw
-    ("mask_threshold",),             # 2: Binary
-    ("mask_list",),                  # 3: Manual
-    ("mask_outlier",),               # 4: Outlier
-    ("mask_parameter",),             # 5: Parametrization
-]
+# Maps MaskWidget tab → mask target(s) evaluated by btn_mask_evaluate.
+_TAB_MASK_EVALUATE_TARGETS: dict = {
+    _MaskTab.FILES: ("mask_file",),  # blemish section removed from UI
+    _MaskTab.DRAW: ("mask_draw",),
+    _MaskTab.BINARY: ("mask_threshold",),
+    _MaskTab.MANUAL: ("mask_list",),
+    _MaskTab.OUTLIER: ("mask_outlier",),
+    _MaskTab.PARAMETER: ("mask_parameter",),
+}
 
 
 class SimpleMaskGUI(QMainWindow, Ui):
@@ -133,15 +203,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.setupUi(self)
         self.setWindowTitle(f"pySimpleMask {__version__}")
 
-        # Frame controls are disabled until rawdata channel is active
+        # Frame controls are disabled until a rawdata channel is active
         self._raw_total_frames = 0   # set by load() for frame-average range calculation
+        self._selected_total_frames = 0   # frames of the file in the fname box; 0 if not known
         self.label_frame.setEnabled(False)
         self.horizontalSlider_frame.setEnabled(False)
         self.spinBox_current_frame.setEnabled(False)
         self.spinBox_frame_average.setEnabled(False)
         self.label_average.setEnabled(False)
 
-        # rawdata item starts disabled (grayed) until a compatible file is loaded
+        # rawdata items start disabled (grayed) until a compatible file is loaded
         self._set_rawdata_enabled(False)
 
         # No metadata loaded yet — nothing to update until a file is loaded and
@@ -160,6 +231,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
             pass
             
         self.btn_load.clicked.connect(self.load)
+        self.comboBox_frame_range.currentIndexChanged.connect(
+            self._on_frame_range_selected
+        )
+        self.fname.textChanged.connect(self._update_selected_total_frames)
+        self._on_frame_range_selected()  # sync the inputs with the initial selection
         self.btn_plot.clicked.connect(self.plot)
         self.btn_compute_qpartition.clicked.connect(self.compute_partition)
 
@@ -234,6 +310,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # outlier
 
         self.mask_outlier_hdl.setBackground((255, 255, 255))
+        self.btn_outlier_roi.clicked.connect(self.toggle_outlier_roi)
+        self.mp1.sigRoiRemoved.connect(self._on_canvas_roi_removed)
         self.comboBox_outlier_target.currentIndexChanged.connect(
             self._on_outlier_target_changed
         )
@@ -272,17 +350,20 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # Directory every file dialog opens in. It is fixed at launch (the
         # --path argument, or the cwd pysimplemask was started from) and is
         # deliberately never updated when the user browses elsewhere, so each
-        # new browse starts back at the original folder.
+        # new browse starts back at the original folder. A --path that names
+        # a file stands for the folder of that file; the file itself is
+        # loaded once the window is up (_load_launch_file).
         self.work_dir = os.getcwd()
+        self._launch_file = None
         if path is not None:
             path = os.path.abspath(path)
             if os.path.isfile(path):
-                self.fname.setText(str(path))
+                self._launch_file = path
                 self.work_dir = os.path.dirname(path)
             elif os.path.isdir(path):
                 self.work_dir = path
 
-        self.MaskWidget.setCurrentIndex(0)
+        self.MaskWidget.setCurrentIndex(_MaskTab.FILES)
         header = self.tableView.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
         header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
@@ -298,6 +379,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.save_load_settings(mode="load")
         self._setup_tooltips()
         self.show()
+        if self._launch_file is not None:
+            # from the event loop, so the window comes up before the load
+            QTimer.singleShot(0, self._load_launch_file)
 
     def _setup_tooltips(self):
         # ── Input file & data loading ─────────────────────────────────────────
@@ -308,12 +392,22 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.comboBox_beamline.setToolTip(
             "Select the beamline configuration that matches your data source"
         )
-        self.spinBox_3.setToolTip("First frame index to include (0-based)")
-        self.spinBox_4.setToolTip(
+        self.comboBox_frame_range.setToolTip(
             "Frames to load and average.\n"
-            "  0 = all remaining frames from begin index\n"
-            " >0 = exactly that many frames (clamped to file end)\n"
-            " <0 = representative subset: max(1000, total ÷ 5)"
+            "  All frames: the whole file\n"
+            "  1/5 or 1/2 of frames: that share of the file, counted from its\n"
+            "      first frame, but at least 1000 frames\n"
+            "  Custom: the range set by Begin and Frames"
+        )
+        self.spinBox_begin_idx.setToolTip(
+            "Index of the first frame to load (0-based).\n"
+            "Set it with the Custom range; the other ranges start at frame 0."
+        )
+        self.spinBox_num_frames.setToolTip(
+            "Number of frames to load from Begin (clamped to the end of the file);\n"
+            '"to end" loads every frame from Begin on.\n'
+            "Set it with the Custom range; for the other ranges it shows how many\n"
+            "frames they load from the selected file."
         )
         self.btn_load.setToolTip(
             "Load and average the selected frame range from the data file"
@@ -446,15 +540,26 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self.outlier_cutoff.setToolTip(
             "Threshold in σ (MAD mode) or percentile above which pixels are flagged"
         )
+        self.btn_outlier_roi.setToolTip(
+            "AdjacentPixels only: draw a rectangle on the image to restrict the\n"
+            "outlier removal to that region. Move/resize it, then Evaluate.\n"
+            "Apply removes the rectangle once the mask is applied."
+        )
         # ── Parametrization tab ───────────────────────────────────────────────
         self.comboBox_param_xmap_name.setToolTip(
             "Select a geometry map (q, phi, x, y, chi…) to constrain"
         )
         self.doubleSpinBox_param_vbeg.setToolTip(
-            "Minimum value of the selected map to keep unmasked"
+            "Minimum value of the selected map to keep unmasked.\n"
+            "For phi/chi/alpha in degrees the range may cross the ±180° seam,\n"
+            "e.g. 170 to 190 (or -190 to -170) keeps a 20° pie around 180°;\n"
+            "one of the two bounds must stay within [-180, 180]."
         )
         self.doubleSpinBox_param_vend.setToolTip(
-            "Maximum value of the selected map to keep unmasked"
+            "Maximum value of the selected map to keep unmasked.\n"
+            "For phi/chi/alpha in degrees the range may cross the ±180° seam,\n"
+            "e.g. 170 to 190 (or -190 to -170) keeps a 20° pie around 180°;\n"
+            "one of the two bounds must stay within [-180, 180]."
         )
         self.comboBox_param_logic.setToolTip(
             "Logical operator combining multiple constraint rows: AND / OR / NOT"
@@ -476,7 +581,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         # ── Display controls ──────────────────────────────────────────────────
         self.plot_index.setToolTip(
-            "What to display: scattering image, mask, dynamic/static partition, or preview"
+            "What to display: the raw frames (rawdata, as read or with the current mask\n"
+            "applied), scattering image, mask, dynamic/static partition, or preview"
         )
         self.plot_center.setToolTip("Show or hide the beam center crosshair")
         self.checkBox_showxy.setToolTip(
@@ -593,10 +699,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 self.update_parameters(new_center_vh=(row, col))
             return
 
-        current_idx = self.MaskWidget.currentIndex()
-        if current_idx not in [3, 5]:
-            return
-        if current_idx == 3:
+        if self.MaskWidget.currentIndex() == _MaskTab.MANUAL:
             # manual mode; select the dead pixel with mouse click
             if not self.mask_list_include.isChecked():
                 self.mask_list_add_pts([np.array([col, row])])
@@ -614,7 +717,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return
         self.sm.mask_action(action)
         self.plot()
-        self.plot_index.setCurrentIndex(2)
+        self.plot_index.setCurrentIndex(_plot_index("scattering * mask"))
 
     def mask_apply_current_tab(self):
         """Apply the mask(s) for the currently active MaskWidget tab."""
@@ -631,10 +734,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         deliberately skips that prompt — the user is mid-decision on the
         partition dialog and already saw it during Evaluate/Apply).
         """
-        idx = self.MaskWidget.currentIndex()
-        if idx < 0 or idx >= len(_TAB_MASK_TARGETS):
+        targets = _TAB_MASK_TARGETS.get(self.MaskWidget.currentIndex())
+        if targets is None:
             return
-        for target in _TAB_MASK_TARGETS[idx]:
+        for target in targets:
             self.mask_apply(target)
         self._set_apply_state(False)
 
@@ -643,10 +746,10 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.is_ready():
             return
         self._maybe_prompt_metadata_update()
-        idx = self.MaskWidget.currentIndex()
-        if idx < 0 or idx >= len(_TAB_MASK_EVALUATE_TARGETS):
+        targets = _TAB_MASK_EVALUATE_TARGETS.get(self.MaskWidget.currentIndex())
+        if targets is None:
             return
-        for target in _TAB_MASK_EVALUATE_TARGETS[idx]:
+        for target in targets:
             self.mask_evaluate(target)
         self._set_apply_state(True)
 
@@ -682,12 +785,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
             "then flags pixels more than cutoff × std from the clipped mean."
         ),
         ("AdjacentPixels", "median_absolute_deviation"): (
-            "Divides the image into fixed-size square boxes (brightest first). "
+            "Divides the image, or the drawn rectangle ROI, into fixed-size "
+            "square boxes (brightest first). "
             "Within each box, flags pixels whose intensity deviates from the "
             "median by more than cutoff × MAD."
         ),
         ("AdjacentPixels", "percentile"): (
-            "Divides the image into fixed-size square boxes (brightest first). "
+            "Divides the image, or the drawn rectangle ROI, into fixed-size "
+            "square boxes (brightest first). "
             "Within each box, clips extremes to the 5–95th percentile range, "
             "then flags pixels more than cutoff × std from the clipped mean."
         ),
@@ -698,9 +803,75 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if target == "CircularRings":
             self.label_outlier_target_info.setText("num. circular ROI:")
             self.outlier_num_roi.setValue(180)
+            # The region rectangle only applies to AdjacentPixels; drop a stale one.
+            self._remove_outlier_roi()
         elif target == "AdjacentPixels":
             self.label_outlier_target_info.setText("adjacent box size (pixel):")
             self.outlier_num_roi.setValue(32)
+        self._sync_outlier_roi_button()
+
+    # ── Outlier tab: region rectangle ──────────────────────────────────────
+    # One rectangle ROI (OUTLIER_ROI_KEY) that restricts AdjacentPixels outlier
+    # removal to its interior. It is not a draw ROI: extract_roi_geometry()
+    # ignores it, and ImageViewROI.clear() keeps it across preview redraws.
+    # It is a one-shot selection — Apply consumes it.
+    def _outlier_roi(self):
+        return self.mp1.roi.get(OUTLIER_ROI_KEY)
+
+    def toggle_outlier_roi(self):
+        """Draw the Outlier tab's rectangle, or remove it if one is on the canvas."""
+        if self._outlier_roi() is not None:
+            self._remove_outlier_roi()
+            return
+        if not self.is_ready():
+            self.statusbar.showMessage("Load a scattering image first.", 3000)
+            return
+        h, w = self.sm.shape
+        # Start as a third of the current view, centered in it, so the
+        # rectangle is in sight even when zoomed in; clamped to the image.
+        (x0, x1), (y0, y1) = self.mp1.getView().viewRange()
+        size_x = float(np.clip((x1 - x0) / 3, 8, w))
+        size_y = float(np.clip((y1 - y0) / 3, 8, h))
+        cx = float(np.clip((x0 + x1) / 2, size_x / 2, w - size_x / 2))
+        cy = float(np.clip((y0 + y1) / 2, size_y / 2, h - size_y / 2))
+        pen = pg.mkPen(color="m", width=2, style=QtCore.Qt.DashLine)
+        roi = pg.RectROI(
+            (cx - size_x / 2, cy - size_y / 2),
+            (size_x, size_y),
+            pen=pen, hoverPen=pen, handlePen=pen, removable=True, movable=True,
+        )
+        for hdl in ([0, 0], [0, 0.5], [0, 1], [0.5, 0],
+                    [0.5, 1], [1, 0], [1, 0.5], [1, 1]):
+            roi.addScaleHandle(hdl, [1 - hdl[0], 1 - hdl[1]])
+        self.mp1.add_item(roi, label=OUTLIER_ROI_KEY)
+        roi.sigRemoveRequested.connect(lambda: self.mp1.remove_item(OUTLIER_ROI_KEY))
+        self._sync_outlier_roi_button()
+        self.statusbar.showMessage(
+            "Move/resize the rectangle, then Evaluate. Apply removes it.", 5000
+        )
+
+    def _remove_outlier_roi(self):
+        # No-op when absent; otherwise fires sigRoiRemoved -> button resync.
+        self.mp1.remove_item(OUTLIER_ROI_KEY)
+
+    def _on_canvas_roi_removed(self, key):
+        if key == OUTLIER_ROI_KEY:
+            self._sync_outlier_roi_button()
+
+    def _sync_outlier_roi_button(self):
+        adjacent = self.comboBox_outlier_target.currentText() == "AdjacentPixels"
+        self.btn_outlier_roi.setEnabled(adjacent)
+        self.btn_outlier_roi.setText(
+            "Remove ROI" if self._outlier_roi() is not None else "Draw ROI"
+        )
+
+    def _outlier_roi_region(self):
+        """Boolean image-shaped array that is True inside the Outlier tab's
+        rectangle, or None when none is drawn (process the whole image)."""
+        roi = self._outlier_roi()
+        if roi is None or self.sm.shape is None:
+            return None
+        return roi_region(roi, self.mp1.imageItem, self.sm.shape)
 
     def _update_outlier_info(self):
         target = self.comboBox_outlier_target.currentText()
@@ -769,10 +940,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 )
                 x_label = "q (Å⁻¹)"
             else:  # AdjacentPixels
+                region = self._outlier_roi_region()
                 saxs1d, zero_loc = self.sm.compute_adjacent_saxs1d(
-                    box_size=num, cutoff=cutoff, method=method
+                    box_size=num, cutoff=cutoff, method=method, region=region
                 )
                 x_label = "box index (sorted by mean)"
+                if region is not None:
+                    x_label += " — inside ROI"
+                    if not region.any():
+                        logger.warning("the outlier ROI lies outside the image")
 
             self.mask_outlier_hdl.clear()
             p = self.mask_outlier_hdl
@@ -804,7 +980,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         msg = self.sm.mask_evaluate(target, **kwargs)
         self.statusbar.showMessage(msg, 10000)
-        self.plot_index.setCurrentIndex(6)
+        self._show_channel("preview")
         return
 
     def update_threshold_preset(self, target="low"):
@@ -839,6 +1015,8 @@ class SimpleMaskGUI(QMainWindow, Ui):
         # perform evaluate again so the saxs1d shows the new results;
         if target == "mask_outlier":
             self.mask_evaluate(target=target)
+            # The region rectangle is a one-shot selection, consumed by Apply.
+            self._remove_outlier_roi()
         elif target == "mask_list":
             self.mask_list_clear()
         elif target in ("mask_parameter", "mask_draw"):
@@ -848,31 +1026,42 @@ class SimpleMaskGUI(QMainWindow, Ui):
             self._update_groupindex_checkbox_enabled()
 
         self.plot()
-        self.plot_index.setCurrentIndex(2)
+        self.plot_index.setCurrentIndex(_plot_index("scattering * mask"))
 
     def _on_plot_index_changed(self, idx):
         """Update the displayed 2D slice when the channel selector changes."""
-        show_frame_controls = (idx == _RAWDATA_IDX)
+        show_frame_controls = idx in _RAW_PLOT_INDICES
         self.label_frame.setEnabled(show_frame_controls)
         self.horizontalSlider_frame.setEnabled(show_frame_controls)
         self.spinBox_current_frame.setEnabled(show_frame_controls)
         self.spinBox_frame_average.setEnabled(show_frame_controls)
         self.label_average.setEnabled(show_frame_controls)
 
-        if idx == _RAWDATA_IDX:
-            self._read_and_show_frame()   # show frame 0 immediately
+        if idx in _RAW_PLOT_INDICES:
+            self._read_and_show_frame()   # show the current frame immediately
             return   # rawdata display handled by frame browser callbacks
 
         if not self.is_ready():
             return
-        channel = idx - 1
+        channel = idx - _CHANNEL_OFFSET
         vb = self.mp1.getView()
         saved_range = vb.viewRange() if self.mp1.image is not None else None
         self.mp1.setImage(self.sm.dset.data_display[channel])
         if saved_range is not None:
             vb.setRange(xRange=saved_range[0], yRange=saved_range[1], padding=0)
-        if idx in [3, 6]:   # mask and preview: enforce binary 0/1 scale
+        if idx in _BINARY_PLOT_INDICES:
             self.mp1.setLevels(0, 1)
+
+    def _show_channel(self, field):
+        """Select the DISPLAY_FIELD channel `field` and redraw it even when
+        already selected: setCurrentIndex on the current index emits no
+        currentIndexChanged, and the channel's data_display slice may have
+        been updated in place."""
+        idx = _plot_index(field)
+        if self.plot_index.currentIndex() == idx:
+            self._on_plot_index_changed(idx)
+        else:
+            self.plot_index.setCurrentIndex(idx)
 
     def is_ready(self):
         if not self.sm.is_ready():
@@ -881,13 +1070,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
         return True
 
     def _set_rawdata_enabled(self, enabled: bool) -> None:
-        """Enable or gray out the rawdata item in plot_index."""
+        """Enable or gray out the rawdata items in plot_index."""
         model = self.plot_index.model()
-        item = model.item(_RAWDATA_IDX)
-        if item:
-            item.setEnabled(enabled)
-        if not enabled and self.plot_index.currentIndex() == _RAWDATA_IDX:
-            self.plot_index.setCurrentIndex(_RAWDATA_IDX + 1)
+        for idx in _RAW_PLOT_INDICES:
+            item = model.item(idx)
+            if item:
+                item.setEnabled(enabled)
+        if not enabled and self.plot_index.currentIndex() in _RAW_PLOT_INDICES:
+            self.plot_index.setCurrentIndex(_plot_index("scattering"))
 
     def _set_apply_state(self, ready: bool) -> None:
         """Enable/disable btn_mask_apply and keep its tooltip + bold in sync."""
@@ -954,24 +1144,16 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def _detect_rawdata(self) -> tuple:
         """Return (has_rawdata, num_frames) for the currently loaded file.
 
-        Checks for /entry/data/data with ndim==3 and shape[0] > 1.
+        It has rawdata when it holds more than one frame in a format whose
+        frames can be read a few at a time: an HDF stack, or a Rigaku 500k,
+        3M or RigakuExtend file.
         """
-        import h5py
         if not self.sm.is_ready():
             return False, 0
-        fname = self.sm.dset.fname
-        try:
-            if not h5py.is_hdf5(fname):
-                return False, 0
-            with h5py.File(fname, "r") as f:
-                if "/entry/data/data" not in f:
-                    return False, 0
-                s = f["/entry/data/data"].shape
-                if len(s) != 3 or s[0] <= 1:
-                    return False, 0
-                return True, int(s[0])
-        except Exception:
+        num_frames = self.sm.dset.num_browsable_frames
+        if num_frames <= 1:
             return False, 0
+        return True, num_frames
 
     def _update_frame_range(self) -> None:
         """Recompute slider/spinbox range from raw frame count and frame_average."""
@@ -1011,8 +1193,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         self._frame_timer.start()   # restart: cancel pending read, schedule new one
 
     def _read_and_show_frame(self) -> None:
-        """Timer callback: read (and average) raw frames from HDF5 and display."""
-        import h5py
+        """Timer callback: read (and average) raw frames and display them."""
         if not self.sm.is_ready():
             return
         idx = self._pending_frame_idx
@@ -1021,15 +1202,14 @@ class SimpleMaskGUI(QMainWindow, Ui):
         end = min(start + n_avg, self._raw_total_frames if self._raw_total_frames > 0 else start + 1)
         fname = self.sm.dset.fname
         try:
-            with h5py.File(fname, "r") as f:
-                raw = f["/entry/data/data"][start:end]
-            # Cast unsigned int to signed (uint16→int16, uint32→int32)
-            if raw.dtype.kind == "u":
-                raw = raw.astype(np.dtype(f"int{raw.dtype.itemsize * 8}"))
-            frame = raw.mean(axis=0).astype(np.float32) if raw.ndim == 3 else raw.astype(np.float32)
+            frame = self.sm.dset.get_frames_mean(start, end)
         except Exception as exc:
             logger.error("Failed to read frames %d-%d from %s: %s", start, end, fname, exc)
             return
+        if self.plot_index.currentIndex() == _RAWDATA_MASK_IDX:
+            # The current mask, as in "scattering * mask": the blemish until
+            # a mask is applied on top of it. Masked pixels are left empty.
+            frame = frame * self.sm.mask
         if self.plot_log.isChecked():
             positive = frame[frame > 0]
             floor = float(positive.min()) if positive.size else 1.0
@@ -1058,16 +1238,32 @@ class SimpleMaskGUI(QMainWindow, Ui):
             return self.work_dir
         return os.getcwd()
 
+    def _raw_file_dialog(self) -> QFileDialog:
+        """Build the "Select raw file" dialog (not shown yet).
+
+        A QFileDialog instance rather than the static ``getOpenFileName`` so
+        a proxy model can hide the ``*_metadata.hdf`` sidecars: Qt name
+        filters can only include patterns, never exclude them. The proxy only
+        works with Qt's own (non-native) dialog.
+        """
+        dlg = QFileDialog(self)
+        # Qt docs: set DontUseNativeDialog before any other property or the
+        # widgets may be (re)built against a native helper.
+        dlg.setOption(QFileDialog.Option.DontUseNativeDialog, True)
+        dlg.setWindowTitle("Select raw file hdf")
+        dlg.setDirectory(self._dialog_dir())
+        dlg.setNameFilter(_RAW_FILE_FILTER)
+        dlg.setFileMode(QFileDialog.FileMode.ExistingFile)
+        dlg.setProxyModel(_HideMetadataFilesProxyModel(dlg))
+        return dlg
+
     def select_raw(self):
-        fname = QFileDialog.getOpenFileName(
-            self,
-            caption="Select raw file hdf",
-            dir=self._dialog_dir(),
-            filter="Supported Formats(*.hdf *.h5 *.hdf5 *.imm *.bin *.bix *.tif *.tiff *.fits *.raw *.bin.* *.tpx *.tpx.*)",
-        )[0]
-        if fname:
-            self.fname.setText(fname)
-        return
+        dlg = self._raw_file_dialog()
+        try:
+            if dlg.exec() and dlg.selectedFiles():
+                self.fname.setText(dlg.selectedFiles()[0])
+        finally:
+            dlg.deleteLater()
 
     def select_maskfile(self):
         if not self.is_ready():
@@ -1107,13 +1303,80 @@ class SimpleMaskGUI(QMainWindow, Ui):
                         self.comboBox_hdffile_path.setCurrentText(preferred)
                         break
 
-    def load(self):
+    def _update_selected_total_frames(self) -> None:
+        """Count the frames of the file in the fname box, and show what the
+        selected frame range loads from it."""
+        self._selected_total_frames = count_frames(self.fname.text())
+        self._on_frame_range_selected()
+
+    def _on_frame_range_selected(self) -> None:
+        """Enable the begin / number-of-frames inputs for a custom range; for a
+        preset, show in them (disabled) the range it loads."""
+        choice = self.comboBox_frame_range.currentText()
+        custom = choice == _FRAME_RANGE_CUSTOM
+        for widget in (
+            self.label_begin_idx,
+            self.spinBox_begin_idx,
+            self.label_num_frames,
+            self.spinBox_num_frames,
+        ):
+            widget.setEnabled(custom)
+        if custom:
+            # start from the range last shown; setValue redisplays a cleared box
+            self.spinBox_num_frames.setValue(self.spinBox_num_frames.value())
+            return
+
+        num_frames = _FRAME_RANGE_NUM_FRAMES[choice]
+        self.spinBox_begin_idx.setValue(0)
+        if self._selected_total_frames > 0:
+            self.spinBox_num_frames.setValue(
+                resolve_frame_range(self._selected_total_frames, 0, num_frames)
+            )
+        elif num_frames == 0:
+            self.spinBox_num_frames.setValue(0)   # displayed as "to end"
+        else:
+            self.spinBox_num_frames.clear()   # a share of an unknown frame count
+
+    def _selected_frame_range(self) -> dict:
+        """The begin_idx / num_frames of read_data for the selected frame range."""
+        choice = self.comboBox_frame_range.currentText()
+        if choice == _FRAME_RANGE_CUSTOM:
+            return {
+                "begin_idx": self.spinBox_begin_idx.value(),
+                "num_frames": self.spinBox_num_frames.value(),
+            }
+        return {"begin_idx": 0, "num_frames": _FRAME_RANGE_NUM_FRAMES[choice]}
+
+    def _load_launch_file(self) -> None:
+        """Load the file that ``--path`` named at launch.
+
+        A file that does not load as a dataset (with the beamline the last
+        session left selected) is dropped: the fname box stays empty, as if
+        ``--path`` had named its folder, which work_dir already is.
+        """
+        fname, self._launch_file = self._launch_file, None
+        if not os.path.isfile(fname):   # gone since launch; load() would ask for another
+            return
+        self.fname.setText(fname)
+        if self.load():
+            return
+        self.fname.clear()
+        logger.warning(
+            "%s is not a dataset; starting in its folder %s", fname, self.work_dir
+        )
+        self.statusbar.showMessage(
+            f"Not a dataset: {fname}. Browsing starts in its folder.", 8000
+        )
+
+    def load(self) -> bool:
+        """Load the file in the fname box (asking for one if it holds none).
+        Returns whether a dataset was loaded."""
         # self.fname.setText('/mnt/c/Users/mqichu/Documents/local_dev/pysimplemask/tests/data/E0135_La0p65_L2_013C_att04_Rq0_00001/E0135_La0p65_L2_013C_att04_Rq0_00001_0001-100000.hdf')
         if not os.path.isfile(self.fname.text()):
             self.select_raw()
         if not os.path.isfile(self.fname.text()):
             self.statusbar.showMessage("select a valid file")
-            return
+            return False
 
         self.btn_load.setText("loading...")
         self.statusbar.showMessage("loading data...", 120000)
@@ -1121,8 +1384,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
 
         fname = self.fname.text()
         kwargs = {
-            "begin_idx": self.spinBox_3.value(),
-            "num_frames": self.spinBox_4.value(),
+            **self._selected_frame_range(),
             "beamline": self.comboBox_beamline.currentText(),
         }
         try:
@@ -1133,10 +1395,11 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not ok:
             self.btn_load.setText("Load")
             self.statusbar.showMessage(f"Failed to load: {fname}", 8000)
-            return
+            return False
         # drawn ROIs belong to the previous dataset (fires sigRoiRemoved, which
         # also drops their draw-table rows)
         self.mp1.remove_rois("roi_")
+        self._remove_outlier_roi()
         # else:
         #     stype = self.sm.dset.stype
 
@@ -1154,25 +1417,31 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
         self.update_xmap_limits()
 
-        while self.plot_index.count() > 7:
-            self.plot_index.removeItem(7)
+        while self.plot_index.count() > _QMAP_START_IDX:
+            self.plot_index.removeItem(_QMAP_START_IDX)
         for key in self.sm.qmap.keys():
             self.plot_index.addItem(key)
 
         self.display_metadata()
+        self._update_selected_total_frames()   # the file may have grown since it was selected
         has_rawdata, num_frames = self._detect_rawdata()
         self._set_rawdata_enabled(has_rawdata)
         if has_rawdata:
             self._raw_total_frames = num_frames
-            self.spinBox_frame_average.setValue(1)
+            # no valueChanged: it would read and show a frame, and load ends
+            # on another channel
+            self.spinBox_frame_average.blockSignals(True)
+            self.spinBox_frame_average.setValue(self.sm.dset.default_frame_average)
+            self.spinBox_frame_average.blockSignals(False)
             self._update_frame_range()
         else:
             self._raw_total_frames = 0
-        self.plot_index.setCurrentIndex(2)  # default to "scattering * mask" after load
+        self.plot_index.setCurrentIndex(_plot_index("scattering * mask"))  # default after load
         self.plot(reset_view=True)
         self.statusbar.showMessage("data is loaded", 500)
         self.btn_load.setText("Load")
         self.btn_load.repaint()
+        return True
 
     def display_metadata(self):
         param_struct = self.sm.dset.get_parametertree_structure()
@@ -1204,14 +1473,18 @@ class SimpleMaskGUI(QMainWindow, Ui):
         if not self.mp1.scene.itemsBoundingRect().contains(pos):
             self._remove_xy_label()
             return
-        mouse_point = self.mp1.getView().mapSceneToView(pos)
+        vb = self.mp1.getView()
+        mouse_point = vb.mapSceneToView(pos)
         idx = self.plot_index.currentIndex()
-        col = int(mouse_point.x())
-        row = int(mouse_point.y())
+        col = int(np.floor(mouse_point.x()))
+        row = int(np.floor(mouse_point.y()))
         if idx == _RAWDATA_IDX:
-            channel = 0   # use scattering channel for coordinates when rawdata active
+            # use scattering channel for coordinates when rawdata active
+            channel = DISPLAY_FIELD.index("scattering")
+        elif idx == _RAWDATA_MASK_IDX:
+            channel = DISPLAY_FIELD.index("scattering * mask")
         else:
-            channel = idx - 1
+            channel = idx - _CHANNEL_OFFSET
         msg = self.sm.dset.get_coordinates(col, row, channel)
         if msg:
             self.infobar.clear()
@@ -1229,9 +1502,15 @@ class SimpleMaskGUI(QMainWindow, Ui):
                 )
                 self.mp1.getView().addItem(self._xy_text_item)
             self._xy_text_item.setText(f"({col}, {row})")
-            # Offset slightly so the label doesn't sit on top of the cursor pixel
-            offset = max(w, h) * 0.01
-            self._xy_text_item.setPos(col + offset, row + offset)
+            # Anchor the label a fixed number of *screen* pixels to the
+            # lower-right of the cursor.  Offsetting in scene (screen) space and
+            # then mapping into view coordinates keeps the gap constant at every
+            # zoom level; an offset in image-pixel units would scale with the
+            # zoom and push the label far away from the cursor when zoomed in.
+            label_pt = vb.mapSceneToView(
+                pos + QtCore.QPointF(_XY_LABEL_OFFSET_PX, _XY_LABEL_OFFSET_PX)
+            )
+            self._xy_text_item.setPos(label_pt.x(), label_pt.y())
             self.statusbar.showMessage("Shift + double click to set the new beam center")
         else:
             self._remove_xy_label()
@@ -1260,9 +1539,9 @@ class SimpleMaskGUI(QMainWindow, Ui):
         )
 
         idx = self.plot_index.currentIndex()
-        if idx == _RAWDATA_IDX:
+        if idx in _RAW_PLOT_INDICES:
             return   # rawdata handled separately; nothing to show until user selects a frame
-        channel = idx - 1   # rawdata occupies slot 0; shift back
+        channel = idx - _CHANNEL_OFFSET
         self.mp1.clear()
         self.mp1.setImage(self.sm.dset.data_display[channel])
         self.mp1.adjust_viewbox()
@@ -1305,7 +1584,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
     def add_drawing(self):
         if not self.is_ready():
             return
-        if self.MaskWidget.currentIndex() != 1:
+        if self.MaskWidget.currentIndex() != _MaskTab.DRAW:
             return
         color = ("r", "g", "y", "b", "c", "m", "k", "w")[
             self.cb_selector_color.currentIndex()
@@ -1381,9 +1660,18 @@ class SimpleMaskGUI(QMainWindow, Ui):
         vmin, vmax = float(valid.min()), float(valid.max())
         unit = self.sm.qmap_unit[xmap_name]
         self.label_param_info.setText(f"(min, max)=({vmin:.7f}, {vmax:.7f}) {unit}")
+        if is_periodic_angle_map(xmap_name, unit):
+            # MaskParameter wraps an angular range that crosses the ±180° seam
+            # (e.g. [170, 190] or [-190, -170]) as long as one bound stays
+            # within [-180, 180]. Clamping the spin boxes to the map's own
+            # min/max would make such a pie impossible to type in, so allow a
+            # full extra turn on either side instead.
+            lo, hi = -360.0, 360.0
+        else:
+            lo, hi = vmin, vmax
         for spinbox in (self.doubleSpinBox_param_vbeg, self.doubleSpinBox_param_vend):
-            spinbox.setMinimum(vmin)
-            spinbox.setMaximum(vmax)
+            spinbox.setMinimum(lo)
+            spinbox.setMaximum(hi)
         self.doubleSpinBox_param_vbeg.setValue(vmin)
         self.doubleSpinBox_param_vend.setValue(vmax)
 
@@ -1593,11 +1881,7 @@ class SimpleMaskGUI(QMainWindow, Ui):
         try:
             self.sm.compute_partition(**kwargs)
             self.statusbar.showMessage("New partition is generated.", 1000)
-            dynamic_map_index = 4
-            if self.plot_index.currentIndex() == dynamic_map_index:
-                self._on_plot_index_changed(dynamic_map_index)
-            else:
-                self.plot_index.setCurrentIndex(dynamic_map_index)
+            self._show_channel("dqmap_partition")
         except Exception:
             traceback.print_exc()
         finally:
