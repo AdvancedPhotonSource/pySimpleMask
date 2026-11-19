@@ -46,14 +46,14 @@ class _AnalysisStub:
         self.datas = []
 
 
-def _run_spec(monkeypatch, platform):
+def _run_spec(monkeypatch, platform, analysis=_AnalysisStub):
     monkeypatch.setattr(sys, "platform", platform)
     exe_recorder = _Recorder()
     bundle_recorder = _Recorder()
     collect_recorder = _Recorder()
     namespace = {
         "SPECPATH": str(REPO_ROOT),
-        "Analysis": _AnalysisStub,
+        "Analysis": analysis,
         "PYZ": lambda *a, **k: object(),
         "EXE": exe_recorder,
         "BUNDLE": bundle_recorder,
@@ -96,3 +96,18 @@ def test_linux_branch_unchanged_uses_collect(monkeypatch):
     assert len(exe_rec.calls) == 1
     assert len(collect_rec.calls) == 1
     assert len(bundle_rec.calls) == 0
+
+
+def test_bundle_leaves_out_the_web_app(monkeypatch):
+    captured = {}
+
+    def analysis(*args, **kwargs):
+        captured.update(kwargs)
+        return _AnalysisStub()
+
+    _run_spec(monkeypatch, "linux", analysis=analysis)
+
+    # cli.py imports pysimplemask.web; the packaged app starts in main_gui
+    # and never goes through it, so it must not be forced into the bundle.
+    assert "pysimplemask.cli" not in captured["hiddenimports"]
+    assert {"pysimplemask.web", "dash", "plotly", "flask"} <= set(captured["excludes"])

@@ -73,8 +73,8 @@ a = Analysis(
         'pysimplemask.gui.view.ui_mask',
         'pysimplemask.gui.view.widgets',
         'pysimplemask.gui.view.compile_ui',
-        # cli
-        'pysimplemask.cli',
+        # pysimplemask.cli is left out on purpose: the entrypoint starts
+        # main_gui directly, and cli.py imports the web app.
     ],
     hookspath=[],
     hooksconfig={},
@@ -85,6 +85,12 @@ a = Analysis(
         'setuptools',
         'pip',
         'wheel',
+        # The desktop app is the Qt GUI plus core only. A build environment
+        # that also has the "web" extra installed must not ship the web app.
+        'pysimplemask.web',
+        'dash',
+        'plotly',
+        'flask',
     ],
     noarchive=False,
     optimize=0,

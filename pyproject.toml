@@ -29,7 +29,6 @@ dependencies = [
   "hdf5plugin",
   "scikit-image",
   "matplotlib",
-  "astropy",
   "imagecodecs",
   "tifffile",
 ]

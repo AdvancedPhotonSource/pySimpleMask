@@ -76,7 +76,11 @@ module structure.
 - All `pysimplemask.gui.*` modules (PySide6 + pyqtgraph)
 - `mask.ui` (Qt Designer source) and `logo.svg` (branding)
 - Implicit dependencies: numpy, scipy, h5py, scikit-image, matplotlib,
-  pyqtgraph, PySide6, tifffile, astropy, imagecodecs
+  pyqtgraph, PySide6, tifffile, imagecodecs
+
+The web app is **not** packaged: the spec excludes `pysimplemask.web`, `dash`,
+`plotly` and `flask`, so a build environment that has the `web` extra installed
+still produces a GUI-plus-core bundle.
 
 ---
 
